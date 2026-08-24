@@ -47,10 +47,23 @@ public struct Track: Sendable, Equatable {
     /// literal `1` there (`player:1452`); D12 lets a zip pass the ordinal of the
     /// directory the file came out of instead. It is a *fallback* and not an
     /// override — a tag always wins over the directory it sits in.
-    public init(url: URL, raw: RawMetadata, discFallback: Int = 1) {
+    /// `numberFromFilename` is the CD-only rescue at `player:1454`, and it is
+    /// CD-only on purpose. A mounted audio CD carries no tags whatsoever, so
+    /// every row would be 9999 and nothing §4 later learns about the disc could
+    /// be written back — CD-Text and MusicBrainz both answer in track numbers.
+    /// The number is right there in the name macOS gives the file
+    /// (`1 Audio Track.aiff`), because macOS put it there. Nowhere else is a
+    /// filename allowed to decide anything: `01 - Robot Stop.flac` in a folder
+    /// keeps its 9999 and gets ordered by the natural filename sort instead,
+    /// which is §3.1's rule and is not negotiable.
+    public init(url: URL, raw: RawMetadata, discFallback: Int = 1, numberFromFilename: Bool = false)
+    {
         self.url = url
         self.duration = Track.roundedUp(raw.duration ?? 0)
-        self.number = Track.number(from: raw.track) ?? Track.noNumber
+        let tagged = Track.number(from: raw.track)
+        self.number =
+            tagged ?? (numberFromFilename ? Track.leadingNumber(of: url.lastPathComponent) : nil)
+            ?? Track.noNumber
         self.disc = Track.number(from: raw.disc) ?? discFallback
         // `${title:-$(basename "$f")}` — the basename *with* its extension,
         // which is what the script falls back to and what you would rather see
@@ -79,6 +92,19 @@ public struct Track: Sendable, Equatable {
         // A tag of forty digits is not a track number. Refusing it is the same
         // answer as refusing `A3`, and for the same reason.
         return Int(head)
+    }
+
+    /// `lead=${lead%%[!0-9]*}` — the digits the name starts with, and nothing
+    /// else. `1 Audio Track.aiff` is track 1; `Audio Track.aiff` is nothing, and
+    /// nothing is what it stays.
+    ///
+    /// Base ten, stated for the same reason as `number(from:)`: bash reads a
+    /// leading zero as octal, and the script's own `printf '%04d'` would refuse
+    /// `08` outright if a CDDA volume ever numbered its files that way. None do.
+    public static func leadingNumber(of filename: String) -> Int? {
+        let digits = filename.prefix { $0.isASCII && $0.isNumber }
+        guard !digits.isEmpty else { return nil }
+        return Int(digits)
     }
 
     /// A tab or a newline inside a tag is rare and entirely possible, and it

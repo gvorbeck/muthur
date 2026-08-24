@@ -66,6 +66,7 @@ public struct Record: Sendable {
         directory: URL,
         sourceLabel: String,
         discsFromSubdirectories: Bool = false,
+        numbersFromFilenames: Bool = false,
         reader: any MetadataReader = ChainedMetadataReader.standard(),
         progress: (@Sendable (Progress) -> Void)? = nil
     ) async throws -> Record {
@@ -95,7 +96,12 @@ public struct Record: Sendable {
             }
 
             let folder = url.deletingLastPathComponent().standardizedFileURL.path
-            tracks.append(Track(url: url, raw: raw, discFallback: discs[folder] ?? 1))
+            tracks.append(
+                Track(
+                    url: url, raw: raw, discFallback: discs[folder] ?? 1,
+                    numberFromFilename: numbersFromFilenames
+                )
+            )
 
             // Album, album artist and year come from the first file that
             // carries each, independently — a folder whose first track is

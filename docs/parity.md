@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All thirteen are settled; §16
+  the reasoning and the decision it came from. All twenty are settled; §16
   lists them together so a difference from `player` is never later mistaken for
   a porting mistake.
 
@@ -22,6 +22,12 @@ Three kinds of entry:
 read, a folder with nothing in its tags. §18 is the open list: things in the
 script that are not obviously either a feature or a bug, each needing an answer
 before the code that would inherit it gets written. Neither is a checklist.
+
+**§19 is.** It is the one section written to be worked through rather than read:
+everything §4 does that a machine with an empty drive can only test structurally,
+and what to do with a disc in the drive to prove each of it. Nothing else in this
+document assumes you have read it, and it does not assume you have read anything
+else.
 
 Line numbers are against the source as it stands today. Where a behaviour spans
 a comment and the code it explains, both are cited — the comment is usually the
@@ -31,26 +37,37 @@ part worth porting.
 
 ## Status
 
-**57 of 258 boxes.** §5, §5.1, §5.2 and §5.3 are done whole — nineteen boxes,
-none held back — and D14 takes one of §17's with them, the only durable
-consequence an outage used to have. §2, §2.1 and §2.2 are done bar five: three
+**84 of 263 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+§5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
+takes one of §17's with them, the only durable consequence an outage used to
+have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
+those are the same box in different clothes — the command that runs a tool
+against a drive there is no drive for. §2, §2.1 and §2.2 are done bar five: three
 that need an exit path to hang off, and two that need the source layer. §3 and
-§3.1 are done bar the CD-only filename rescue, and the two boxes in §1.4 say what
-counts as audio and how deep to look for it. Every other entry in this document
-should be read as outstanding.
+§3.1 are done whole, the CD-only filename rescue included. Every other entry in
+this document should be read as outstanding.
 
-**Where a fresh session picks up.** The domain layer has three of its six folders
+**Where a fresh session picks up.** The domain layer has four of its six folders
 in it and no app calls any of them. The next piece is §1 — the source layer,
 which is what opens a folder, a zip or a disc and hands the result to §3. It is
 also what unblocks the two §2.2 boxes below (a zip's provenance has to reach
 `Record.read` before D12 can ever fire outside a test), the three §2 teardown
-boxes (which need something with an exit path), and the one thing §5 is currently
-handed rather than finding for itself — the release MBID, which comes off a disc
-in §4.3 and lets the sleeve skip the name search entirely.
+boxes (which need something with an exit path), and the two things §4 and §5
+currently hand to nobody: the release MBID that comes off a disc in §4.3 and lets
+the sleeve skip the name search entirely, and `TitleSource` itself, which is the
+only one of §4's four sources nothing stamps — `tags` is what a folder or a zip
+gets, and there is nothing yet that knows a source is a folder.
+
+**§1.3 is deliberately not written.** Disc detection wants the drive present, by
+your call; §19 is the list it gets written against.
 
 **§18.4** came due while §5 was being written and is answered — **D14**: the
 `.none` marker is written only when something at the far end actually replied.
-The other ten open items in §18 still belong to §4 and later.
+**§18.1, §18.6, §18.7 and §18.11** came due together before §4 was written and
+are answered as **D16–D19**; §18.6 and §18.7 land in §1, which is still ahead.
+**§18.18** is new and deliberately left open — where the table of contents comes
+off the drive is a question to answer with the drive plugged in. Seven open
+items remain in §18.
 
 What has landed:
 
@@ -80,11 +97,22 @@ What has landed:
   `EmbeddedPictureReader`, `SleeveTransport` — so every rule here is tested
   without a network and most of them without a decoder. `MUTHUR.userAgent` is one
   string, set in one place, used by every request the program makes (§4.3).
-- 175 tests, `swift test --package-path MUTHURKit`.
-- Not in it: the **CD-only** filename-digit rescue (`player:1454`), which
-  belongs with §1.3 and §4 rather than ahead of them; and the three §2 boxes
-  that are about *when* teardown runs rather than what it does — those need the
-  app's exit path, and there is no app yet.
+- **§4, §4.1, §4.2, §4.3, §4.4 — where the titles came from.**
+  `MUTHURKit/Sources/MUTHURKit/Disc/`. `TableOfContents` is the disc ID, computed
+  here and checked against `libdiscid` as an offline oracle (**D15** — the
+  script's is wrong); `CDRecordTOC` reads a `cdrecord -toc` listing into one;
+  `CDText` is §4.2's parser and the quote rule that keeps `Don't Stop Me Now`
+  whole; `MusicBrainzDisc` is the lookup, over the same `SleeveTransport` seam §5
+  uses, so it is tested without a network; `DiscTitles` is the chain, and it
+  reports which of the four sources answered along with the disc ID and the
+  release MBID it picked up on the way. `OpticalDrive` and `Tooling` are the two
+  files nothing in the suite touches — they run `cdrecord`, `cdda2wav` and
+  `drutil`, and none of that can be exercised without a drive.
+- 254 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
+  on a machine with nothing in the drive — that is §19, and it is the list of
+  what is still unproven rather than untested.
+- Not in it: the three §2 boxes that are about *when* teardown runs rather than
+  what it does — those need the app's exit path, and there is no app yet.
 
 Two things about §3 worth knowing before §4 is written:
 
@@ -101,8 +129,9 @@ What is still the empty frame:
 
 - `MUTHURKit/` — the headless package, one folder per section here: `Record/`
   §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Shelf/` §8, `Resume/`
-  §7. `Record/`, `Scratch/` and `Sleeve/` have the above in them; the other three
-  are empty. It is a package
+  §7. `Record/`, `Scratch/`, `Sleeve/` and `Disc/` have the above in them —
+  `Disc/` holds §4 but not §1.3 — and `Shelf/` and `Resume/` are empty. It is a
+  package
   and not a folder inside the app target so that these suites run without
   standing up an app, and so that nothing in here can import SwiftUI by
   accident — the moment it can, parity stops being testable in isolation.
@@ -118,7 +147,7 @@ Scripts/install.sh                      # a real bundle in ~/Applications
 ```
 
 Against `spec.md`'s build order: step 1 — this document — is done. Step 2, the
-domain layer, is under way: §3, §2 and §5 are the first of it. Nothing in §9–§12 or §14 is
+domain layer, is under way: §3, §2, §5 and §4 are the first of it. Nothing in §9–§12 or §14 is
 reachable until step 4, and §16 D8 is a constraint on the UI when it arrives,
 not work that can be started early.
 
@@ -151,6 +180,15 @@ few hundred bytes and nothing in the repository. Nothing in §5's suites touches
 the network: `SleeveTransport` is a protocol, and the stub records what it was
 asked so that "asks nothing at all" can be a test rather than a hope.
 
+§4's disc IDs are a fifth kind, and the one that could not be invented at all:
+three tables of contents and the IDs `libdiscid` gives them, produced by
+`Scripts/discid-oracle.c` and pasted into the suite. Checking this arithmetic
+against the same arithmetic written twice would prove nothing; the reference
+implementation is the point, and `discid_put()` needs no drive, which is what
+makes it usable on a machine with an empty tray. §19's suite is a sixth: it reads
+a real listing off a real disc, and every test in it skips itself when the
+material is not there.
+
 ---
 
 ## 1. Sources
@@ -182,6 +220,13 @@ asked so that "asks nothing at all" can be a test rather than a hope.
       the drive it is almost certainly what you came to play (`player:1018`).
 - [ ] Per-row detail column: `N tracks · in the drive`, `<du -h> · zip`,
       `N tracks · folder`.
+- [ ] **Changed from bash (D18).** The disc's count is the same count every other
+      row uses, not `ls | grep -ic '\.aiff\?'` (`player:1019`). A CDDA mount is
+      AIFF today and the grep is right today; it is right by coincidence, and the
+      row it is wrong in is the one offering you the disc — `0 tracks · in the
+      drive` beside a disc that plays perfectly reads as a broken drive. One
+      counter for all three source kinds, which is also the shape D7 gave the
+      other two.
 - [ ] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
 - [ ] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
 - [ ] A folder is offered only if it contains audio (`player:1039`).
@@ -213,6 +258,26 @@ asked so that "asks nothing at all" can be a test rather than a hope.
 - [ ] Fallback: a `/Volumes` entry whose listing contains `Audio Track`, or ≥ 2
       `.aif`/`.aiff` files — only once `drutil` has confirmed media
       (`player:1002`).
+- [ ] **Changed from bash (D17).** The shape test above stays exactly as it is
+      and is **gated on the device**: `drutil status` prints the media's device
+      node on the same line as its type — `Type: CD-R   Name: /dev/disk8`
+      (`burncd:322`) — so a `/Volumes` entry whose backing device is not the node
+      drutil named is not the disc, whatever its listing looks like. Two AIFFs is
+      not evidence of a CD; a drive of field recordings is exactly that, and the
+      cost of getting it wrong is not a missing feature but a *wrong* one — the
+      external volume is announced as being in the drive, and then §4's CD-Text
+      and MusicBrainz answers, which are about the disc, are written over its
+      tracks (`player:1009`). Where drutil names no device, fall back to the
+      script's ordered scan: degraded, not refused, per §17.
+- [ ] **`drutil` runs before anything opens the device.** `cdrecord -checkdrive`
+      and `-prcap` — and any libdiscid read — open the drive *exclusively*, and
+      for as long as that lasts macOS lets go of the media, so `drutil` then
+      reports `No Media Inserted` about a disc that never moved, and keeps
+      reporting it until something spins the drive back up (`burncd:278`).
+      Ask drutil first, keep the answer, and never let a device read run ahead of
+      it. Not in `player` — `burncd` is where this was learned — but it is the
+      same ordering the first box argues for on entirely different grounds, which
+      is a good sign about both.
 - [ ] No ripping step. The mounted CDDA volume is played as it stands
       (`player:1371`).
 - [ ] A data disc is correctly ignored: it is not a `cddafs` mount
@@ -357,11 +422,15 @@ The single most load-bearing piece of hard-won reasoning in the program.
       *siblings* (§18.17), a file whose own `disc` tag did not say takes the
       ordinal of the directory it is in. A tag always wins over the directory it
       sits in, and nothing is read off what the directory is *called*. → §2.2
-- [ ] **CD only:** with no track tag, the number comes off the leading digits of
+- [x] **CD only:** with no track tag, the number comes off the leading digits of
       the filename macOS gave it (`1 Audio Track.aiff`). This matters more than
       ordering — CD-Text and MusicBrainz both answer in track numbers, and
       without it every one of them would be applied to the wrong row, because a
       plain sort puts track 10 between 1 and 2 (`player:1454`, `player:1459`).
+      `Record.read(numbersFromFilenames:)`, off by default and passed `true` by
+      exactly one caller-to-be: the disc source. Nowhere else does a filename
+      decide anything, which is the whole reason it is a parameter and not a
+      fallback in `Track`.
 - [x] Tab, newline and CR are flattened to a space in every text tag, once, on
       the way in — a newline bends the frame the width code works to keep square,
       and a tab is the separator every record in the resume file is split on
@@ -439,33 +508,40 @@ got**. A track list is only as good as its source, which is why it is on screen
 rather than in a log (README, `player:2054`).
 
 - [ ] `tags` — embedded metadata. The normal case, and the only source a folder
-      or a zip ever has (`player:1417`).
-- [ ] `CD-Text` — read off the disc's lead-in (`player:2251`).
-- [ ] `MusicBrainz` — looked up by disc ID (`player:2253`).
-- [ ] `track numbers` — nothing could say (`player:2237`), and the panel says
+      or a zip ever has (`player:1417`). *The only one of the four nothing
+      stamps yet: it is what a source that is not a disc gets, and there is no
+      source layer to stamp it. §1.*
+- [x] `CD-Text` — read off the disc's lead-in (`player:2251`).
+- [x] `MusicBrainz` — looked up by disc ID (`player:2253`).
+- [x] `track numbers` — nothing could say (`player:2237`), and the panel says
       `no titles on this disc` (`player:2254`).
 
 ### 4.1 CD default
 
-- [ ] Before anything is asked, every title matching `*Audio Track*` becomes
+- [x] Before anything is asked, every title matching `*Audio Track*` becomes
       `Track %02d` from its track number, so a failure below still leaves a tidy
-      list rather than filenames (`player:2240`).
-- [ ] Album falls back to the volume name — the basename of the mount point
+      list rather than filenames (`player:2240`). Matched in the two casings the
+      script lists and no others — matching case-insensitively would be a wider
+      net than the script casts, and this is not the place to widen one.
+- [x] Album falls back to the volume name — the basename of the mount point
       (`player:2248`).
 
 ### 4.2 CD-Text
 
 - [ ] `cdda2wav dev=… -J -v titles`, falling back to `cdrecord dev=… -toc -v`
-      (`player:2070`).
-- [ ] Both printed shapes are matched: `Track  1 title: 'X' from 'Y'` and
+      (`player:2070`). *Written, never run — see §19.* The fallback is on the
+      script's own condition: the first tool's output not containing `title`.
+- [x] Both printed shapes are matched: `Track  1 title: 'X' from 'Y'` and
       `Track  1 title: 'X'`. **The quote that ends a value is the one before
       ` from '` or the one at the end of the line — not simply the next one
       along.** Matching to the next one along cuts `Don't Stop Me Now` down to
       `Don`, and there is no way to tell that from a disc that really is called
-      that (`player:2058`).
-- [ ] A title that does not match a known shape leaves the tidy `Track 07`
+      that (`player:2058`). Implemented as the backwards search the greedy
+      `\(.*\)` in the script's sed is, so the rule is the same rule and not an
+      approximation of it.
+- [x] A title that does not match a known shape leaves the tidy `Track 07`
       alone rather than blanking it (`player:2092`).
-- [ ] **An album title on its own does not count as CD-Text.** Returning success
+- [x] **An album title on its own does not count as CD-Text.** Returning success
       for one would stamp `CD-Text` on the faceplate over a column of bare track
       numbers *and* rob the disc of the MusicBrainz lookup that could have named
       them. Album/artist found this way stay put either way; MusicBrainz
@@ -473,16 +549,37 @@ rather than in a log (README, `player:2054`).
 
 ### 4.3 MusicBrainz
 
-- [ ] Disc ID to spec: SHA-1 over first track, last track, lead-out offset and
+- [x] Disc ID to spec: SHA-1 over first track, last track, lead-out offset and
       all 99 track offsets as uppercase hex; base64; then `+/=` → `._-`
       (`player:2123`, `player:2163`). Offsets are TOC frames plus the 150-frame
       pre-gap.
       It fingerprints the *pressing*, which is why it tells the 1984 CD from the
-      2011 remaster with the bonus tracks. **`libdiscid` replaces the cdrecord
-      TOC parse; the resulting ID must match.**
-- [ ] Lookup `…/ws/2/discid/<id>?fmt=json&inc=recordings+artist-credits`
+      2011 remaster with the bonus tracks. **The script's is wrong and this one
+      is not — D15.** `libdiscid` is here as the *oracle* rather than as the
+      implementation: `discid_put()` computes an ID from a table of contents with
+      no drive in the machine, so the three tables in `DiscIDTests` carry the IDs
+      the reference implementation gives them, and the arithmetic is checked
+      against somebody else's rather than against itself. `Scripts/discid-oracle.c`
+      is how they were produced; it is not built by the package and nothing links
+      `libdiscid`, so a fresh clone still compiles with no brew formula
+      installed. **Where the TOC itself comes from is still open — §18.18.**
+- [x] The `cdrecord -toc` listing is read into that table: `track: N lba: X`
+      lines and the `track:lout` lead-out, first lead-out wins (`head -1`,
+      `player:2141`), and a negative LBA is allowed because a hidden track in the
+      pre-gap is addressed backwards from track one — the guard against negatives
+      runs *after* the +150, not before it (`player:2150`).
+- [x] **Changed from bash (D20).** A gap in the track numbering — track 4 absent
+      from the listing — is refused rather than filled with a zero. The script
+      writes a literal `0` into the missing slot (`player:2156`), and zero is a
+      real offset: it produces a plausible disc ID for a disc that does not
+      exist, and the lookup then misses silently, which is indistinguishable from
+      a disc nobody has submitted. A Red Book disc numbers its tracks
+      consecutively, so this is a listing that has been misread rather than a
+      disc; the cheaper of the two ways to be wrong is to have no fingerprint
+      rather than a confident wrong one.
+- [x] Lookup `…/ws/2/discid/<id>?fmt=json&inc=recordings+artist-credits`
       (`player:2181`).
-- [ ] **The User-Agent is not optional and not decoration.** MusicBrainz requires
+- [x] **The User-Agent is not optional and not decoration.** MusicBrainz requires
       an identifying one and blocks generic ones; the script sends
       `player/1.0 ( https://github.com/gvorbeck )` on **all three** requests it
       makes — the release search (`player:1827`), the Cover Art Archive fetch
@@ -490,36 +587,49 @@ rather than in a log (README, `player:2054`).
       app's own name and version and a URL that resolves —
       `MUTHUR/<version> ( <contact url> )`. One string, set once, used by every
       request the app makes.
-- [ ] **Timeouts are per-endpoint and deliberately different:** disc ID 12s
+- [x] **Timeouts are per-endpoint and deliberately different:** disc ID 12s
       (`player:2180`), release search 15s (`player:1827`), cover art 25s
       (`player:1915`). The cover gets the longest because it is a redirect chain
       to an Internet Archive node and nothing is waiting on it (§5); the disc ID
       gets the shortest because the panel is.
-- [ ] Nothing is retried on a **timeout**, only on an empty answer, and only for
+- [x] Nothing is retried on a **timeout**, only on an empty answer, and only for
       the searches — see §5.3 and §5.2. The disc-ID lookup is asked exactly once
       (`player:2180`): it either resolves or the track numbers stay.
-- [ ] **Take the medium matching the disc ID that was asked about**, not every
+- [x] **Take the medium matching the disc ID that was asked about**, not every
       medium on the release. A release is one entry per disc in the box, so
       taking them all concatenates disc two's track list onto disc one's
       (`player:2194`, `player:2201`).
-- [ ] A release with one medium and no disc IDs listed is still that medium —
+- [x] A release with one medium and no disc IDs listed is still that medium —
       a single-disc answer is worth taking on its own (`player:2204`,
       `player:2206`).
-- [ ] Release title, artist credit and date overwrite album/artist/year when
+- [x] Release title, artist credit and date overwrite album/artist/year when
       present — and only when present, so a lookup that answers with half an
       answer does not blank the other half (`player:2213`).
-- [ ] Titles are written **through the track-number → row lookup**, and the
-      source is only stamped `MusicBrainz` if at least one title actually landed
-      (`player:2223`, `player:2228`). An answer with an empty track list is a
+- [x] Titles are written **through the track-number → row lookup**, and the
+      source is stamped `MusicBrainz` only if the answer carried a track list at
+      all (`player:2223`, `player:2228`). An answer with an empty track list is a
       failure, not a success with nothing in it.
-- [ ] The release MBID is kept for the sleeve — a disc ID resolves to one
+
+      *Correction to this document, not a change to the code.* It said "if at
+      least one title actually **landed**", which is what CD-Text does
+      (`player:2106`) and not what this does. The script's counter moves before
+      the row lookup (`player:2223`), so a disc whose titles all come back for
+      track numbers this record does not have is still stamped `MusicBrainz` over
+      a column of untouched `Track 01`s. **Offered, not landed.** The asymmetry
+      between the two sources is real and it is `player`'s; ported as found,
+      because it cannot arise on a disc whose track numbers came off the same
+      disc, and the wording here was the mistake.
+- [x] The release MBID is kept for the sleeve — a disc ID resolves to one
       release exactly, which is the strongest identification anything here ever
-      gets (`player:2190`, `player:2193`).
-- [ ] Every failure — no network, an unsubmitted disc, a rate limit, malformed
+      gets (`player:2190`, `player:2193`). Carried out on `DiscTitles.Outcome`,
+      and kept even when the lookup then names no tracks — a release MBID is
+      still the strongest thing §5 will ever be handed. Nothing joins the two
+      yet; that is §1's wiring.
+- [x] Every failure — no network, an unsubmitted disc, a rate limit, malformed
       JSON — means the same thing: the track numbers stay and the panel says so
       (`player:2171`). There is no error, no retry prompt and no diagnostic; the
       one place any of this is ever reported is `--check` (§11).
-- [ ] Skipped entirely under `--no-mb` / `PLAYER_MB=0` (`player:2176`), and with
+- [x] Skipped entirely under `--no-mb` / `PLAYER_MB=0` (`player:2176`), and with
       no `curl` (`player:2177`) or no `jq` (`player:2186`, `player:2210`) — all
       three land in the same place as a failed lookup.
 
@@ -528,30 +638,35 @@ rather than in a log (README, `player:2054`).
 Handled, but thinly, and the thin parts are worth knowing before they are
 rebuilt.
 
-- [ ] **A disc in the drive is one disc.** The medium is picked out of the
+- [x] **A disc in the drive is one disc.** The medium is picked out of the
       release by the disc ID that asked the question, so disc two of a box set
       gets disc two's titles (`player:2194`, `player:2201`). Bracketed and
       indexed rather than `select`-piped, because one medium carries several disc
       IDs for the same pressing and `select` would emit it once per ID
       (`player:2198`).
-- [ ] **A folder or zip holding a whole set is one album.** `find` reads at
+- [x] **A folder or zip holding a whole set is one album.** `find` reads at
       unlimited depth (`player:1492`), so `Album/CD1/` and `Album/CD2/` come back
       as one record, ordered disc-then-track by `DISCNOS`/`TRKNOS`
       (`player:1509`). This is right: a two-CD album is an album, the album meter
       shows the whole thing in proportion, and gapless carries across the
       boundary. It is also the case D7 fixed in the picker (§1.2) — the count
       used to stop at depth 1 and so reported such a folder as empty.
-- [ ] **Disc numbers are the only thing separating the two halves.** A rip whose
+- [x] **Disc numbers are the only thing separating the two halves.** A rip whose
       `CD2` files carry no disc tag lands every one of them on disc 1 and
       interleaves the two discs by track number. Untagged is untagged; the script
       does not infer a disc number from a directory name and neither should this.
-      Flagged in §18 rather than fixed.
-- [ ] **`.releases[0]` is arbitrary.** Album, artist, date and the release MBID
+      Was §18.14 — **resolved as D12**: still nothing off a directory's *name*,
+      but a zip whose audio lives in sibling directories has those directories as
+      its discs. The behaviour described here is what a *folder* source still
+      does, and deliberately.
+- [x] **`.releases[0]` is arbitrary.** Album, artist, date and the release MBID
       all come off the first release in the answer (`player:2187`), while only
       the *medium* is chosen by disc ID. A disc ID that resolves to several
       releases — a reissue sharing a pressing, which is the common case for a
       box set — therefore takes its album name and its cover-art key from
-      whichever one MusicBrainz listed first. §18.
+      whichever one MusicBrainz listed first. Was §18.1 — **resolved as D16**:
+      the release that *contains* the matched medium is the release, and the
+      whole answer comes out of that one entry.
 
 ---
 
@@ -1247,12 +1362,16 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-fourteen are settled. Recorded here with the answer so that a departure from the
+twenty are settled. Recorded here with the answer so that a departure from the
 script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
 and §18.15, raised there and closed here. D13 came out of writing §2, and D14
-answers §18.4, which came due while §5 was being written.
+answers §18.4, which came due while §5 was being written. D15–D19 were all taken
+before §4 was written: **D15** is the one place this port knowingly does
+something the script does not because the script is *wrong* rather than because a
+decision went the other way; **D16–D19** answer §18.1, §18.6, §18.7 and §18.11.
+**D20** came out of writing §4.3.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1431,6 +1550,117 @@ Not a divergence anybody will see except as an absence: the only visible
 difference is a sleeve turning up on the play after the network comes back,
 where the script would have gone without one until the marker expired.
 
+**D15 — the disc ID. To the published standard, not to the script.** → §4.3
+
+The one place this port knowingly departs from `player` on the grounds that the
+script is *wrong*, rather than because a design decision went the other way.
+
+`mb_discid` builds the 804-character hex string correctly (`player:2154`) and
+then hashes the wrong thing:
+
+```
+printf '%s' "$hex" | xxd -r -p | shasum -b | cut -d' ' -f1 | xxd -r -p | base64 | tr '+/=' '._-'
+```
+
+The *second* `xxd -r -p` is right and necessary — base64 wants the raw twenty-byte
+digest. The first one is not. It turns the 804 ASCII hex characters back into 402
+raw bytes and hashes those; MusicBrainz, and `libdiscid`, SHA-1 the *characters*.
+Verified against `discid_put()` on a fifteen-track table:
+
+```
+libdiscid            J5VseIjrnogYWZ4AcpTUXMOI.XY-
+the standard method  J5VseIjrnogYWZ4AcpTUXMOI.XY-   ✅
+the script's method  cuvuraCP7pjIplh8tHDVqV2hHCU-   ❌
+```
+
+So `mb_lookup` has almost certainly never resolved a disc — every lookup asks
+about a fingerprint no catalogue has ever seen. §4.3's deliberately silent
+failure path is exactly what would let that go unnoticed for years: no network,
+an unsubmitted disc, a rate limit and a scrambled ID all print the same
+`track numbers` on the panel.
+
+The two halves of parity could not both be honoured either — §4.3 already said
+"Disc ID **to spec**" and "the resulting ID must match", so the document
+described the intent while the code diverged from it. The intent wins.
+
+`libdiscid` is the oracle rather than the implementation. `discid_put()` computes
+an ID from a table of contents with no drive in the machine, which is what makes
+this testable today: `DiscIDTests` carries three tables and the IDs the reference
+implementation gives them, produced by `Scripts/discid-oracle.c`. The package
+neither builds nor links it — adding a system-library target would make a fresh
+clone need a brew formula before it would compile, for code that cannot run
+without a disc anyway. What the suite pins instead is the thing that went wrong:
+**804 characters go into the digest**, not 402 bytes.
+
+**D16 — which release the answer comes from. The one holding the medium.**
+→ §18.1, §4.3, §4.4
+
+The script picks the *medium* by disc ID (`player:2201`) and then takes title,
+artist, date and the release MBID from `.releases[0]` (`player:2187`), so on a
+multi-release answer the two halves of one lookup come out of two different rows:
+the track list is this pressing, the album name and the cover-art key are
+whichever pressing MusicBrainz happened to list first. That is not a trade-off,
+it is an inconsistency — and the cover is where it bites, because a wrong MBID
+fetches a *real* sleeve for the wrong pressing and draws it confidently, which is
+the failure §5.3 already argues is worse than none.
+
+So: the first release containing a medium whose `discs` list carries our ID, and
+the whole answer comes from that release. Where none does, `[0]` still, with the
+existing "one medium and no disc IDs listed is still that medium" rule untouched.
+On a single-release answer — the common case — `[0]` *is* the matching release
+and nothing changes. It differs only where the script was arbitrary.
+
+**D17 — `find_cd`'s `/Volumes` fallback. Gated on the device, not on the
+listing.** → §18.6, §1.3
+
+`burncd` is what makes this a fact rather than a better heuristic: `drutil
+status` prints the media's device node on the same line as its type — `Type: CD-R
+Name: /dev/disk8` (`burncd:322`). So the volume that is the disc is the one whose
+backing device is the node drutil named, and no amount of AIFF-counting should be
+able to overrule that. The shape test stays exactly as `player` has it; it is now
+a second condition rather than the only one. Where drutil names no device, fall
+back to the script's ordered scan — degraded, not refused, per §17.
+
+What it prevents: an AIFF-heavy external volume being announced as "in the
+drive", and then CD-Text and MusicBrainz answers *about the disc* being written
+over its tracks (`player:1009`). Nothing here is written yet — §1.3 is, by your
+call, waiting for the drive to be connected.
+
+**D18 — the picker's disc row. Counted like every other row.** → §18.7, §1.2
+
+`ls | grep -ic '\.aiff\?'` (`player:1019`) instead of `audio_count`, which was
+right there. A CDDA mount is AIFF, so the common case is byte-identical and this
+is right by coincidence; the row it is wrong in is the one offering you the disc,
+and `0 tracks · in the drive` beside a disc that plays perfectly reads as a
+broken drive. One definition of what counts as audio, used everywhere — which is
+also the shape D7 gave the picker's other two row kinds, one line further up.
+
+**D19 — CD-Text's album on a CD-Text failure. Kept.** → §18.11, §4.2
+
+`cd_text` sets `ALBUM` and `ALBUM_ARTIST` and *then* returns failure when no
+track title landed (`player:2082`, `player:2111`), and its comment says it means
+to. So an album name can come from CD-Text under a faceplate reading `MusicBrainz`
+or `track numbers`. Kept, because the label is answering a narrower question than
+it looks like it is answering: **it says where the track list came from**, which
+is the column you are looking at and the one whose provenance you would ever
+doubt. The album is one field, it is right, and throwing it away to make a label
+tidier would be trading information for consistency.
+
+Written down here rather than left in the code, because it looks like a bug every
+time anyone reads it — which is the actual cost, and the only thing this decision
+can do about it.
+
+**D20 — a gap in the `cdrecord -toc` listing. Refused, not zero-filled.** → §4.3
+
+The script writes a literal `0` into a track slot the listing did not mention
+(`player:2156`). Zero is a real offset: the result is a well-formed disc ID for a
+disc that does not exist, the lookup misses, and the miss is indistinguishable
+from a disc nobody has submitted. A Red Book disc numbers its tracks
+consecutively, so a gap is a listing that has been misread rather than a disc
+that is shaped that way — and of the two ways to be wrong, having no fingerprint
+is much cheaper than having a confident wrong one. Came out of writing the parser
+rather than out of reading the script.
+
 ---
 
 ## 17. When something is missing
@@ -1539,13 +1769,22 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Seven are answered — **2, 4, 12, 14, 15, 16 and 17**, each marked below and
-carrying the decision it became. The other ten are still open. **17** is the odd
-one: not a `player` behaviour at all, but a hole in a decision made here, which
-is why it was answered as fast as it was found.
+Eleven are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16 and 17**, each marked
+below and carrying the decision it became. The other seven are still open. **17**
+and **18** are the odd ones: not `player` behaviours at all, but holes in
+decisions made here, which is why 17 was answered as fast as it was found.
 
-All ten of the open ones describe code that has not been written yet. **4** was
+Six of the seven open ones describe code that has not been written yet. **4** was
 the exception until §5 landed around it and forced the question; it is now D14.
+**1**, **6**, **7** and **11** came due together when §4 was about to be written
+and were answered before a line of it existed — 1 and 11 in the code that landed,
+6 and 7 in §1, which is still ahead.
+
+**5** is the other exception, and it needs an answer it has not been asked for:
+§2's port has one unpacker rather than `unzip` and `tar`, and it already prints
+`nothing came out of <source>` on the empty-archive path (`Unpacker`,
+`player:1308`). The asymmetry the item is about cannot occur here, so the
+question is only whether that was the right half to keep. It reads as yes.
 
 **Probably bugs, but they have shipped and been lived with:**
 
@@ -1554,7 +1793,8 @@ the exception until §5 landed around it and forced the question; it is now D14.
    is correctly chosen by disc ID (`player:2187`, `player:2201`). A disc ID
    resolving to several releases takes its name — and its cover-art key — from
    whichever MusicBrainz happened to list first. *Match on the release that
-   actually contains the matched medium, or keep `[0]`?*
+   actually contains the matched medium, or keep `[0]`?* — **Resolved: the
+   release that holds the medium, and the whole answer comes from it. → D16.**
 
 2. **`row_of_track` returns a file index, not a row** (`player:1521`). Harmless
    today because only CD sources call it and a CDDA volume's scan order is its
@@ -1581,11 +1821,13 @@ the exception until §5 landed around it and forced the question; it is now D14.
 6. **`find_cd`'s `/Volumes` fallback accepts any volume with two AIFFs** once
    `drutil` reports media (`player:1009`). With a disc in the drive and an
    AIFF-heavy external volume mounted, the external one can win, and then CD-Text
-   and MusicBrainz answers about the disc get applied to it.
+   and MusicBrainz answers about the disc get applied to it. — **Resolved: keep
+   the shape test, gate it on the device node `drutil` names. → D17.**
 
 7. **The picker counts CD tracks with `ls | grep -ic '\.aiff\?'`**
    (`player:1019`) rather than `audio_count`. A CDDA mount presenting anything
-   other than AIFF would show `0 tracks` in the row it is being offered by.
+   other than AIFF would show `0 tracks` in the row it is being offered by. —
+   **Resolved: one counter, the same one every other row uses. → D18.**
 
 8. **`time-pos` parsing matches only non-negative numbers** (`player:2758`), so a
    negative position — which mpv can briefly report across a seek — leaves the
@@ -1609,7 +1851,8 @@ the exception until §5 landed around it and forced the question; it is now D14.
     is that an album title can come from CD-Text while the faceplate reads
     `MusicBrainz` or `track numbers`. Defensible — the source label is about the
     *track list*, which is what you are looking at — but it does mean the label
-    is not the whole truth. *Keep as-is?* I would.
+    is not the whole truth. *Keep as-is?* I would. — **Resolved: kept, and what
+    the label means is now written down. → D19.**
 
 12. **The `READING · N%` counter includes files it skipped** (`player:1445`).
     Cosmetic and arguably correct: it is progress through the folder, not
@@ -1669,3 +1912,235 @@ the exception until §5 landed around it and forced the question; it is now D14.
     disc is one forty-minute mix has that disc discarded, which drops the count
     to one, which switches the rule off and interleaves the set. A threshold
     that fails harder than the bug it fixes is a bad trade.
+
+**Found afterwards, while writing §4 — and not in `player` at all:**
+
+18. **Where the table of contents comes off the drive.** §4.3 said "`libdiscid`
+    replaces the cdrecord TOC parse", and half of that has happened: the disc ID
+    is computed here, in Swift, checked against `libdiscid` as an oracle (D15).
+    The other half — *reading the TOC off the device* — is still `cdrecord -toc`,
+    parsed the way the script parses it, because that is code that can be written
+    and tested against a real listing with no drive in the machine, and
+    `discid_read()` is not. Both routes exist and they answer the same question.
+
+    `discid_read()` is one call, it is the reference implementation of the thing
+    it is reading, and it removes a text-parsing step from the one input the
+    fingerprint is computed from. Against that: it is a system-library target in
+    `Package.swift`, so a fresh clone stops compiling until somebody has run
+    `brew install libdiscid`, and it opens the device exclusively — which puts it
+    squarely behind the `drutil`-first ordering §1.3 now carries (`burncd:278`).
+    `cdrecord` is already a dependency of §4.2's CD-Text path, already spoken
+    here, and needs nothing installed to *build*.
+
+    *Ask libdiscid for the TOC, or keep the `cdrecord -toc` parse and keep
+    libdiscid as a test-time oracle?* Left open deliberately: it is a question
+    about the drive, and it should be answered with the drive plugged in, next to
+    §1.3. Nothing in §4 changes either way — both produce a
+    `TableOfContents`, and everything downstream of that is settled and tested.
+
+---
+
+## 19. With a disc in the drive
+
+Everything in §4 is written and tested. Some of it is tested against tables and
+listings typed out by hand, which proves the arithmetic and proves nothing about
+this drive, this machine's cdrtools, or a disc you actually own. This is that
+list, and it is meant to be worked through top to bottom with the drive
+connected. Nothing below assumes you have read the rest of this document.
+
+**What you need.** The drive, and three discs if you can find them: an ordinary
+album that is certainly in MusicBrainz, one that carries CD-Text (most do not —
+that is a fact about the discs and not a fault), and one disc out of a multi-disc
+set. For step 10, an external drive with a couple of AIFF files on it, plugged in
+at the same time.
+
+**One rule that governs the whole session, before anything else.** `cdrecord
+-checkdrive`, `cdrecord -prcap` and any libdiscid device read **open the drive
+exclusively**, and for as long as that lasts macOS lets go of the media —
+`drutil` will then report `No Media Inserted` about a disc that has not moved,
+and keep reporting it (`burncd:278`). So: **`drutil` first, always.** If it
+starts denying there is a disc, eject and reinsert rather than believing it.
+
+---
+
+### 1. What `drutil` says
+
+```bash
+drutil status
+```
+
+- [ ] There is a `Type:` line and it names the media.
+- [ ] **The same line carries `Name: /dev/diskN`.** This is the whole premise of
+      D17 — the device node is how a `/Volumes` entry is confirmed to *be* the
+      disc rather than merely to look like one. `burncd:322` says it is printed
+      there; confirm it on this machine and write down the exact spacing, because
+      the parse has not been written yet.
+
+Proves: §1.3's first box, and D17's premise. Closes nothing on its own.
+
+### 2. Which device node cdrtools answers on
+
+```bash
+for d in IODVDServices/0 IODVDServices/1 IOCompactDiscServices/0 IOCompactDiscServices/1 IOBDServices/0 IOBDServices/1; do echo "== $d"; cdrecord -checkdrive dev=$d 2>&1 | head -3; done
+```
+
+- [ ] Exactly one of them answers cleanly. Write it down — every command below
+      wants it as `dev=…`.
+- [ ] It is the same list `OpticalDrive.detect` walks, in the same order, so if
+      one answers here `detect()` finds it. If none does, `detect()` falls back
+      to `IODVDServices/0` and reports `answered: false`; `MUTHUR_DEV` overrides
+      the lot.
+
+Proves: `OpticalDrive.detect`, which the suite cannot touch at all. Run step 1
+before this one — this is the command that makes `drutil` start lying.
+
+### 3. The mount
+
+```bash
+mount | grep cddafs
+ls /Volumes
+```
+
+- [ ] The disc appears as a `cddafs` mount, and the volume name survives the
+      split on the **first** ` on ` and the **last** ` (` — a disc called
+      `Live (Remastered)` is the case that rule exists for (§1.3).
+- [ ] The listing is `N Audio Track.aiff` files, numbered from 1.
+
+Proves: §1.3's primary detection, which is not written yet — this is the step
+that tells you what to write it against.
+
+### 4. The table of contents
+
+```bash
+cdrecord dev=<device> -toc > /tmp/muthur-toc.txt
+```
+
+- [ ] It contains `track:   1 lba: …` lines and one `track:lout lba: …` line.
+      That is exactly what `CDRecordTOC.parse` reads. Anything else is the
+      interesting outcome — keep the file.
+
+### 5. What libdiscid makes of the same disc
+
+```bash
+cc Scripts/discid-oracle.c -I"$(brew --prefix libdiscid)/include" -L"$(brew --prefix libdiscid)/lib" -ldiscid -o /tmp/discid-oracle
+/tmp/discid-oracle read
+```
+
+- [ ] It prints `id`, `toc` and a submission URL. Write the id down.
+
+### 6. The two against each other — **the step this section exists for**
+
+```bash
+MUTHUR_TEST_TOC=/tmp/muthur-toc.txt MUTHUR_TEST_DISCID=<id from step 5> swift test --package-path MUTHURKit
+```
+
+Two tests in `§19 — with a disc in the drive` stop being skipped and run.
+
+- [ ] `A real cdrecord listing reads as a table` — this drive's listing parses.
+- [ ] `The fingerprint off a real disc is the one libdiscid gets` — our
+      arithmetic over a table read by one tool equals the reference
+      implementation reading the same disc for itself.
+
+Proves: **D15 on real material**, and `CDRecordTOC` against a real listing rather
+than a transcribed one. Until this passes, the disc ID is right about three
+tables that were typed into a test file.
+
+### 7. That MusicBrainz actually resolves it
+
+```bash
+curl -s -H 'User-Agent: MUTHUR/1.0 ( https://github.com/gvorbeck )' "https://musicbrainz.org/ws/2/discid/<id>?fmt=json&inc=recordings+artist-credits" | head -c 400
+```
+
+- [ ] A `releases` list comes back, and it is the album you are holding.
+
+This is the one that has almost certainly never worked in `player` — D15 is the
+reason, and this is where it stops being a claim about a hash. A disc genuinely
+nobody has submitted answers with a 404 and that is a real answer too; try
+another disc before concluding anything.
+
+### 8. CD-Text
+
+```bash
+cdda2wav dev=<device> -J -v titles > /tmp/muthur-cdtext.txt 2>&1
+grep -c title /tmp/muthur-cdtext.txt
+```
+
+- [ ] If that file has no `title` in it, this is the fallback the app takes and
+      you should capture it instead:
+      `cdrecord dev=<device> -toc -v > /tmp/muthur-cdtext.txt 2>&1`
+- [ ] Whichever tool answered, note **which shape it printed** —
+      `Track  1 title: 'X' from 'Y'` or `Track  1 title: 'X'`. Both are handled;
+      what is unproven is which one this machine produces.
+
+```bash
+MUTHUR_TEST_CDTEXT=/tmp/muthur-cdtext.txt swift test --package-path MUTHURKit
+```
+
+- [ ] `Every title line this disc printed produced a title` — every line the tool
+      printed came out as a title. The failure this is looking for is silent by
+      design: a shape the parser does not know leaves the tidy `Track 07` in
+      place, so a disc whose CD-Text is printed some other way is
+      indistinguishable from a disc with none.
+- [ ] Best case, one of the titles has an apostrophe in it. That is the case the
+      quote rule exists for — `Don't Stop Me Now` cut down to `Don` is the bug —
+      and it is tested against both printed shapes already, but never against a
+      disc.
+
+Proves: §4.2's first box, `DriveCDText`'s invocation and its fallback condition.
+
+### 9. The mounted volume, end to end
+
+```bash
+MUTHUR_TEST_CDDA="/Volumes/Audio CD" swift test --package-path MUTHURKit
+```
+
+- [ ] `A mounted CDDA volume numbers its own tracks` — the numbers come off the
+      filenames macOS wrote, and none of them is 9999. Without this every title
+      §4 learns lands on the wrong row, which is why the rescue exists (§3).
+- [ ] `§4.1 leaves a tidy list on a disc nothing can name` — `1 Audio Track.aiff`
+      becomes `Track 01`, and the album falls back to the volume name.
+
+Proves: §3's CD-only rescue and §4.1 against filenames this program did not
+invent.
+
+### 10. Two volumes at once — D17
+
+With a disc in the drive **and** an external volume holding two or more AIFFs
+mounted:
+
+- [ ] `drutil status` names the disc's device node, and it is not the external
+      volume's.
+- [ ] Confirm the external volume is the kind of thing that would win under the
+      script's rule (`player:1009`): a `/Volumes` entry with two AIFFs in it.
+
+Proves D17 is worth doing. Nothing implements it yet — §1.3 is unwritten by your
+call, and this is the material it needs.
+
+### 11. A disc out of a set — D16 and §4.4
+
+- [ ] Its disc ID resolves (step 7) to a release, and the track list that comes
+      back is **that disc's**, not disc one's.
+- [ ] If the answer carries more than one release, the album name and the release
+      MBID come from the same entry the track list did. That is D16; on a
+      single-release answer nothing distinguishes it from the script.
+
+### 12. Nothing in the drive, and a data disc
+
+- [ ] With the drive empty: `drutil status` says so, and nothing is offered.
+- [ ] With a data CD or a DVD in it: no `cddafs` mount, no `Audio Track` in the
+      listing, and it simply is not offered. There is no "this is a data disc"
+      message and there should not be one — from here it is a mounted volume like
+      any other (§1.3).
+
+---
+
+### What is still unproven after all of this
+
+- **§1.3 in full.** Disc detection is not written. Steps 1, 3, 10 and 12 are what
+  it gets written against.
+- **§18.18** — whether libdiscid reads the TOC in the shipping app or the
+  `cdrecord -toc` parse stays. Step 5 is one half of that comparison and step 4
+  is the other; answer it here rather than from a description.
+- **Anything above the domain layer.** There is no app, no picker and no panel,
+  so "the panel says which source you got" is a value on a struct and not
+  something you can look at.

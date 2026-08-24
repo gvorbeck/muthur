@@ -1,0 +1,76 @@
+import Foundation
+
+/// Finding and running the cdrtools binaries. §4.2, §4.3.
+///
+/// Everything the disc chain needs from outside is a command-line tool the user
+/// installed with Homebrew, and every one of them is optional: `command -v … ||
+/// return 1` is the first line of both `cd_text` and `mb_discid`. A machine
+/// without them has a smaller set of things it can tell you about a disc, which
+/// is §11's business to report and nothing else's to complain about.
+enum Tooling {
+
+    /// Where the tool is, or nil.
+    ///
+    /// A GUI app is not launched from a shell and does not inherit a shell's
+    /// PATH, so the two places Homebrew puts things have to be named outright —
+    /// the same problem, and the same answer, as `FFprobeMetadataReader`.
+    static func locate(
+        _ name: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL? {
+        var directories = (environment["PATH"] ?? "").split(separator: ":").map(String.init)
+        directories.append(contentsOf: ["/opt/homebrew/bin", "/usr/local/bin"])
+        for directory in directories where !directory.isEmpty {
+            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(name)
+            if FileManager.default.isExecutableFile(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    /// Run it and take everything it said.
+    ///
+    /// **stdout and stderr together**, because cdrtools prints the interesting
+    /// half of its output to stderr and the script captures both (`2>&1` at
+    /// `player:2072`). Reading CD-Text off a drive that decides it has nothing
+    /// to say is a blank capture either way.
+    ///
+    /// The status comes back beside the output because the two callers want
+    /// different things from it: `-checkdrive` is asked *whether it worked* and
+    /// nothing else, while every capture of CD-Text or a TOC is `|| true` in the
+    /// script — cdrecord routinely exits non-zero having printed exactly what
+    /// was wanted.
+    struct Result {
+        let output: String
+        let status: Int32
+    }
+
+    static func output(_ executable: URL, _ arguments: [String]) -> String? {
+        run(executable, arguments)?.output
+    }
+
+    static func run(_ executable: URL, _ arguments: [String]) -> Result? {
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        process.standardInput = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        // Read before waiting: a full pipe with nobody reading it is a process
+        // that never exits.
+        let data = try? pipe.fileHandleForReading.readToEnd()
+        process.waitUntilExit()
+        guard let data else { return nil }
+        return Result(
+            output: String(decoding: data, as: UTF8.self),
+            status: process.terminationStatus
+        )
+    }
+}
