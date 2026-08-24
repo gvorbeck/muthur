@@ -14,9 +14,9 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All eight are settled; §16 lists
-  them together so a difference from `player` is never later mistaken for a
-  porting mistake.
+  the reasoning and the decision it came from. All thirteen are settled; §16
+  lists them together so a difference from `player` is never later mistaken for
+  a porting mistake.
 
 §17 collects the degraded paths — no network, no drive, a disc that will not
 read, a folder with nothing in its tags. §18 is the open list: things in the
@@ -31,17 +31,81 @@ part worth porting.
 
 ## Status
 
-**0 of 256 boxes.** Nothing below has been ported. No entry in this document
-should be read as anything but outstanding.
+**57 of 258 boxes.** §5, §5.1, §5.2 and §5.3 are done whole — nineteen boxes,
+none held back — and D14 takes one of §17's with them, the only durable
+consequence an outage used to have. §2, §2.1 and §2.2 are done bar five: three
+that need an exit path to hang off, and two that need the source layer. §3 and
+§3.1 are done bar the CD-only filename rescue, and the two boxes in §1.4 say what
+counts as audio and how deep to look for it. Every other entry in this document
+should be read as outstanding.
 
-What exists is the empty frame the domain layer gets written into:
+**Where a fresh session picks up.** The domain layer has three of its six folders
+in it and no app calls any of them. The next piece is §1 — the source layer,
+which is what opens a folder, a zip or a disc and hands the result to §3. It is
+also what unblocks the two §2.2 boxes below (a zip's provenance has to reach
+`Record.read` before D12 can ever fire outside a test), the three §2 teardown
+boxes (which need something with an exit path), and the one thing §5 is currently
+handed rather than finding for itself — the release MBID, which comes off a disc
+in §4.3 and lets the sleeve skip the name search entirely.
+
+**§18.4** came due while §5 was being written and is answered — **D14**: the
+`.none` marker is written only when something at the far end actually replied.
+The other ten open items in §18 still belong to §4 and later.
+
+What has landed:
+
+- **§3, §3.1 — metadata and ordering.** `MUTHURKit/Sources/MUTHURKit/Record/`.
+  A scan in byte order, one read per file, §3's rules applied to what comes
+  back, and the running order those rules dictate. Reading is a protocol with
+  two implementations — AVFoundation first, `ffprobe` behind it for what
+  AVFoundation will not open — and a third that reads nothing, which is how
+  every degenerate case in §3.1 is tested without a folder of audio.
+- **§2, §2.1, §2.2 — the scratch directory and zips.**
+  `MUTHURKit/Sources/MUTHURKit/Scratch/`. `Scratch` is the session directory:
+  where it goes, the pid that claims it, the startup sweep that clears what no
+  process answers for, and a teardown that refuses any path this process did not
+  create. `ZipArchive` reads the central directory, `Inflate` runs raw DEFLATE
+  through `Compression`, and `Unpacker` is §2.1's fit check and §2.2's failure
+  taxonomy over the two of them. Nothing shells out to `tar` or `unzip`, which
+  is the whole of §2.2's first box.
+- **§5, §5.1, §5.2, §5.3 — the sleeve.**
+  `MUTHURKit/Sources/MUTHURKit/Sleeve/`. `SleeveResolver` is the resolution
+  order: beside the record, then the tags, then the archive — and `resolve`
+  touches the filesystem and returns, handing back a `Task` that **nothing
+  joins**, so no panel can accidentally come to depend on the network.
+  `BesideTheRecord` is the ranking and the thrown-out names; `SleeveCache` is the
+  key, the `.part` file and the `.none` marker, and deliberately offers no way to
+  delete an entry, which is the whole of §5.2's last box. `ReleaseSearch` is
+  §5.3's ladder. Three seams are protocols with stubs — `PictureProbe`,
+  `EmbeddedPictureReader`, `SleeveTransport` — so every rule here is tested
+  without a network and most of them without a decoder. `MUTHUR.userAgent` is one
+  string, set in one place, used by every request the program makes (§4.3).
+- 175 tests, `swift test --package-path MUTHURKit`.
+- Not in it: the **CD-only** filename-digit rescue (`player:1454`), which
+  belongs with §1.3 and §4 rather than ahead of them; and the three §2 boxes
+  that are about *when* teardown runs rather than what it does — those need the
+  app's exit path, and there is no app yet.
+
+Two things about §3 worth knowing before §4 is written:
+
+- `row_of_track` is `Record.fileIndex(ofTrackNumber:)`, and there is a separate
+  `row(ofTrackNumber:)` for the one caller that wants a position in the running
+  order. That split is D9, closing §18.2; the behaviour is the script's either
+  way — first match wins.
+- AVFoundation reports an MP4's *trimmed* duration where `ffprobe` reports the
+  container's — 134.4 against 134.466757 on the same file. Both round up to the
+  same second, so §3 cannot tell them apart, and AVFoundation's is the one a
+  gapless engine will actually play. Noted here because §6 can tell them apart.
+
+What is still the empty frame:
 
 - `MUTHURKit/` — the headless package, one folder per section here: `Record/`
   §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Shelf/` §8, `Resume/`
-  §7. All six are empty. It is a package and not a folder inside the app target
-  so that these suites run without standing up an app, and so that nothing in
-  here can import SwiftUI by accident — the moment it can, parity stops being
-  testable in isolation.
+  §7. `Record/`, `Scratch/` and `Sleeve/` have the above in them; the other three
+  are empty. It is a package
+  and not a folder inside the app target so that these suites run without
+  standing up an app, and so that nothing in here can import SwiftUI by
+  accident — the moment it can, parity stops being testable in isolation.
 - `MUTHUR.xcodeproj` and `App/` — the app target. Ad-hoc signed, links
   `MUTHURKit`, opens one empty window, does nothing else.
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
@@ -54,9 +118,38 @@ Scripts/install.sh                      # a real bundle in ~/Applications
 ```
 
 Against `spec.md`'s build order: step 1 — this document — is done. Step 2, the
-domain layer, is where the first box gets ticked. Nothing in §9–§12 or §14 is
+domain layer, is under way: §3, §2 and §5 are the first of it. Nothing in §9–§12 or §14 is
 reachable until step 4, and §16 D8 is a constraint on the UI when it arrives,
 not work that can be started early.
+
+**Test material.** The suites come in two tiers. The rules tier runs anywhere —
+zero-byte files with the right names, and a stub reader that says what the tags
+would have been, which is the only way to build a folder with an octal-looking
+track number and a tab in its title. The material tier reads real files that
+are already on this machine and copies none of them into the tree: `~/Music`
+for tagged MP4s, the zips in `~/Downloads` for AIFF rips with no tags at all.
+Point them somewhere else with `MUTHUR_TEST_MUSIC` and `MUTHUR_TEST_ZIPS`;
+where the material is absent those tests skip rather than fail, so a fresh
+clone is green. No audio is ever committed.
+
+D12's cases are a third kind again: paths and nothing else. The rule reads the
+*shape* of a scan, so its tests hand it lists of paths that never existed —
+which is the only practical way to pin the layouts §18.17 is about, including
+the two that are the same archive and must both be declined.
+
+§2.2's archives are neither tier: they are written by a zip writer that exists
+only in the test target, because every case worth testing is one no honest
+archiver will make for you — a declared size that runs past the end of the file,
+a CRC that does not match its own bytes, an encryption flag over plaintext, a
+name that climbs out of the folder it was handed.
+
+§5's pictures are a fourth kind: real JPEGs, generated in the test target at
+whatever size the rule under test needs. The 200 px floor and "can a decoder read
+these bytes" are both questions about actual image data, and a folder of
+zero-byte files cannot ask either — but a 3000×3000 scan made on the spot costs a
+few hundred bytes and nothing in the repository. Nothing in §5's suites touches
+the network: `SleeveTransport` is a protocol, and the stub records what it was
+asked so that "asks nothing at all" can be a test rather than a hope.
 
 ---
 
@@ -130,9 +223,9 @@ not work that can be started early.
 
 ### 1.4 Accepted audio
 
-- [ ] `.aif .aiff .flac .mp3 .ogg .opus .wav .m4a .wma .ape .alac .mp4`,
+- [x] `.aif .aiff .flac .mp3 .ogg .opus .wav .m4a .wma .ape .alac .mp4`,
       case-insensitive (`player:1046`). Mixed formats in one album are fine.
-- [ ] Audio is found at **any depth** under the album directory — a zip
+- [x] Audio is found at **any depth** under the album directory — a zip
       unpacking to `Album/CD1/…` alongside `Album/scans/…` is read whole and the
       non-audio ignored (`player:1422`).
 
@@ -142,22 +235,25 @@ not work that can be started early.
 
 The single most load-bearing piece of hard-won reasoning in the program.
 
-- [ ] Zips unpack to `~/.cache/player/work` (`XDG_CACHE_HOME` respected,
-      `PLAYER_WORK` overrides). **Not `$TMPDIR`**: macOS is entitled to reclaim
+- [x] Zips unpack to `~/.cache/muthur/work` (`XDG_CACHE_HOME` respected,
+      `MUTHUR_WORK` overrides, `PLAYER_WORK` read behind it — D13).
+      **Not `$TMPDIR`**: macOS is entitled to reclaim
       `/var/folders/…/T` whenever the disk gets tight and does not care that
       something is playing out of it. A six-hour record on a tight volume can
       simply cease to exist halfway through, and what that looks like from here
       is every remaining track failing to open inside two seconds and the album
       quietly "finishing" (`player:170`).
-- [ ] If the cache directory cannot be made or written, `$TMPDIR` is taken
+- [x] If the cache directory cannot be made or written, `$TMPDIR` is taken
       anyway. A read-only or missing home is a reason to accept the worse
       directory, not a reason to refuse to play a record (`player:196`).
-- [ ] One `mktemp -d "$base/player.XXXXXX"` per session. `rm -rf` is only ever
-      pointed at a path this process created (`player:241`).
-- [ ] The session's pid is written to `$WORK/pid` **before anything else goes
+- [x] One `mktemp -d "$base/muthur.XXXXXX"` per session — a private directory,
+      `0700`, and the name retried until it is one nothing else holds. The
+      delete is only ever pointed at a path this process created, and refuses
+      anything else outright rather than trying and failing (`player:241`).
+- [x] The session's pid is written to `$WORK/pid` **before anything else goes
       in** — until that file exists the directory is indistinguishable from an
       abandoned one (`player:243`).
-- [ ] Startup sweep of `$base/player.*` (`player:207`):
+- [x] Startup sweep of `$base/muthur.*` (`player:207`):
   - a directory whose pid does not answer `kill -0` is removed;
   - a directory with no pid file is removed only if older than 5 minutes, so a
     player starting this instant is not swept by one starting the next;
@@ -165,93 +261,127 @@ The single most load-bearing piece of hard-won reasoning in the program.
   - Two decks at once is allowed, and the second must not delete the first
     one's album out from under it.
 - [ ] Teardown on **every** exit path — clean quit, `die()`, Ctrl-C, SIGTERM
-      (`player:285`, `player:324`).
+      (`player:285`, `player:324`). `Scratch.tearDown()` exists and is tested;
+      what is missing is anything that *calls* it, which is the app's exit path
+      and has no app yet.
 - [ ] Teardown order: screen first (so a message below lands on a terminal that
       can show it), then the player process, then any background analysis, then
       the directory. Nothing in the handler may be skipped because something
-      earlier in it failed (`player:293`).
-- [ ] `PLAYER_KEEP` set → the directory survives, is marked with a `keep` file so
-      the next session's sweep spares it, and its path is printed to stderr
-      (`player:313`).
-- [ ] The **whole** zip is unpacked, not just the audio, so the cover art comes
+      earlier in it failed (`player:293`). Waits on the same exit path — three
+      of the four things it orders do not exist yet.
+- [ ] `MUTHUR_KEEP` set (or `PLAYER_KEEP` — D13) → the directory survives, is
+      marked with a `keep` file so the next session's sweep spares it, and its
+      path is printed to stderr (`player:313`). The survival and the mark
+      landed; the line to stderr belongs to the exit path above.
+- [x] The **whole** zip is unpacked, not just the audio, so the cover art comes
       along (`player:1181`).
 
 ### 2.1 Fit, before a byte is written
 
-- [ ] Uncompressed size is asked of the archive and compared against free space
+- [x] Uncompressed size is asked of the archive and compared against free space
       **before** unpacking starts. A lossless record is two to three times its
       zip; finding out afterwards means a half-unpacked album and a disk with
-      nothing left on it (`player:1381`).
-- [ ] Headroom margin: 32 MiB (`33554432`). A record that only just fits must not
+      nothing left on it (`player:1381`). The size comes off the central
+      directory, so nothing is decompressed to find it out.
+- [x] Headroom margin: 32 MiB (`33554432`). A record that only just fits must not
       leave the volume at zero — an album is not worth wedging a Mac for.
-- [ ] Failure message names the unpacked size, the free space, and
-      `PLAYER_WORK` as the way out.
+- [x] Failure message names the unpacked size, the free space, and
+      `MUTHUR_WORK` as the way out.
 
 ### 2.2 Unpacking, and its failure taxonomy
 
-- [ ] `bsdtar` (`/usr/bin/tar` on any Mac) is preferred; `unzip` is the fallback.
+- [x] `bsdtar` (`/usr/bin/tar` on any Mac) is preferred; `unzip` is the fallback.
       Apple's `unzip` runs a UTF-8 name through a conversion to the local charset
       first, so a decomposed `ô` — which is how a Mac writes `Hôtel` — comes out
       as two bytes no filesystem will take, and `unzip` reports that as exit 50,
       the same code it uses for a full disk (`player:256`). **On a Swift port
       this is the argument for reading the zip directly rather than shelling out
       to either.** Whatever does the work must take the archive's name bytes as
-      the archive stores them.
-- [ ] Encrypted archives are refused with one sentence, not a prompt. The bash
+      the archive stores them. Neither is shelled out to: the central directory
+      is read directly, stored and deflated entries are inflated through
+      `Compression` (raw DEFLATE, which is what a zip holds), and every name
+      goes to the filesystem as the bytes the archive stored — nothing is
+      normalised, transcoded, or re-encoded on the way. A name that climbs out
+      of the album, or claims to be absolute, is skipped rather than obeyed.
+- [x] Encrypted archives are refused with one sentence, not a prompt. The bash
       version hands `tar` a passphrase it will certainly not accept and `unzip`
       an empty one, purely to turn a hang nobody can see into an error
-      (`player:267`, `player:1339`).
-- [ ] Progress is per entry, driving the loading meter (`player:1290`).
-- [ ] **One bad entry is not a bad album.** A resource fork or a corrupt booklet
+      (`player:267`, `player:1339`). Reading the archive ourselves means the flag
+      in the central directory answers it before a byte is decompressed, and
+      there is nothing left that could hang.
+- [x] Progress is per entry, driving the loading meter (`player:1290`).
+- [x] **One bad entry is not a bad album.** A resource fork or a corrupt booklet
       scan is skipped and the record still plays; something wrong with the
       *archive*, or an archive that yielded nothing, ends it (`player:1298`).
-- [ ] Disk-full is asked of the **disk**, never inferred from an exit code. That
+      An entry that fails its CRC takes its half-written file with it, so the
+      album §3 then reads has nothing truncated in it.
+- [x] Disk-full is asked of the **disk**, never inferred from an exit code. That
       inference is exactly what once put "ran out of room" on a screen with a
-      hundred gigabytes free (`player:1226`, `player:1350`).
-- [ ] Distinct messages for: out of room, encrypted, truncated, not-a-zip,
-      unreadable, source vanished mid-unpack, interrupted (`player:1230`).
+      hundred gigabytes free (`player:1226`, `player:1350`). Every ambiguous
+      failure asks the filesystem the same way: a write that failed is out of
+      room only if the volume says so, and a read that came up short is a
+      truncated archive unless the archive is no longer there.
+- [x] Distinct messages for: out of room, encrypted, truncated, not-a-zip,
+      unreadable, source vanished mid-unpack, interrupted (`player:1230`). Plus
+      two the script also distinguishes: an archive with nothing in it, and one
+      that yielded nothing (`player:1379`, `player:1308`).
+- [ ] **The album knows it came out of a zip.** D12's rule only applies to a zip
+      source, so something has to carry that fact from whatever opened the
+      source to whatever reads the album — the unpacker is the only thing that
+      knows it, and §3 is the only thing that needs it. Nothing carries it today
+      because there is no source layer between them yet (§1).
+- [ ] **D12 is switched on for real zips.** `Record.read` takes
+      `discsFromSubdirectories`, it is implemented and tested, and every caller
+      that passes `true` is a test. The one real caller is the zip path in §1,
+      which is not written; until it is, an actual two-disc zip still
+      interleaves. → D12
 
 ---
 
 ## 3. Metadata and ordering
 
-- [ ] One metadata read per file for: duration, track, disc, title, album,
+- [x] One metadata read per file for: duration, track, disc, title, album,
       artist, album_artist/albumartist, date/year/originalyear (`player:1426`,
       `player:1439`).
-- [ ] A file whose duration cannot be read is **skipped, not fatal** — one bad
+- [x] A file whose duration cannot be read is **skipped, not fatal** — one bad
       track in a zip, and eleven good ones are still an album worth playing
       (`player:1443`, `player:1445`).
-- [ ] `track`/`disc` tags of the form `3/12` keep the part before the slash.
+- [x] `track`/`disc` tags of the form `3/12` keep the part before the slash.
       Leading zeros are base ten, not octal — taggers write `08`, and bash reads
       a leading zero as octal and rejects `08` outright (`player:1447`,
       `player:1451`, `player:1466`).
-- [ ] Missing track number → sort key 9999, so tagged files keep their album
+- [x] Missing track number → sort key 9999, so tagged files keep their album
       order regardless (`player:1451`).
-- [ ] Missing disc number → 1 (`player:1452`).
+- [x] Missing disc number → 1 (`player:1452`), except under D12: where a zip's
+      audio was found in more than one directory, and those directories are
+      *siblings* (§18.17), a file whose own `disc` tag did not say takes the
+      ordinal of the directory it is in. A tag always wins over the directory it
+      sits in, and nothing is read off what the directory is *called*. → §2.2
 - [ ] **CD only:** with no track tag, the number comes off the leading digits of
       the filename macOS gave it (`1 Audio Track.aiff`). This matters more than
       ordering — CD-Text and MusicBrainz both answer in track numbers, and
       without it every one of them would be applied to the wrong row, because a
       plain sort puts track 10 between 1 and 2 (`player:1454`, `player:1459`).
-- [ ] Tab, newline and CR are flattened to a space in every text tag, once, on
+- [x] Tab, newline and CR are flattened to a space in every text tag, once, on
       the way in — a newline bends the frame the width code works to keep square,
       and a tab is the separator every record in the resume file is split on
       (`player:1468`, `player:1472`).
-- [ ] Durations round **up**, never down: a track that ends before the meter says
+- [x] Durations round **up**, never down: a track that ends before the meter says
       it does looks like a skip (`player:1478`, `player:1480`).
-- [ ] Title falls back to the file's basename (`player:1481`).
-- [ ] Album/album-artist/year are taken from the first file that carries them.
+- [x] Title falls back to the file's basename (`player:1481`).
+- [x] Album/album-artist/year are taken from the first file that carries them.
       Album artist falls back to artist. Year is truncated at the first `-`, so a
       full ISO stamp becomes a year (`player:1485`, `player:1486`,
       `player:1488`).
-- [ ] Album falls back to the folder or zip's own name minus `.zip`, which is
-      nearly always the album (`player:1496`, `player:1497`).
-- [ ] **Ordering: disc, then track number, then a natural (`sort -V`) filename
+- [x] Album falls back to the folder or zip's own name minus `.zip`, which is
+      nearly always the album (`player:1496`, `player:1497`). The suffix comes
+      off whatever case it is written in — §18.16, resolved.
+- [x] **Ordering: disc, then track number, then a natural (`sort -V`) filename
       sort** — the last of the three only ever separating files that share key
       9999 (`player:1501`, `player:1504`). Order comes from metadata, not
       filenames. Not negotiable.
-- [ ] `TOTAL` is the sum of the ordered durations (`player:1513`).
-- [ ] Nothing may index a track number as `n - 1`. CD-Text and MusicBrainz answer
+- [x] `TOTAL` is the sum of the ordered durations (`player:1513`).
+- [x] Nothing may index a track number as `n - 1`. CD-Text and MusicBrainz answer
       in track numbers while the arrays are in scan order, and those are not the
       same thing — there is an explicit track-number → row lookup
       (`player:1518`, `player:1521`).
@@ -261,22 +391,26 @@ The single most load-bearing piece of hard-won reasoning in the program.
 Written out in full because the interesting cases are the degenerate ones, and
 they are three lines of `sort` flags in the script.
 
-- [ ] **Scan order** is `find "$AUDIO_DIR" -type f \( "${AUDIO_GLOB[@]}" \) |
+- [x] **Scan order** is `find "$AUDIO_DIR" -type f \( "${AUDIO_GLOB[@]}" \) |
       LC_ALL=C sort` — byte order, not locale order, so the scan is the same on
       any machine (`player:1492`). The pre-count that drives the loading meter
       uses the identical `find` (`player:1422`), and zero results is
       `no audio in <source>` (`player:1423`).
-- [ ] **The sort key is a three-column tab-separated record**, `%04d` disc,
+- [x] **The sort key is a three-column tab-separated record**, `%04d` disc,
       `%04d` track, basename, then the scan index as the payload
       (`player:1509`). Sorted `-k1,1n -k2,2n -k3,3V` and `cut -f4`
       (`player:1511`). The `%04d` matters: it is what makes the *fallback*
       ordering stable even where the numeric flags are not consulted.
-- [ ] **Missing track numbers** all land on 9999 together and are then separated
+      *Ported as the comparison it stands for; the padding has nothing left to
+      do once the numbers are numbers, and where `sort` would have fallen
+      through to comparing the record as text the scan index settles it
+      instead, so reading an album twice gives the same order twice.*
+- [x] **Missing track numbers** all land on 9999 together and are then separated
       among themselves by the natural filename sort — `track2.flac` before
       `track10.flac`, which a plain sort would reverse. Tagged files are
       unaffected, because 9999 sorts after every real track number
       (`player:1451`, `player:1501`).
-- [ ] **Duplicate `(disc, track)`** — two files both tagged track 3, which is
+- [x] **Duplicate `(disc, track)`** — two files both tagged track 3, which is
       what a folder holding `03 Song.flac` and `03 Song (alt take).flac`
       produces — is **not** an error and does not stop anything. The pair falls
       through to the natural basename sort and is ordered by name; the album is
@@ -284,15 +418,15 @@ they are three lines of `sort` flags in the script.
       (`player:1511`). Port this as-is. A record that plays a bonus take twice
       in a row is self-evidently what is happening; a record that refuses to
       play is not.
-- [ ] **`row_of_track` returns the first match**, so with a duplicate track
+- [x] **`row_of_track` returns the first match**, so with a duplicate track
       number the CD-Text or MusicBrainz title for track 3 lands on whichever of
       the two sorted first, and the other keeps whatever it had
       (`player:1521`). See §18 — the function name says "row" and the value is a
       *file index*.
-- [ ] **A file that is unreadable still counts** toward the loading percentage:
+- [x] **A file that is unreadable still counts** toward the loading percentage:
       `n` is incremented on the skip path as well (`player:1445`). "READING ·
       80%" can therefore count files it did not read. Cosmetic; §18.
-- [ ] **Nothing is ever sorted by filename alone.** Where the script has to fall
+- [x] **Nothing is ever sorted by filename alone.** Where the script has to fall
       back that far it is because two files agreed on both numbers, and that is
       already a broken tagging job. Not negotiable, per `spec.md`.
 
@@ -425,89 +559,110 @@ rebuilt.
 
 Resolution order, and it is deliberate (`player:2004`, `player:2005`):
 
-- [ ] **1. A picture beside the record** — searched first and preferred to the
+- [x] **1. A picture beside the record** — searched first and preferred to the
       network, because it is the artwork *this copy* shipped with, where the
       archive can only offer a scan of whichever release the album *name*
       matched, and the name is the weakest thing there is to match on
       (`player:1942`, `player:2020`).
-- [ ] **2. A picture in the tags** — the attached-pic stream. Mapped as "every
+- [x] **2. A picture in the tags** — the attached-pic stream. Mapped as "every
       video stream less the ones that are really video", or a music video sitting
       in the folder has its opening frame pulled out and hung beside the panel as
       a sleeve (`player:1973`, `player:1985`). Copied, not re-encoded — whatever
       was in there at whatever size. Only the first **three** tracks are asked: a
       record that tags its artwork tags it on track one (`player:2025`).
-- [ ] **3. The Cover Art Archive**, in the background, cached (`player:1903`,
+- [x] **3. The Cover Art Archive**, in the background, cached (`player:1903`,
       `player:2035`).
-- [ ] Nothing ever waits for it. No cover, no network, no window — the panel is
+- [x] Nothing ever waits for it. No cover, no network, no window — the panel is
       exactly the panel it would have been (`player:1892`, `player:2035`). The
       fetch is backgrounded and nothing ever joins it; the picture appears when
       it appears, or never, and either way the record is playing.
 
 ### 5.1 Ranking pictures beside the record
 
-- [ ] `find -maxdepth 3` over `jpg jpeg png webp gif bmp tif tiff`
+- [x] `find -maxdepth 3` over `jpg jpeg png webp gif bmp tif tiff`
       (`player:1925`, `player:1951`) — deeper than the picker's scan and
       shallower than playback's, because a sleeve turns up in `Scans/` or
       `Artwork/CD1/` but not at the bottom of an arbitrary tree.
-- [ ] Names folded: separators → spaces, so `front-cover` is a front cover and
+- [x] Names folded: separators → spaces, so `front-cover` is a front cover and
       `discovery` is not a disc (`player:1956`).
-- [ ] **Thrown out, not ranked last:** `back inlay booklet tray obi spine label
+- [x] **Thrown out, not ranked last:** `back inlay booklet tray obi spine label
       matrix inside thumb thumbnail`, and `disc|cd|dvd` with optional digits.
       Drawing one of those confidently beside the panel is worse than the network
       answer it displaced.
-- [ ] Rank 1 exact `cover|front|folder|album|albumart|artwork|sleeve`; rank 2 the
+- [x] Rank 1 exact `cover|front|folder|album|albumart|artwork|sleeve`; rank 2 the
       word `cover`/`front` anywhere as a word; rank 3 the substring; rank 4
       anything else — which is what it takes to find the `Artist - Album.jpg` a
       Bandcamp download leaves you. Ties break on shallowest path
       (`player:1952`, `player:1961`).
-- [ ] Anything under **200 px** on a side is skipped as a thumbnail or a label
+- [x] Anything under **200 px** on a side is skipped as a thumbnail or a label
       logo (`player:1949`). Applies to local files and embedded art, not to the
       archive, which only ever sends one size.
 
 ### 5.2 Validation and caching
 
-- [ ] **Whether a decoder can read the bytes is the only test worth making.** The
+- [x] **Whether a decoder can read the bytes is the only test worth making.** The
       Cover Art Archive redirects to Internet Archive nodes, and a sick one has
       been seen serving an nginx error page under a 200 — labelled
       `image/jpeg`. Neither the status line nor the content type can be believed
-      (`player:1858`).
-- [ ] Cache under `~/.cache/player/art` (`player:2028`, `player:2030`), keyed on
+      (`player:1858`). ImageIO replaces `ffprobe -show_entries
+      stream=width,height` and reads exactly as far — the header. Bytes that are
+      not an image are caught; a JPEG whose header is intact and whose data stops
+      early is not, in either program. Catching that would mean fully decoding
+      every candidate beside the record before the panel's first frame, to cover
+      a case the `.part` file already prevents on our side of the wire.
+- [x] Cache under `~/.cache/player/art` (`player:2028`, `player:2030`) — **ours
+      is `~/.cache/muthur/art`**, following D13 rather than deciding anything
+      new: two programs sharing a cache root is a thing that only ever costs and
+      never pays, and `player` keeps its own. Keyed on
       the release MBID when there is one, otherwise artist+album folded to
       lowercase alphanumerics so the same
       album tagged two slightly different ways lands on one file (`player:1783`).
-- [ ] Downloaded to a `.part` beside the cache entry and moved onto it, so a file
+- [x] Downloaded to a `.part` beside the cache entry and moved onto it, so a file
       in the cache is always a whole one. The part file is named after the album,
       not the process, so a killed fetch leaves one file the next attempt
       overwrites rather than a new one every time (`player:1896`).
-- [ ] Up to 5 candidate releases, each tried **twice** — a first failure is more
+- [x] Up to 5 candidate releases, each tried **twice** — a first failure is more
       often a sick archive node than a missing cover, and the redirect lands
       elsewhere next time (`player:1913`).
-- [ ] A record with no cover is remembered in a `.none` marker, **expiring after
+- [x] A record with no cover is remembered in a `.none` marker, **expiring after
       14 days**, so an album with no scan does not cost two network lookups every
       single time it is played, and a cover uploaded in the meantime still turns
-      up (`player:1879`).
-- [ ] A cache entry that will not decode is one that will not decode next second
+      up (`player:1879`). Fourteen exactly: the script's `find -mtime +14`
+      truncates the age to whole days and so really expires at fifteen, and a day
+      either way of a fortnight is not a behaviour anybody has relied on. **What
+      gets a marker was §18.4, answered by D14** — see the note at the end of
+      §5.3.
+- [x] A cache entry that will not decode is one that will not decode next second
       either — stop asking. Cleared, not deleted: another player may be part way
       through writing it (`player:3162`).
 
 ### 5.3 Searching by name (no disc ID)
 
-- [ ] Quoted-phrase Lucene query, `artist:"…" AND release:"…"`, limit 5. Strict
+- [x] Quoted-phrase Lucene query, `artist:"…" AND release:"…"`, limit 5. Strict
       on purpose: asked for an artist and an album that do not belong together
       the catalogue answers with nothing rather than with its best guess, and a
       wrong cover drawn confidently beside the panel would be worse than none
       (`player:1803`).
-- [ ] Terms are URL-encoded, and quotes are stripped out of them first — they
+- [x] Terms are URL-encoded, and quotes are stripped out of them first — they
       are the syntax that holds the phrase together (`player:1809`).
-- [ ] Asked **twice**, a second apart. An empty answer is at least as often the
+- [x] Asked **twice**, a second apart. An empty answer is at least as often the
       rate limiter or a timed-out search index as it is the catalogue
       (`player:1815`).
-- [ ] Retry ladder for folder-name albums (`player:1842`):
+- [x] Retry ladder for folder-name albums (`player:1842`):
   1. album as tagged;
   2. brackets and parens stripped, underscores collapsed — `Comfort Eagle
      (1998) [FLAC]`, `OK_Computer_(Remastered)`;
   3. `Artist - Album` split, **only** when no album-artist tag stands to
      contradict it.
+
+**§18.4, answered → D14.** The script writes the `.none` marker whatever
+happened, including after an attempt that never reached the network. We write it
+only when something at the far end replied. `ReleaseSearch.Outcome` carries
+`heard` alongside the release IDs, the cover loop sets the same flag on any body
+at all, and a cancelled fetch — which never finished asking — marks nothing.
+Anything that answered counts, including a rate-limit page or an error document:
+those are the catalogue talking, and the retry ladder above is what handles them.
+The distinction is only between *asked* and *could not ask*.
 
 ---
 
@@ -1090,10 +1245,14 @@ looks unfinished rather than left over — see §18.15.
 
 ## 16. Decisions taken
 
-Raised before any code was written, per `CLAUDE.md` — where a decision in
-`player` looks wrong, flag it rather than silently improve it. All eight are
-settled. Recorded here with the answer so that a departure from the script is
-never mistaken later for a porting mistake.
+Raised before the code they touch was written, per `CLAUDE.md` — where a
+decision in `player` looks wrong, flag it rather than silently improve it. All
+fourteen are settled. Recorded here with the answer so that a departure from the
+script is never mistaken later for a porting mistake.
+
+D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
+and §18.15, raised there and closed here. D13 came out of writing §2, and D14
+answers §18.4, which came due while §5 was being written.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1153,6 +1312,125 @@ and that is exactly as far as it should go. The rule:
 This is cheap to reverse in either direction, and worth revisiting only once the
 diagnostics screen exists and can be looked at.
 
+**D9 — `row_of_track`. Intent, not confusion.** → §18.2, §3
+
+The script's function returns a *file index* and is named for a *row*. It is
+right today only because the sole caller is the CD path and a CDDA volume's scan
+order is its track order; the name is what would make the next caller wrong. The
+port keeps the behaviour exactly — first match wins, so a duplicate track number
+sends the incoming title to whichever file sorted first — and splits the name in
+two: `Record.fileIndex(ofTrackNumber:)` for what §4 writes back through, and
+`Record.row(ofTrackNumber:)` for the one caller that genuinely wants a position
+in the running order. Nothing about what the program does changes. What changes
+is that the next person to reach for it gets the one they meant.
+
+**D10 — the `READING · N%` counter. Kept as-is.** → §18.12, §3.1
+
+It counts files it skipped. That is progress through the *folder*, not through
+the album, and the folder is what the meter is measuring: the denominator is the
+pre-count of the same scan, so the percentage is honest about the work being
+done and reaches 100 exactly once. Making it count only the readable files means
+a denominator you cannot know until you have finished, which is a meter that
+jumps. Left alone deliberately, not inherited by accident.
+
+**D11 — `UNTAGGED`. Finished, as derived data.** → §18.15, §15, §10
+
+The flag looks like the start of a notice that was never built, so build the
+notice. But not as a flag: `Record.unnumberedCount` is computed from the rows
+whenever it is asked, because §4 rewrites rows after §3 has read them and a
+remembered boolean would still be describing the album as it arrived. The number
+is also more use than the boolean — "3 of 12 tracks are untitled" is a different
+sentence from "this album has no tags", and the panel can tell which it is
+looking at. The script's variable stays in §15 as vestigial: what is being
+ported is the intention behind it, not the variable.
+
+**D12 — disc numbers. No inference from names; a subdirectory is a disc.**
+→ §18.14, §2.2, §3
+
+Two questions were tangled together and they get opposite answers.
+
+*Parsing a number out of a folder called `CD2`* — no. That is guessing structure
+from a string, which is the exact move the metadata-not-filenames rule exists to
+forbid, and it fails on `Disc Two`, on `bonus`, and on a folder called `CD2` that
+is a track. Nothing is inferred from what a directory is called. Ever.
+
+*Noticing that the audio is in more than one directory* — yes. That is not a
+name, it is the shape of the archive, and a zip whose maker put the audio in two
+folders was telling you something no tag was going to. So: **when a zip's audio
+lives in more than one directory, and those directories are siblings, they are
+the discs** — numbered by the same byte-order scan the files are, and the number
+lands on any file whose own `disc` tag did not say. A tag always wins over the
+directory it sits in — the rule fills the gap the script fills with a literal
+`1`, it does not overrule anything. An archive with one directory in it behaves
+exactly as before.
+
+The sibling requirement is §18.17, and it is what stops a stray file at the top
+of a zip becoming disc one of two. In full: discard any audio directory that has
+another audio directory under it — that one is the thing the discs are *in*, and
+files loose in it fall back to the literal `1`. If two or more directories are
+left and they all share a parent, those are the discs. Anything else is not a
+shape this can read, and nothing is guessed. It is structural rather than a
+threshold, for the same reason nothing is read off a directory's name, and it
+keeps a disc that holds a single forty-minute track.
+
+What it costs: **disc one loose at the root with disc two in a folder is not
+detected.** That layout is byte-for-byte the same archive as one stray file
+beside an album, so there is nothing there to tell them apart. Both fall back to
+disc `1`, which is what the script does with either.
+
+The case this is for is the common one: a two-disc rip with no disc tags at all,
+which used to interleave both discs into disc 1 and put nine track 1s in a row.
+The case it deliberately does not catch is a two-disc rip where every file is
+tagged disc 1 — the tags there are wrong rather than absent, and a tag that is
+present and wrong is not something this can tell from a tag that is present and
+right. Scoped to zips, because that is where it was asked for; folder sources
+read at any depth (D7) and have the identical problem, and extending it there is
+one argument at one call site when somebody wants it.
+
+**Written, not wired up.** The rule lives behind `Record.read`'s
+`discsFromSubdirectories`, which defaults to off, and the only callers passing
+`true` are its tests. Turning it on for a real zip needs two things that do not
+exist: a source layer (§1) to open the zip in the first place, and something to
+carry the fact that it *was* a zip from there to the read. Both are boxes in
+§2.2 now. Until they land, an actual two-disc zip behaves exactly as it did
+before this decision — the tests are the only place the rule has ever run.
+
+**D13 — the scratch root. Its own, not the script's.** → §2
+
+`player` unpacks into `~/.cache/player/work/player.XXXXXX` and sweeps
+`$base/player.*` on the way in. Sharing that base would put two programs' sweeps
+over each other's directories, and the sweep's whole job is deleting things it
+did not create. So MU/TH/UR takes `~/.cache/muthur/work`, makes
+`muthur.XXXXXX`, and sweeps only `muthur.*` — the two can then run at once
+without either being able to reach the other's album, which is exactly the
+guarantee §2's "two decks at once" box asks for, one program further out than the
+script had to think about it. `MUTHUR_WORK` and `MUTHUR_KEEP` are the settings;
+`PLAYER_WORK` and `PLAYER_KEEP` are still read as fallbacks, because somebody
+with those already exported meant them (§13).
+
+**D14 — the `.none` marker. Only for an answer.** → §5.2, §18.4
+
+`art_fetch` writes the fourteen-day "this record has no cover" marker whatever
+happened, including after an attempt where nothing on the machine ever reached
+the network (`player:1921`). The wifi being off once then costs the record its
+sleeve for a fortnight, and the fortnight is the point: the marker exists so a
+record with no scan does not pay two lookups every play, which is a fact about
+the record. "Could not ask" is a fact about the machine, and it is not the same
+fact — it will be false again the next time the album is put on, whereas the
+absent scan will not.
+
+So we mark only when something at the far end replied. Anything it says counts,
+including a rate-limit page or an error document: those are the catalogue
+talking, and §5.3's ask-twice ladder is already what handles them. A cancelled
+fetch never finished asking and marks nothing. `SleeveTransport` had the
+distinction from the start — `.couldNotAsk` is not `.body` — so the change was
+carrying it out through `ReleaseSearch.Outcome.heard` and one guard in
+`SleeveResolver.fetch`.
+
+Not a divergence anybody will see except as an absence: the only visible
+difference is a sleeve turning up on the play after the network comes back,
+where the script would have gone without one until the marker expired.
+
 ---
 
 ## 17. When something is missing
@@ -1171,10 +1449,11 @@ record.** Everything else quietly becomes a worse panel.
       `track numbers`, and the panel says so (`player:2237`, `player:2254`).
 - [ ] A folder plays entirely normally: tags are local, and the only thing lost
       is a cover that was not already beside the record or in the file.
-- [ ] **The one durable consequence: a purely offline art fetch still writes a
-      `.none` marker** (`player:1921`), so an album whose cover was looked for
-      during an outage has no cover for the next **14 days**. Listed under §18 —
-      it is a bug the port should not carry, but it is a change from the script.
+- [x] **The script's one durable consequence — a purely offline art fetch still
+      writes a `.none` marker** (`player:1921`), so an album whose cover was
+      looked for during an outage has no cover for the next **14 days**. Raised
+      as §18.4 and answered: we do not carry it (D14). An outage now costs
+      nothing beyond the play it happened on.
 - [ ] `--check` reports MusicBrainz as reachable tooling, not as reachability
       (`player:410`). Natively it should actually ask.
 
@@ -1255,10 +1534,18 @@ record.** Everything else quietly becomes a worse panel.
 
 ## 18. Unsure whether these are features
 
-Found while reading, and not obviously either intended behaviour or a bug.
-Nothing here has been ported or "fixed" — per `CLAUDE.md`, a decision in `player`
-that looks wrong gets flagged rather than silently improved. Each needs a yes or
-a no before the code it describes gets written.
+Found while reading, and not obviously either intended behaviour or a bug. Per
+`CLAUDE.md`, a decision in `player` that looks wrong gets flagged rather than
+silently improved: each needs a yes or a no before the code it describes gets
+written, and nothing is ported or "fixed" until it has one.
+
+Seven are answered — **2, 4, 12, 14, 15, 16 and 17**, each marked below and
+carrying the decision it became. The other ten are still open. **17** is the odd
+one: not a `player` behaviour at all, but a hole in a decision made here, which
+is why it was answered as fast as it was found.
+
+All ten of the open ones describe code that has not been written yet. **4** was
+the exception until §5 landed around it and forced the question; it is now D14.
 
 **Probably bugs, but they have shipped and been lived with:**
 
@@ -1272,7 +1559,7 @@ a no before the code it describes gets written.
 2. **`row_of_track` returns a file index, not a row** (`player:1521`). Harmless
    today because only CD sources call it and a CDDA volume's scan order is its
    track order. It is wrong for anything else, and the name hides that. *Port the
-   confusion, or port the intent?*
+   confusion, or port the intent?* — **Resolved: the intent. → D9.**
 
 3. **`collection_lookup`: the last duplicate row silently wins.** The END rule
    accepts multiple hits whenever an album artist is present
@@ -1283,8 +1570,8 @@ a no before the code it describes gets written.
 
 4. **`art_fetch` caches "no cover" after a purely offline attempt**
    (`player:1921`). Fourteen days of no sleeve because the wifi was off once.
-   *Distinguish "asked and there is none" from "could not ask"?* My instinct is
-   yes, and it is a two-line change.
+   *Distinguish "asked and there is none" from "could not ask"?* — **Resolved:
+   distinguish them. → D14.**
 
 5. **`unpack_unzip` never checks that anything came out** (`player:1315`), where
    `unpack_tar` has `[ "$n" -gt 0 ] || die "nothing came out of …"`
@@ -1326,7 +1613,7 @@ a no before the code it describes gets written.
 
 12. **The `READING · N%` counter includes files it skipped** (`player:1445`).
     Cosmetic and arguably correct: it is progress through the folder, not
-    progress through the album.
+    progress through the album. — **Resolved: kept as-is. → D10.**
 
 13. **`resume_save` caps the file at 200 entries with `tail -200`**
     (`player:1588`). An undocumented history limit that behaves as a
@@ -1337,11 +1624,48 @@ a no before the code it describes gets written.
     untagged files interleaves into disc 1 (§4.4). The script never claims
     otherwise, and inferring structure from folder names is exactly the kind of
     guess the metadata-not-filenames rule exists to forbid — but a two-disc rip
-    with no disc tags is common enough to ask about.
+    with no disc tags is common enough to ask about. — **Resolved: still nothing
+    from the name, but a zip's subdirectories are its discs. → D12.**
 
 **Genuinely unclear what it is for:**
 
 15. **`UNTAGGED`** is set (`player:1451`) and cleared (`player:1463`) and never
     read. It looks like the beginning of an "this album has no tags" notice on
     the panel that was never finished. Already in §15 as vestigial — but if the
-    notice was the intention, it may be worth having.
+    notice was the intention, it may be worth having. — **Resolved: finish it,
+    as a count computed on demand rather than a flag. → D11.**
+
+**Found afterwards, while writing §3:**
+
+16. **`ALBUM="${SRC_LABEL%.zip}"` matches the suffix exactly** (`player:1497`)
+    while §1.1 accepts a source ending `.ZIP`. A zip named in capitals therefore
+    puts `KMRU - Kin.ZIP` across the top of the panel where every other album
+    shows its name. — **Resolved: fixed. The suffix is stripped without regard to
+    case.** The one argument for keeping it — that a `.zip` at the end of an
+    album's actual title would be eaten — applies just as well to the lowercase
+    form that has shipped for years. There is no album called this, the panel is
+    the only consumer, and a capitalised extension across the top of it reads as
+    the program failing to notice rather than as fidelity.
+
+**Found afterwards, while writing §2 — and not in `player` at all:**
+
+17. **D12 and the stray file at the top of a zip.** A zip holding one loose
+    audio file at its root and the album proper in a subfolder has audio in two
+    directories, so D12 fires: the stray takes disc 1 and the whole album takes
+    disc 2. The rip is one disc and now claims to be two, and the stray plays
+    first. This is not a `player` behaviour — the script has no such rule — it
+    is a hole in D12, found by reading it back rather than by a test. *Guard by
+    requiring every counted directory to be below the top level, or by ignoring
+    a directory holding fewer than N files, or leave it?* — **Resolved: neither
+    of those. The discs have to be siblings. → D12.**
+
+    *Below the top level* fixes this archive by accident: it works only because
+    the stray happens to sit at the root, and moving the whole thing down one
+    level — `Rumours/stray.flac` beside `Rumours/Album/` — brings the bug
+    straight back with both directories below the top level.
+
+    *Fewer than N files* is right more often and wrong worse. It has no
+    principle behind it, and it loses a real record: a two-disc set whose second
+    disc is one forty-minute mix has that disc discarded, which drops the count
+    to one, which switches the rule off and interleaves the set. A threshold
+    that fails harder than the bug it fixes is a bad trade.
