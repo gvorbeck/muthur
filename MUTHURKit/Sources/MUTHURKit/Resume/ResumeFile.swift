@@ -23,11 +23,17 @@ public struct ResumeFile: Sendable {
     ///
     /// `player` and not `muthur`, deliberately, and this is the one place in
     /// the port that shares a file with the script rather than keeping its own
-    /// (compare §5.2's `~/.cache/muthur/art` and D13's scratch root). The
-    /// format is identical in both directions, so a record left half-played in
-    /// the terminal is offered back by the app and the other way round — which
-    /// is either exactly right or exactly wrong, and is §18.19 until it is
-    /// said which.
+    /// (compare §5.2's `~/.cache/muthur/art` and D13's scratch root). A record
+    /// left half-played in the terminal is offered back by the app and the other
+    /// way round, and **that cross-pickup is the point** — a record is a record
+    /// whichever program you were at when you stopped it (§18.19, answered).
+    ///
+    /// Which makes the format permanent. **MU/TH/UR never changes this file.**
+    /// Four tab-separated fields, read and written exactly as bash reads and
+    /// writes them, forever — not a fifth field, not a header, not a rename of
+    /// the directory. Anything the app wants to remember that bash has no field
+    /// for goes in the app's own defaults; §6.1a's volume is the first of those
+    /// and is there for this reason.
     public static func standard(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         home: URL = URL(fileURLWithPath: NSHomeDirectory())
@@ -119,14 +125,20 @@ public struct ResumeFile: Sendable {
             self.position = position
         }
 
-        /// `▪ RESUME AT <track no> · <m:ss> — PRESS U` (`player:2828`).
+        /// `▪ RESUME AT <n> · <m:ss> — PRESS U` (`player:2828`).
         ///
-        /// The **track number**, not the row: the offer names the track the way
-        /// the sleeve does, and a shuffled record's row seven would name
-        /// nothing. An unnumbered row therefore offers `9999`, which is what
-        /// the script does and is §18.20.
-        public func text(trackNumber: Int) -> String {
-            "▪ RESUME AT \(trackNumber) · \(Offer.mmss(position)) — PRESS U"
+        /// **D25 — the row, counted, and not the tag's track number.** The
+        /// script prints the tag's number, and a row with no number in its tags
+        /// carries 9999 — §3.1's sort sentinel, picked so untitled rips fall to
+        /// the end of a running order and never meant to be read by anybody. A
+        /// folder of untagged rips offered `RESUME AT 9999` for every row alike.
+        ///
+        /// The row index is what field two has always held and what `u`
+        /// actually acts on, so counting it makes the sentence agree with the
+        /// behaviour. **Nothing about the file changes** — §18.19 froze that,
+        /// and the bash player has to keep reading it.
+        public var text: String {
+            "▪ RESUME AT \(row + 1) · \(Offer.mmss(position)) — PRESS U"
         }
 
         /// `panel.sh:148`. Minutes are not padded; seconds always are.

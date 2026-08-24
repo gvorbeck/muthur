@@ -402,6 +402,33 @@ public actor PlaybackEngine {
         engine.mainMixerNode.outputVolume = muted ? 0 : volume
     }
 
+    // MARK: - §9 The analyser's tap
+
+    /// Hang the analyser on the deck, **before the gain** (§6.1a).
+    ///
+    /// The gain is the main mixer's `outputVolume`, so before it is the player
+    /// node — everything the decoders produced, at the level the record was
+    /// mastered at, whatever the knob is doing. A record turned down is not a
+    /// record playing quietly into its own bands: the columns would drop, §9's
+    /// per-band autoscale would spend the next few seconds hauling them back up,
+    /// and the panel would end up saying nothing about the music and something
+    /// about the volume knob.
+    ///
+    /// It is the faithful port as well as the right behaviour. The script's
+    /// analyser reads the decoded *file* and there is no volume control anywhere
+    /// in that path, so turning the music down never moved its bars — there was
+    /// nothing there to turn down (`player:754`).
+    ///
+    /// The node stays private: handing it out would let a caller reconnect the
+    /// graph, and the analyser only ever needed somewhere to listen.
+    public func listen(_ analyser: Analyser) {
+        analyser.tap(player)
+    }
+
+    public func stopListening(_ analyser: Analyser) {
+        analyser.untap(player)
+    }
+
     // MARK: - §6.4 The meters as controls
 
     /// Click the **track** meter.

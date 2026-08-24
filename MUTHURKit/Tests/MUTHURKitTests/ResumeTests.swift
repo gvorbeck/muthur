@@ -190,16 +190,20 @@ struct ResumeTests {
         #expect(scratch.file.offer(key: "k", rows: 3) == ResumeFile.Offer(row: 2, position: 95))
     }
 
-    @Test("The offer names the track number and the minutes, and asks")
+    @Test("The offer counts the row and the minutes, and asks")
     func offerText() {
-        #expect(
-            ResumeFile.Offer(row: 4, position: 95).text(trackNumber: 5)
-                == "▪ RESUME AT 5 · 1:35 — PRESS U"
-        )
-        #expect(
-            ResumeFile.Offer(row: 0, position: 605).text(trackNumber: 1)
-                == "▪ RESUME AT 1 · 10:05 — PRESS U"
-        )
+        #expect(ResumeFile.Offer(row: 4, position: 95).text == "▪ RESUME AT 5 · 1:35 — PRESS U")
+        #expect(ResumeFile.Offer(row: 0, position: 605).text == "▪ RESUME AT 1 · 10:05 — PRESS U")
+    }
+
+    /// D25. A folder of untagged rips is every row at 9999, and the script
+    /// offered that number for all of them alike (§18.20).
+    @Test("It never says 9999, whatever the tags failed to say")
+    func offerNeverSaysTheSentinel() {
+        for row in 0..<12 {
+            #expect(!ResumeFile.Offer(row: row, position: 30).text.contains("9999"))
+        }
+        #expect(ResumeFile.Offer(row: 3, position: 30).text.contains("RESUME AT 4"))
     }
 
     // MARK: - Writing

@@ -1038,11 +1038,18 @@ Now Playing widget cannot, because it looks like a deck and a deck has a level.
       sound and I do not know why" is exactly the question the panel exists to
       answer, and §11 answers the other half of it. The level is kept while muted
       and comes back at it, so mute is a switch and not a trip to zero and back.
-- [ ] **The analyser reads the signal before the gain, not after.** A record
+- [x] **The analyser reads the signal before the gain, not after.** A record
       turned down is not a record playing quietly into its own bands: the columns
       would drop, the per-band autoscale (§9) would spend the next few seconds
       hauling them back up, and the panel would end up saying nothing about the
       music and something about the volume knob.
+
+      It is also the faithful port, which settles it twice over: the script's
+      analyser reads the *decoded file*, and there is no volume control anywhere
+      in that path — turning the music down never moved its bars because there
+      was nothing to turn down (`player:754`). The gain here is
+      `engine.mainMixerNode.outputVolume`, so before it means the player node,
+      and `PlaybackEngine.listen(_:)` is the one line §10 needed from `Play/`.
 
 ### 6.1b Shuffle — changed from bash (D4)
 
@@ -1979,6 +1986,23 @@ new track has played" falls out of that rather than needing a hook. Worth saying
 because the alternative — a callback from the deck into a state file — would have
 put a filesystem write on the path that advances a record.
 
+**D25 — the resume offer counts rows, not track numbers.** → §7, §18.20
+
+The script's offer prints the *tag's* track number (`player:2828`). A row with no
+number in its tags carries 9999 — which is §3.1's sort sentinel, a number chosen
+so that untitled rips fall to the end of a running order, and never meant to be
+read by a person. On a folder of untagged rips every row is 9999, so the offer
+said the same thing about the fourth track as about the first.
+
+The offer now counts the stored row: row 3 is `RESUME AT 4`. That is the number
+the panel prints in the list beside it, and it is the number `u` acts on — the
+row index has always been what field two holds and what the resume actually uses,
+so this makes the sentence agree with the behaviour rather than with the tag.
+
+**The file does not change.** This is display text and nothing else — the same
+four tab-separated fields go in and come out, because §18.19 makes that permanent
+and the bash player has to keep reading them.
+
 ---
 
 ## 17. When something is missing
@@ -2092,12 +2116,13 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Eleven are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16 and 17**, each marked
-below and carrying the decision it became. The other ten are still open. **17**
-and **18** are the odd ones: not `player` behaviours at all, but holes in
-decisions made here, which is why 17 was answered as fast as it was found. **21**
-is odder still — not a question but a consequence, listed because it is a
-difference from the script that nobody chose.
+Thirteen are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16, 17, 19 and 20**,
+each marked below and carrying the decision it became. The other eight are still
+open. **17** and **18** are the odd ones: not `player` behaviours at all, but
+holes in decisions made here, which is why 17 was answered as fast as it was
+found. **21** is odder still — not a question but a consequence, listed because
+it is a difference from the script that nobody chose, and it stays open until it
+has been watched on a real record.
 
 Six of the seven open ones describe code that has not been written yet. **4** was
 the exception until §5 landed around it and forced the question; it is now D14.
@@ -2265,36 +2290,32 @@ question is only whether that was the right half to keep. It reads as yes.
 
 **Found while writing §7 and §9:**
 
-19. **Whose resume file is it.** `ResumeFile.standard()` resolves to
+19. **Whose resume file is it. — ANSWERED: shared, and frozen.** → §7
+
+    `ResumeFile.standard()` resolves to
     `${XDG_STATE_HOME:-$HOME/.local/state}/player/resume` — the script's path,
     the script's directory name, the script's format, byte for byte
-    (`player:1538`). Two programs therefore share one file, and the sharing goes
-    both ways: stop a record halfway through in the terminal and MU/TH/UR offers
-    to pick it up, and the reverse.
+    (`player:1538`). Two programs share one file, and the sharing goes both ways:
+    stop a record halfway through in the terminal and MU/TH/UR offers to pick it
+    up, and the reverse.
 
-    That is either exactly the point or exactly the bug. `player` is still used —
-    over ssh, in pipes — and CLAUDE.md is explicit that it continues to exist
-    independently; a record is a record whichever program you happened to be at
-    when you stopped it, and one shared file is the only way that is true. But it
-    is also the one place this port writes into territory the script owns. The
-    file is never corrupted by sharing (both write whole and rename, both cap at
-    the same 200, the fourth field is free text to both), so the risk is not
-    breakage — it is that a program with a `.app` bundle is keeping state in a
-    directory named after a shell script.
+    **That cross-pickup is a feature, and it is now a requirement.** `player` is
+    still used — over ssh, in pipes — and a record is a record whichever program
+    you happened to be at when you stopped it. The rule that falls out of it and
+    binds everything downstream: **MU/TH/UR never changes that file's format.**
+    Four tab-separated fields, read and written exactly as bash reads and writes
+    them, forever. Not a fifth field, not a header, not a rename of the
+    directory. Anything MU/TH/UR wants to remember that bash has no field for
+    goes somewhere else — §6.1a's volume is the first such thing and lives in the
+    app's own defaults for exactly this reason.
 
-    *Share `player/resume`, or write `muthur/resume` and let the two forget each
-    other?* One constant. Nothing else in §7 changes either way.
+20. **`RESUME AT 9999`. — ANSWERED: fixed, as D25.** → §7, §16
 
-20. **`RESUME AT 9999`.** The offer names a *track number*, and a row that has
-    no track number in its tags falls back to 9999 — the same 9999 §3.1 sorts
-    untracked files under (`player:2828`, `player:474`). On a folder of untagged
-    rips every row is 9999, so the offer reads `▪ RESUME AT 9999 · 12:04` for the
-    fourth track as readily as for the first, which tells you nothing you can act
-    on. The row index is right there and is what `u` actually uses.
-
-    Ported as-is, because it is what the script does and the rule is not to
-    improve it quietly. *Name the row instead when there is no track number —
-    `RESUME AT TRACK 4` — or leave it saying 9999?*
+    The offer named a *track number*, and a row with no number in its tags fell
+    back to 9999 — §3.1's sort sentinel (`player:2828`, `player:474`). The offer
+    now counts the stored row instead and can never say 9999. **The file format
+    does not change**: this is display text, computed from the row index that was
+    already in field two. See D25.
 
 21. **The autoscale, before it has heard enough to scale.** §9's percentiles are
     over the whole track in the script, which has decoded it before it draws a
@@ -2311,6 +2332,10 @@ question is only whether that was the right half to keep. It reads as yes.
     is a thing to watch on a real record once §10 draws it*, and if it reads
     badly the answer is a warm-up window or a carried-over scale, both of which
     are changes to `BandScale` alone.
+
+    **Left open deliberately, and correctly flagged rather than acted on.** It
+    closes when it has been watched on a real record with the panel drawing it,
+    and not before.
 
 ---
 
