@@ -29,6 +29,37 @@ part worth porting.
 
 ---
 
+## Status
+
+**0 of 256 boxes.** Nothing below has been ported. No entry in this document
+should be read as anything but outstanding.
+
+What exists is the empty frame the domain layer gets written into:
+
+- `MUTHURKit/` — the headless package, one folder per section here: `Record/`
+  §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Shelf/` §8, `Resume/`
+  §7. All six are empty. It is a package and not a folder inside the app target
+  so that these suites run without standing up an app, and so that nothing in
+  here can import SwiftUI by accident — the moment it can, parity stops being
+  testable in isolation.
+- `MUTHUR.xcodeproj` and `App/` — the app target. Ad-hoc signed, links
+  `MUTHURKit`, opens one empty window, does nothing else.
+- Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
+  language mode on both halves.
+
+```
+swift test --package-path MUTHURKit
+xcodebuild -project MUTHUR.xcodeproj -scheme MUTHUR build
+Scripts/install.sh                      # a real bundle in ~/Applications
+```
+
+Against `spec.md`'s build order: step 1 — this document — is done. Step 2, the
+domain layer, is where the first box gets ticked. Nothing in §9–§12 or §14 is
+reachable until step 4, and §16 D8 is a constraint on the UI when it arrives,
+not work that can be started early.
+
+---
+
 ## 1. Sources
 
 ### 1.1 Invocation
