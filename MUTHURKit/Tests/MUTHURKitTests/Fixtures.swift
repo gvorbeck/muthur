@@ -139,6 +139,98 @@ enum Fixtures {
         return AudioFiles.scan(destination).isEmpty ? nil : destination
     }
 
+    // MARK: - A seam that is real music on both sides
+
+    /// The last few seconds of one track and the first few of the next, off the
+    /// same record, cut so that the join between them is the join the album
+    /// actually has.
+    ///
+    /// This is what makes the ambient records worth the trouble: on a held drone
+    /// there is nothing else going on to hide behind, so a seam that survives
+    /// here survives anywhere. Synthetic tones prove the arithmetic; this proves
+    /// it on a file somebody mastered.
+    ///
+    /// The cut is done with `ffmpeg -c copy`, which is a byte copy of the PCM and
+    /// not a re-encode — the samples in these files are the samples in the album.
+    /// Shelling out is deliberate and is scaffolding only: it builds the fixture,
+    /// it is not in the path of anything being tested. A few megabytes, cached
+    /// beside the other fixtures and never in the repository.
+    static func continuousSeam(seconds: Int = 8) -> (before: URL, after: URL)? {
+        guard let ffmpeg = locate("ffmpeg") else { return nil }
+        guard
+            let zip = audioZips().first(where: { zipMembers($0).count >= 2 })
+        else { return nil }
+
+        let members = zipMembers(zip)
+        let name = zip.deletingPathExtension().lastPathComponent
+        let destination = cacheRoot.appending(path: "seam/\(name)")
+        let before = destination.appending(path: "before.aiff")
+        let after = destination.appending(path: "after.aiff")
+        if exists(before) && exists(after) { return (before, after) }
+
+        try? FileManager.default.createDirectory(
+            at: destination, withIntermediateDirectories: true
+        )
+
+        // `-sseof` needs to seek, so the member has to be a file rather than a
+        // pipe. It is deleted as soon as it has been cut — these run to hundreds
+        // of megabytes and none of it is wanted.
+        guard
+            cut(
+                member: members[0], of: zip, with: ffmpeg,
+                arguments: ["-sseof", "-\(seconds)"], to: before
+            ),
+            cut(
+                member: members[1], of: zip, with: ffmpeg,
+                arguments: ["-t", "\(seconds)"], to: after
+            )
+        else { return nil }
+        return (before, after)
+    }
+
+    private static func cut(
+        member: String, of zip: URL, with ffmpeg: URL, arguments: [String], to out: URL
+    ) -> Bool {
+        let whole = cacheRoot.appending(path: "seam-scratch-\(UUID().uuidString).aiff")
+        defer { try? FileManager.default.removeItem(at: whole) }
+
+        guard FileManager.default.createFile(atPath: whole.path, contents: nil),
+            let sink = try? FileHandle(forWritingTo: whole)
+        else { return false }
+        let unzip = Process()
+        unzip.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        unzip.arguments = ["-p", zip.path, member]
+        unzip.standardOutput = sink
+        unzip.standardError = FileHandle.nullDevice
+        guard (try? unzip.run()) != nil else { return false }
+        unzip.waitUntilExit()
+        try? sink.close()
+        guard unzip.terminationStatus == 0 else { return false }
+
+        let cutter = Process()
+        cutter.executableURL = ffmpeg
+        // `-vn` and `-map 0:a:0` because these AIFFs carry the sleeve as a video
+        // stream, which is also why §6 opens them with `-map 0:a:0`.
+        cutter.arguments =
+            ["-v", "error", "-nostdin"] + arguments
+            + ["-i", whole.path, "-map", "0:a:0", "-vn", "-c:a", "copy", "-y", out.path]
+        cutter.standardOutput = FileHandle.nullDevice
+        cutter.standardError = FileHandle.nullDevice
+        guard (try? cutter.run()) != nil else { return false }
+        cutter.waitUntilExit()
+        return cutter.terminationStatus == 0 && exists(out)
+    }
+
+    /// `Tooling.locate` is not visible from here and this is scaffolding, so the
+    /// two places Homebrew puts things will do.
+    static func locate(_ name: String) -> URL? {
+        for directory in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"] {
+            let candidate = URL(fileURLWithPath: directory).appending(path: name)
+            if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
+        }
+        return nil
+    }
+
     static var cacheRoot: URL {
         let base =
             ProcessInfo.processInfo.environment["XDG_CACHE_HOME"].map {

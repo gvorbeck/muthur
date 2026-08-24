@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All twenty are settled; §16
+  the reasoning and the decision it came from. All twenty-four are settled; §16
   lists them together so a difference from `player` is never later mistaken for
   a porting mistake.
 
@@ -37,26 +37,48 @@ part worth porting.
 
 ## Status
 
-**84 of 263 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**141 of 263 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
 those are the same box in different clothes — the command that runs a tool
 against a drive there is no drive for. §2, §2.1 and §2.2 are done bar five: three
 that need an exit path to hang off, and two that need the source layer. §3 and
-§3.1 are done whole, the CD-only filename rescue included. Every other entry in
-this document should be read as outstanding.
+§3.1 are done whole, the CD-only filename rescue included. §6, §6.1b, §6.2 and
+§6.3 are done whole, and §6.1, §6.1a and §6.4 are done bar what is plainly the
+panel's half rather than the deck's — the cursor, the wheel, the mouse buttons,
+the faceplate, the analyser and the key bindings themselves. **All eleven of §6's
+remaining boxes are waiting on the panel — none of them on the engine.** It takes
+four of §17's with it: the two degraded paths for an album that vanishes while it
+is playing, and the two about a folder of mixed formats, which is the same
+requirement §6 opens with and the album it would be audible on.
 
-**Where a fresh session picks up.** The domain layer has four of its six folders
-in it and no app calls any of them. The next piece is §1 — the source layer,
-which is what opens a folder, a zip or a disc and hands the result to §3. It is
-also what unblocks the two §2.2 boxes below (a zip's provenance has to reach
-`Record.read` before D12 can ever fire outside a test), the three §2 teardown
-boxes (which need something with an exit path), and the two things §4 and §5
-currently hand to nobody: the release MBID that comes off a disc in §4.3 and lets
-the sleeve skip the name search entirely, and `TitleSource` itself, which is the
-only one of §4's four sources nothing stamps — `tags` is what a folder or a zip
-gets, and there is nothing yet that knows a source is a folder.
+**§7 and §9 are the new ones, and both are done whole** — twenty boxes, and
+§6.2's resume entry with them, which had been waiting for §7 to have one to
+clear. Neither needed a line changed in `Play/`: §7 watches the deck's published
+state and never speaks to it (D24), and §9 taps whatever node it is handed, which
+is a question §10 answers. §9 is the numbers only — the bands, the levels, the
+scales and the column state, all of it measured in `swift test` with no window
+open. Nothing is drawn. Every other entry in this document should be read as
+outstanding.
+
+**Where a fresh session picks up.** Two things are ahead and neither blocks the
+other. **The UI** — gate 4's second half — is what §6's eleven open
+boxes are waiting for, along with the whole of §10; the deck underneath them is
+written and measured, the analyser behind them is measured too, and what they are
+missing is somebody to press their keys and a surface to draw on. **§1, the
+source layer**, is
+still the piece that opens a folder, a zip or a disc and hands the result to §3;
+nothing calls §2, §3, §4 or §5 in anger until it exists. It also unblocks the
+two §2.2 boxes below (a zip's provenance has to reach `Record.read` before D12
+can ever fire outside a test), the three §2 teardown boxes (which need something
+with an exit path), and the two things §4 and §5 currently hand to nobody: the
+release MBID that comes off a disc in §4.3 and lets the sleeve skip the name
+search entirely, and `TitleSource` itself, which is the only one of §4's four
+sources nothing stamps — `tags` is what a folder or a zip gets, and there is
+nothing yet that knows a source is a folder. §6 has already borrowed the one
+piece of §1 it could not do without: `SourceKind`, because §6.3's message for a
+record that has vanished depends on whether it came out of a zip.
 
 **§1.3 is deliberately not written.** Disc detection wants the drive present, by
 your call; §19 is the list it gets written against.
@@ -66,8 +88,13 @@ your call; §19 is the list it gets written against.
 **§18.1, §18.6, §18.7 and §18.11** came due together before §4 was written and
 are answered as **D16–D19**; §18.6 and §18.7 land in §1, which is still ahead.
 **§18.18** is new and deliberately left open — where the table of contents comes
-off the drive is a question to answer with the drive plugged in. Seven open
-items remain in §18.
+off the drive is a question to answer with the drive plugged in. **§18.19,
+§18.20 and §18.21** are newer still and come out of §7 and §9: whether the resume
+file is shared with the bash script or owned outright, what the offer says for a
+row with no track number, and how long a live autoscale takes to settle. The
+first two want an answer before §10 draws anything that depends on them; the
+third is a thing to watch on a real record rather than a question. Ten open items
+remain in §18.
 
 What has landed:
 
@@ -108,9 +135,42 @@ What has landed:
   release MBID it picked up on the way. `OpticalDrive` and `Tooling` are the two
   files nothing in the suite touches — they run `cdrecord`, `cdda2wav` and
   `drutil`, and none of that can be exercised without a drive.
-- 254 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
+- **§6, §6.1, §6.1a, §6.1b, §6.2, §6.3, §6.4 — the deck.**
+  `MUTHURKit/Sources/MUTHURKit/Play/`. `PlaybackEngine` is the deck itself and
+  the only actor; `Feeder` reads ahead and keeps the node fed; `AudioSource` and
+  `FFmpegSource` are the two decoders, the second a fallback for what
+  AVFoundation will not take; `CanonicalFormat` decides the one format a record
+  is played in; `Timeline` maps the output frame counter back to a row, an
+  offset and a visit, and is the single source of truth §6 asks for;
+  `Transport` and `ShuffledOrder` are what-follows-what, with no sound card in
+  them, which is why the D3, D4 and D21 rules are tested against a seeded
+  generator rather than against a speaker. The engine renders offline as well as
+  to a device — the same graph, driven by hand — which is what makes the seam
+  measurements above reproducible on any machine rather than a matter of what
+  the audio hardware felt like doing.
+- **§7 — resume.** `MUTHURKit/Sources/MUTHURKit/Resume/`. `ResumeFile` is the
+  file — the key (a disc ID, else a SHA-1 of what the record *is*), the
+  tab-separated line, the whole-write-and-rename, the 200-album cap, and the two
+  rules about what is worth offering. `ResumeWatch` is the tick that decides when
+  to write and holds the offer until something spends it. It has no reference to
+  the engine at all, which is D24 and is why the offer cannot be applied by
+  accident. Every test builds its own throwaway directory; nothing in the suite
+  goes near `~/.local/state`, and the SHA-1 is checked against the machine's own
+  `shasum` rather than against itself.
+- **§9 — the analyser, the data path.**
+  `MUTHURKit/Sources/MUTHURKit/Analyser/`. `Bands`, `Spectrum`, `BandScale`,
+  `AnalyserColumns` and `Analyser`: sixteen bandpass responses, one windowed
+  transform a tenth of a second, a histogram per band, and the column state with
+  its trail and its age. The method is D22 and D23; the output is sixteen
+  numbers in dBFS and a grid of graded cells, and **no colours and no glyphs** —
+  §10 owns those. The whole of it is measured against tones with known answers,
+  and against real ffmpeg running the script's own filter chain.
+- 370 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
   on a machine with nothing in the drive — that is §19, and it is the list of
-  what is still unproven rather than untested.
+  what is still unproven rather than untested. Five more skip without `ffmpeg`
+  (the cross-decoder seam, and §9's three against the script's own chain), and
+  two without a record on the machine that has continuous audio across a track
+  boundary.
 - Not in it: the three §2 boxes that are about *when* teardown runs rather than
   what it does — those need the app's exit path, and there is no app yet.
 
@@ -128,13 +188,14 @@ Two things about §3 worth knowing before §4 is written:
 What is still the empty frame:
 
 - `MUTHURKit/` — the headless package, one folder per section here: `Record/`
-  §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Shelf/` §8, `Resume/`
-  §7. `Record/`, `Scratch/`, `Sleeve/` and `Disc/` have the above in them —
-  `Disc/` holds §4 but not §1.3 — and `Shelf/` and `Resume/` are empty. It is a
-  package
+  §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Play/` §6, `Resume/` §7,
+  `Analyser/` §9, `Shelf/` §8. All but `Shelf/` have the above in them —
+  `Disc/` holds §4 but not §1.3. It is a package
   and not a folder inside the app target so that these suites run without
   standing up an app, and so that nothing in here can import SwiftUI by
-  accident — the moment it can, parity stops being testable in isolation.
+  accident — the moment it can, parity stops being testable in isolation. §6
+  earns that arrangement twice over: an audio engine that can only be tested by
+  listening to it is an audio engine nobody tests.
 - `MUTHUR.xcodeproj` and `App/` — the app target. Ad-hoc signed, links
   `MUTHURKit`, opens one empty window, does nothing else.
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
@@ -147,9 +208,17 @@ Scripts/install.sh                      # a real bundle in ~/Applications
 ```
 
 Against `spec.md`'s build order: step 1 — this document — is done. Step 2, the
-domain layer, is under way: §3, §2, §5 and §4 are the first of it. Nothing in §9–§12 or §14 is
-reachable until step 4, and §16 D8 is a constraint on the UI when it arrives,
-not work that can be started early.
+domain layer, is under way: §3, §2, §5 and §4 are the first of it, and §1 is what
+is left of it. Step 3 — the playback engine, §6 through §6.4 — is done, and was
+taken ahead of §1 deliberately: gapless across a format change is the hardest
+claim in this document to make good on, and finding out late that it could not be
+made would have been the expensive way to find out. It can, and the numbers are
+in §6. §7 and §9 were taken next for the same reason and against the same test —
+both are state and arithmetic with no picture in them, and both can be proved
+before there is anything to look at. What is left of §9 is §10's half: it has
+sixteen numbers and a grid of graded cells and nothing that knows what amber is.
+§16 D8 is a constraint on the UI when it arrives, not work that can be started
+early.
 
 **Test material.** The suites come in two tiers. The rules tier runs anywhere —
 zero-byte files with the right names, and a stub reader that says what the tags
@@ -165,6 +234,24 @@ D12's cases are a third kind again: paths and nothing else. The rule reads the
 *shape* of a scan, so its tests hand it lists of paths that never existed —
 which is the only practical way to pin the layouts §18.17 is about, including
 the two that are the same archive and must both be declined.
+
+§6's material is a fourth kind: **audio written by the test to be measured
+against.** A tone whose value at every sample is known in advance can be
+subtracted from what came out of the engine, and the remainder is the answer —
+which is the difference between "gapless" as a claim and gapless as a number. The
+real-record tier sits beside it and asks a harder question the synthetic tier
+cannot: the tone proves the arithmetic, the ambient album proves the arithmetic
+survives a file somebody mastered. Both are in §6 above.
+
+§9 uses the same kind and adds an oracle to it. A sine at a known frequency and a
+known amplitude has a known answer in decibels, so every level the analyser
+reports can be checked rather than eyeballed — but the numbers agreeing with
+*theory* only proves the transform, not the port. So the material tier writes a
+file with a tone in each of the sixteen bands, runs the script's exact chain over
+it with real `ffmpeg`, and compares band for band. That is the only test in the
+document that asks whether this is the same program; it skips without ffmpeg, and
+it reads the chain from D22 rather than from the script, because nothing here
+executes anything under `cd-collection`.
 
 §2.2's archives are neither tier: they are written by a zip writer that exists
 only in the test target, because every case worth testing is one no honest
@@ -783,24 +870,98 @@ The distinction is only between *asked* and *could not ask*.
 
 ## 6. Playback
 
-- [ ] **Gapless is a requirement.** The whole record is handed to the engine at
+- [x] **Gapless is a requirement.** The whole record is handed to the engine at
       once, in panel order, so it can read ahead into the next file while the
       current one is still playing. A file opened at the moment the previous one
       ends is a file being opened during the silence (`player:2453`).
-- [ ] Gapless must bridge a boundary **even when the two files disagree on sample
+- [x] Gapless must bridge a boundary **even when the two files disagree on sample
       rate or channel layout** — mpv's "weak" default does not, and a folder with
       one 48k track in it is exactly the album you would notice the gap on
-      (`player:2481`).
-- [ ] Row index and playlist index are the same integer, deliberately
+      (`player:2481`). Measured rather than asserted; the numbers are below.
+- [x] Row index and playlist index are the same integer, deliberately
       (`player:3239`).
-- [ ] **One source of truth for what is playing.** Nothing assumes a track
+- [x] **One source of truth for what is playing.** Nothing assumes a track
       change; it is asked for and waited on. A track that simply ran out and a
       track picked with the cursor arrive by the same route, so a track started
       by hand and one started by the record itself cannot come to disagree
-      (`player:2461`, `player:3265`).
-- [ ] Sequential auto-advance is left alone — it is already right and already
-      gapless. Only shuffle interrupts it, and interrupting costs the seam, which
-      is the trade shuffle makes by its nature (`player:3437`).
+      (`player:2461`, `player:3265`). Natively that source of truth is
+      `Timeline`: the output frame counter, mapped back to a row, an offset into
+      it, and a visit number. Nothing else is allowed an opinion about what is
+      playing, including the thing that queued it.
+- [x] Sequential auto-advance is left alone — it is already right and already
+      gapless. **Shuffle no longer interrupts it (D21)**: the shuffled order is
+      asked the same question sequential order is asked, at the same moment, by
+      the same code, so a shuffled record is gapless too. Bash could not do this
+      and paid a seam per advance (`player:3437`). → D21
+
+#### The seam, measured
+
+Gapless is a claim that can be checked with a ruler instead of an ear, so it was.
+A pure tone is written across two files so that the second file continues the
+first exactly — the two halves are one unbroken tone that happens to be cut in
+half. The engine plays the pair, its output is captured, and the capture is
+subtracted from the tone the two files add up to. **Whatever is left over is what
+the seam did.** Zero left over means the join is not there.
+
+Two numbers matter and they are not the same question:
+
+- **How far the output strays** from the tone it should have been, at its worst.
+  Written as a percentage of full volume — full volume being the loudest sound
+  the format can hold.
+- **Whether it is a step or a slope.** A click is a jump between two neighbouring
+  samples that the sound was never going to make on its own. So the biggest jump
+  at the join is divided by the biggest jump the tone makes anyway: **1.00 means
+  the join is no steeper than the music, and that is the number that means "no
+  click."** A genuine one-sample hole in the audio reads about 17 on this scale.
+
+| The seam | Frames lost | Strays by, at worst | Step or slope | Verdict |
+| --- | --- | --- | --- | --- |
+| **Same rate**, 44.1 k → 44.1 k | none (+0) | 0.0000027 % | 1.00 | **Perfect.** The residue is arithmetic rounding and nothing else. |
+| **Same rate on a mixed record** — 44.1 k → 44.1 k where the record is 48 k, so both tracks are being converted | none (+0) | 0.0000148 % | 1.00 | **Perfect.** The converter is carried across the join and never notices it. |
+| **Rate change**, 44.1 k → 48 k | none (+0) | **0.133 %** | 1.04 | Not perfect. A soft dip in the last 7 ms of the outgoing track. |
+| **Rate change**, 48 k → 44.1 k | none (+0) | **0.133 %** | 1.04 | Not perfect. The same dip, in the first 8 ms of the incoming track. |
+| **A real record** — KMRU, *Kin*, 48 k/24-bit, continuous audio across the join | none (+0) | **nil — bit-for-bit identical** | 0.0003 | **Perfect**, in the strongest sense available: every one of 768,648 samples the engine produced is the sample that was in the file. |
+| **Two different decoders**, WAV → Opus | none (+0) | 1.9 % | 1.06 | At the codec's own error level (Opus is 1.1 % in mid-track), not above it. |
+| **Two different decoders**, Opus → WAV | none (+0) | 1.5 % | 1.08 | Below the codec's own error. Nothing at the join. |
+
+**Frames lost is the first column for a reason.** Every seam is exact: not one
+sample is dropped or repeated anywhere, including across a subprocess and a pipe.
+A gapless engine that loses a frame per track has drifted a tenth of a second by
+the end of a long record, and no error measurement would catch it.
+
+**Where it is not perfect, said plainly.** The rate-change seams came out at
+0.133 % — **worse than I expected**, and worth saying so rather than leaving it
+under a passing test. Three things about it, in order of how much they matter:
+
+- It is **not a click**. 1.04 against a click's ~17. The disturbance is a smooth
+  roll-off about 7 ms long, and it sits **entirely on one side** of the boundary
+  — never straddling it, which is what a gap or a step would do.
+- It is exactly what the machinery predicts. Where the rate changes, the
+  resampler has to be torn down and a new one built, and a resampler's first and
+  last few milliseconds are computed against silence it does not have the
+  neighbouring track to fill in with. So the tail of the outgoing track fades
+  slightly into the join, or the head of the incoming track fades slightly out of
+  it. It is a filter edge, not a hole.
+- It is **relative, not absolute**: 0.133 % *of whatever is playing*, not of full
+  scale. It is always about 58 dB below the music it is happening to — quiet
+  under quiet music, and still 58 dB down under loud — which is roughly where a
+  well-behaved fade lives rather than where a fault does.
+
+It is fixable — feed the new resampler the tail of the outgoing track as context,
+instead of silence — and it has not been fixed, because it costs a decode of the
+wrong file in the wrong format at every rate change, and it only ever applies to
+a record whose tracks disagree about their sample rate, which is rare and is
+already the case bash could not play at all. **Flagged rather than closed.** If it
+turns out to be audible on real material, this is the thing to do about it.
+
+The resampler settings came out of measuring, not out of the documentation:
+`AVSampleRateConverterAlgorithm_Mastering` at maximum quality (Mastering 0.133 %,
+Normal 0.25 %, MinimumPhase 30 %), and — the one real trap — `primeMethod` must
+be **`.normal`**, which is the zero-latency mode. `.none` is the *latency* mode
+and inserts the filter's entire group delay, 1,253 frames of silence, as an
+audible 26 ms hole at every seam where a converter is built. The names are
+inverted from what they read like; this cost an afternoon and was found by
+measurement.
 
 ### 6.1 Transport
 
@@ -830,27 +991,29 @@ The distinction is only between *asked* and *could not ask*.
       music until you pick something with it again. `⏎`, `n`, `p`, a click on the
       album meter and the resume offer all put it back to following
       (`player:2693`).
-- [ ] `p` behaves like every deck ever made: within the first 3 seconds it goes
+- [x] `p` behaves like every deck ever made: within the first 3 seconds it goes
       to the previous track, after that to the start of this one. On track one it
       always restarts (`player:3457`). Under shuffle, "the previous track" is the
       one you actually heard — see §6.1b.
-- [ ] **Changed from bash (D3).** `n` under REPEAT TRACK **advances**, and the
+- [x] **Changed from bash (D3).** `n` under REPEAT TRACK **advances**, and the
       mode stays on so the track it lands on is the one that then loops. In bash
       it restarted the current track instead (`player:3414`), which the comment
       there explains as mechanism — setting the playlist position to the row it
       is already on is a no-op — rather than as intent. Repeat-track governs what
       happens when a track runs out on its own; `n` is you saying otherwise, and
       a transport key that visibly does nothing reads as a broken one.
-- [ ] REPEAT TRACK is the engine's own loop, not a reload on end: a track told to
+- [x] REPEAT TRACK is the engine's own loop, not a reload on end: a track told to
       start again after it has finished is a file being opened during the
       silence. REPEAT ALBUM stays ours, because it is where shuffle has to be
       asked and one place deciding what follows the last track is easier to be
-      sure of than two (`player:2704`, `player:3486`).
-- [ ] Shuffle — see §6.1b. **Changed from bash (D4).**
+      sure of than two (`player:2704`, `player:3486`). Proved by counting file
+      opens rather than by reading the code: a looping track opens its file once.
+- [x] Shuffle — see §6.1b. **Changed from bash (D4).**
 - [ ] Status line messages: `▪ SHUFFLE ON/OFF`, `▪ REPEAT OFF/ALBUM/TRACK`
       (`player:2702`, `player:2704`). `u` takes the resume offer and is bound
-      only while there is one (`player:2720`).
-- [ ] Starting a track clears the status line — including "end of album", which a
+      only while there is one (`player:2720`). *The two messages are written and
+      pinned to the character; the box stays open on `u`, which needs §7.*
+- [x] Starting a track clears the status line — including "end of album", which a
       track starting has just made untrue (`player:3398`).
 
 ### 6.1a Volume — new, not in bash (D1)
@@ -860,17 +1023,21 @@ The script has none, on purpose: it plays at whatever the system is set to
 the system that way; an app carrying its own transport, its own faceplate and a
 Now Playing widget cannot, because it looks like a deck and a deck has a level.
 
-- [ ] Its **own** output gain, not the system's. Turning a record down must not
+- [x] Its **own** output gain, not the system's. Turning a record down must not
       turn a video call down with it — a player that moves the system slider has
-      reached outside its own window (`AVAudioEngine` main mixer).
+      reached outside its own window (`AVAudioEngine` main mixer). Worth knowing
+      when reading the test: the main mixer's gain **ramps** rather than steps —
+      which is what stops a volume change clicking, and which means a level has to
+      be measured after it has settled or the old level is what comes back.
 - [ ] The hardware volume keys stay the system's. macOS handles them above the
       app and they never arrive here — nothing to bind, nothing to fight. What
       the media keys owe us is play/pause/next/previous (§14), which is separate.
 - [ ] The level survives a quit. A deck left at 3 is at 3 when you come back.
 - [ ] Shown on the faceplate, in the chrome amber, not as data.
-- [ ] Mute is a state you can see, not a level of zero you have to infer — "no
+- [x] Mute is a state you can see, not a level of zero you have to infer — "no
       sound and I do not know why" is exactly the question the panel exists to
-      answer, and §11 answers the other half of it.
+      answer, and §11 answers the other half of it. The level is kept while muted
+      and comes back at it, so mute is a switch and not a trip to zero and back.
 - [ ] **The analyser reads the signal before the gain, not after.** A record
       turned down is not a record playing quietly into its own bands: the columns
       would drop, the per-band autoscale (§9) would spend the next few seconds
@@ -886,54 +1053,56 @@ a whole sitting without being played, and — because `p` is still `cur_track - 
 (`player:3462`) — "previous" under shuffle means the row above in album order,
 which is a track you have not heard.
 
-- [ ] A shuffled **order**, not a die roll per advance: one permutation of the
+- [x] A shuffled **order**, not a die roll per advance: one permutation of the
       rows, walked through. Every track plays once before any track plays twice,
       which is what people mean by the word.
-- [ ] Switching shuffle on mid-record: the track playing now stays playing, and
+- [x] Switching shuffle on mid-record: the track playing now stays playing, and
       the shuffle covers what is left to hear. Switching it off returns to album
       order from wherever the needle is.
-- [ ] When the order runs out, **that is the end of the album** — every track has
+- [x] When the order runs out, **that is the end of the album** — every track has
       had its turn, which is the honest reading and the one bash could not make.
       Under REPEAT ALBUM it reshuffles instead, and the new order may not open
       with the track that just closed the old one, or the reshuffle is audible as
       a track playing twice in a row.
-- [ ] `p` walks back through what was actually played. A history, not `row - 1`.
+- [x] `p` walks back through what was actually played. A history, not `row - 1`.
       `n` at the end of the history resumes the shuffled order rather than
       re-rolling — walking back and forward again should land where you were.
-- [ ] Picking a row with `⏎` under shuffle plays it and the order continues from
+- [x] Picking a row with `⏎` under shuffle plays it and the order continues from
       there; it does not reshuffle and it does not turn shuffle off.
-- [ ] Retained from bash: shuffle interrupts the engine's own gapless
-      auto-advance, and interrupting costs the seam — that is the trade shuffle
-      makes by its nature (`player:3437`).
-- [ ] Retained from bash: falling off the bottom of the list is meaningless under
+- [x] **Changed from bash (D21).** Shuffle no longer costs the seam. Bash had to
+      interrupt its own gapless auto-advance to redirect it (`player:3437`); here
+      the read-ahead asks the transport what follows, and the transport answers
+      out of the shuffled order exactly as it answers out of album order, so a
+      shuffled record is as gapless as a sequential one. → D21
+- [x] Retained from bash: falling off the bottom of the list is meaningless under
       shuffle. The engine walks entries in order and ran out of them; the row it
       fell off is the last one by accident (`player:3473`). What ends a shuffled
       record is the order being exhausted, nothing else.
 
 ### 6.2 End of album
 
-- [ ] Mode label `FINISHED`, status
+- [x] Mode label `FINISHED`, status
       `▪ END OF ALBUM — PRESS Q TO QUIT, ⏎ TO PLAY A TRACK`. The panel says so
       rather than sitting there looking like it hung (`player:3470`,
       `player:3497`).
-- [ ] Both meters are parked at **full**, not at the fraction-before-the-end the
+- [x] Both meters are parked at **full**, not at the fraction-before-the-end the
       last position report carried (`player:3499`, `player:3501`).
-- [ ] The resume entry is cleared — a record heard to the end is not a record you
+- [x] The resume entry is cleared — a record heard to the end is not a record you
       are partway through (`player:3493`, `player:3496`).
 
 ### 6.3 A track that will not open
 
-- [ ] **The first failure stops the record where it stands.** Left alone, the
+- [x] **The first failure stops the record where it stands.** Left alone, the
       engine walks straight on to the next entry, which for a record whose files
       have all become unreadable means fifty failures in about two seconds and a
       panel saying END OF ALBUM — the same thing it says when a record has simply
       finished. The difference between "you have heard this" and "this is gone"
       is the whole of what the panel is for (`player:3285`).
-- [ ] Mode label `STOPPED`, not `PAUSED`: a deck that is paused is waiting for
+- [x] Mode label `STOPPED`, not `PAUSED`: a deck that is paused is waiting for
       you, and this one is not (`player:3308`).
-- [ ] The failure pause must not be reported as the space-bar pause
+- [x] The failure pause must not be reported as the space-bar pause
       (`player:2787`).
-- [ ] The **whole record is stat-ed**, not the failing file guessed at — the
+- [x] The **whole record is stat-ed**, not the failing file guessed at — the
       interesting case is not a bad rip, it is a whole unpacked album
       disappearing underneath itself (`player:3292`):
   - files missing → `▪ N OF M TRACKS ARE NO LONGER ON DISK`, plus
@@ -941,37 +1110,37 @@ which is a track you have not heard.
     zip, else `— STOPPED HERE`;
   - files present → `▪ CANNOT READ THIS TRACK · <error> — STOPPED HERE, ⏎ TO TRY
     ANOTHER`.
-- [ ] Picking a track by hand clears the failure **and takes off the pause it
+- [x] Picking a track by hand clears the failure **and takes off the pause it
       put on** — without the unpause, choosing another track after a bad one
       looks like a second failure: the row changes and nothing plays
       (`player:3273`).
-- [ ] While walking off entries behind a failure, the panel stays on the track
+- [x] While walking off entries behind a failure, the panel stays on the track
       that actually stopped (`player:2811`).
 
 ### 6.4 The meters as controls
 
-- [ ] Click the **album** meter → put the needle anywhere in the record,
+- [x] Click the **album** meter → put the needle anywhere in the record,
       whichever track that lands in. The target row is the last one starting at
       or before the point; the remainder is an offset into it (`player:3329`).
-- [ ] Click the **track** meter → seek within the track.
+- [x] Click the **track** meter → seek within the track.
 - [ ] Click a row to select, click it again to play it. The first click moves the
       cursor and the second starts it, which is the difference between reading
       the list with the pointer and being made to listen to whatever the pointer
       happened to land on (`player:3213`).
 - [ ] The wheel walks the track list (`player:3188`).
-- [ ] **Changed from bash (D2).** A drag on the album meter crosses track
+- [x] **Changed from bash (D2).** A drag on the album meter crosses track
       boundaries freely — drag the whole length of the record and the needle
       follows. Bash confined a drag to the track it started in (`player:3340`)
       because a drag reports a position per cell crossed and its loop could only
       have one track-change request outstanding at a time; that is a property of
       talking to another process down a socket, not a decision about scrubbing.
-- [ ] What survives the lift is the reason underneath it: **do not act on a
+- [x] What survives the lift is the reason underneath it: **do not act on a
       position for a track that is not open yet.** The mechanism differs
       natively, the hazard does not — a drag can outrun the loading of the item
       it has landed in, and the last position the drag reported is the one that
       must take effect when it opens, not the first (see the pending-offset rule
       below).
-- [ ] A seek that lands in another track is a track change with the offset left
+- [x] A seek that lands in another track is a track change with the offset left
       **pending** until the new track is genuinely playing. A seek sent alongside
       the move lands in the track being left, not the one arriving
       (`player:3336`). The native equivalent — do not seek an item that is not
@@ -979,39 +1148,68 @@ which is a track you have not heard.
 - [ ] Middle and right buttons mean nothing here; answering them with a seek
       would be a nasty surprise (`player:3194`).
 
+One thing the far right-hand end of the album meter found, worth writing down
+because it will look like an odd line of code otherwise: dropping the needle on
+the *last frame of the last track* asks the engine to play nothing at all, and a
+deck that has produced no frames still has to be able to notice that the record
+has finished. It did not, at first — it sat on PLAYING in silence, because the
+condition for finishing was written against having something queued. A record
+that produced nothing has still ended. Found by a test, not by ear, and the same
+would go for the arrow key run off the end of the last track.
+
+Also from `player:2689` and the arrow keys: `←` and `→` are relative to **this
+track**, not to the record — thirty seconds back from ten seconds in is the top
+of the track you are on, not ten seconds into the one before it, and that is the
+whole difference between an arrow key and the album meter. But forward past the
+end still runs the track out and advances, because mpv's relative seek did, and
+because it is what an arrow key held down ought to do.
+
 ---
 
 ## 7. Resume
 
 Not in `spec.md`. It is in the program (`player:1529`).
 
-- [ ] Where you had got to is **offered, never applied**. The panel says where it
+- [x] Where you had got to is **offered, never applied**. The panel says where it
       left off and waits for `u`. A player that jumps to the middle of side two
       because you played it last week has taken a decision that was yours to
       take, and the one thing you cannot do once it has is un-hear the surprise.
-- [ ] The key is what the record *is*, not where it lives: the disc ID when there
+- [x] The key is what the record *is*, not where it lives: the disc ID when there
       is one, otherwise a hash of album-artist + album + track count + total
       duration. A folder that has been moved, and a zip unpacked into a different
       scratch directory every single run, are both still the same album, and a
       key made out of the path would lose them both (`player:1543`).
-- [ ] Stored at `~/.local/state/player/resume` (`XDG_STATE_HOME` respected), tab
+- [x] Stored at `~/.local/state/player/resume` (`XDG_STATE_HOME` respected), tab
       separated, upserted via a temp file and a rename so a player killed halfway
       through a write leaves the old file whole (`player:1579`). Capped at ~200
       other albums.
-- [ ] **Not offered** for row 0 at under 30 seconds — that is where the record
+- [x] **Not offered** for row 0 at under 30 seconds — that is where the record
       starts anyway, and by the time reading the offer is over you could have
       been there. Anything further in was a real listening session
       (`player:1568`).
-- [ ] Offer text: `▪ RESUME AT <track no> · <m:ss> — PRESS U`, shown after the
+- [x] Offer text: `▪ RESUME AT <track no> · <m:ss> — PRESS U`, shown after the
       first track has started, because starting a track clears the status line
       and this is the one thing on it that has to outlive that (`player:2825`).
-- [ ] Written on every track change (before a note of the new track has played,
+- [x] Written on every track change (before a note of the new track has played,
       so quitting between tracks comes back to the right one) and then every 5
       seconds of position. A file write a second for the length of a record is a
       lot of writing to save a number that is read once, and five seconds is
       inside the margin of where you would say you had got to anyway
       (`player:2772`).
-- [ ] Cleared when the record finishes.
+- [x] Cleared when the record finishes.
+
+**Landed.** `MUTHURKit/Sources/MUTHURKit/Resume/`. `ResumeFile` is the store —
+the key, the file, the tab-separated line, the whole-write-and-rename, the cap.
+`ResumeWatch` is the tick: it reads the deck's state, decides whether anything is
+worth writing, and holds the offer until §10 spends it. **D24** is the shape —
+the watch has no reference to the engine, so §7 required no change to `Play/` and
+nothing here can move the needle. Two things flagged rather than settled: whose
+file this is (**§18.19**) and what the offer says for a row with no track number
+(**§18.20**).
+
+The row index a saved entry carries is stable because ORDER is never reshuffled
+in place — D4's shuffle is a separate order laid over it, not a permutation of
+it — so a resume written last week still names the same track today.
 
 ---
 
@@ -1075,26 +1273,26 @@ no such relative path.
 Sixteen bands, five rows, ten frames a second, spaced by octaves rather than
 hertz (`player:92`, `player:99`).
 
-- [ ] Band centres: `40 59 88 132 197 294 439 655 976 1456 2171 3237 4827 7197
+- [x] Band centres: `40 59 88 132 197 294 439 655 976 1456 2171 3237 4827 7197
       10731 16000` Hz — even steps in octaves, because that is how the ear
       divides it and how the low end earns enough bands to move independently
       instead of as one lump (`player:109`).
-- [ ] Bandpass just over an octave wide (`w=1.1` octaves): enough overlap that no
+- [x] Bandpass just over an octave wide (`w=1.1` octaves): enough overlap that no
       frequency falls in a gap, tight enough that neighbours still move
       independently (`player:783`).
-- [ ] Column travel is 40 steps (5 rows × 8 eighths) — the range the falling
+- [x] Column travel is 40 steps (5 rows × 8 eighths) — the range the falling
       trail needs to actually be seen falling. Fewer and a column is at the floor
       before the eye has followed it down (`player:96`).
-- [ ] **A column jumps to its new level instantly; only the fall is slowed.** An
+- [x] **A column jumps to its new level instantly; only the fall is slowed.** An
       analyser that eased upward would read as a slow analyser, not a smooth one
       (`player:605`).
-- [ ] Peak-hold trail: it sinks 2 eighths a frame and dims with age down the
+- [x] Peak-hold trail: it sinks 2 eighths a frame and dims with age down the
       amber ramp, so it reads as the same light going out. A fast transient stays
       visible for longer than the tenth of a second it lasted (`player:667`).
-- [ ] Filled cells are graded **by row, not by band**: the top is brightest, so a
+- [x] Filled cells are graded **by row, not by band**: the top is brightest, so a
       column that reaches the ceiling *arrives* there rather than merely being
       tall (`player:632`).
-- [ ] **Per-band autoscaling, and this is the whole trick** (`player:831`): each
+- [x] **Per-band autoscaling, and this is the whole trick** (`player:831`): each
       band is scaled by what *that band* actually does over the track, anchored
       at the **25th and 90th percentile** of its own level distribution, placed a
       quarter and six-sevenths of the way up the column. Not the extremes. A
@@ -1103,22 +1301,22 @@ hertz (`player:92`, `player:99`).
       scale the tail and every band ends up pinned near the top, twitching —
       which is what this did at first. Throw the tail away and the columns use
       their whole height.
-- [ ] Minimum scale width 6 dB, so a band that genuinely does not move — a
+- [x] Minimum scale width 6 dB, so a band that genuinely does not move — a
       constant hiss, a held tone — stays honestly flat a quarter of the way up
       rather than having its own noise magnified to fill the column
       (`player:866`).
-- [ ] Digital silence is floored at −90 dB, not treated as 0 dB — which is the
+- [x] Digital silence is floored at −90 dB, not treated as 0 dB — which is the
       loudest thing there is (`player:819`).
-- [ ] **It stops dead when there is no sound**, and the test is "is anything
+- [x] **It stops dead when there is no sound**, and the test is "is anything
       coming out" rather than "is it paused". A record that has finished, a track
       that would not open, a buffer still filling — all of them are silence, and
       columns dancing over silence is the panel lying about what you are hearing
       (`player:740`, `player:736`).
-- [ ] The idle state is a floor row lit, not a blank panel — blank is what a
+- [x] The idle state is a floor row lit, not a blank panel — blank is what a
       broken one shows (`player:697`, `player:699`).
-- [ ] Columns reset at every track change; carrying the last track's heights into
+- [x] Columns reset at every track change; carrying the last track's heights into
       the next one reads as a glitch (`player:3389`).
-- [ ] Fallback pattern when levels are unavailable: two travelling waves at rates
+- [x] Fallback pattern when levels are unavailable: two travelling waves at rates
       that do not divide into one another, so the columns keep drifting out of
       step instead of settling into a visible loop. It is honest about being
       decoration — it never claims to be the music, it only says the deck is
@@ -1132,6 +1330,29 @@ while the current one plays and nothing is analysed twice (`player:754`,
 **What has to survive is the look, not the method** — every bullet above is
 about what the columns do, and the percentile autoscaling in particular has to
 be re-derived as something that works on a live signal.
+
+**Landed — the data path, and nothing drawn.**
+`MUTHURKit/Sources/MUTHURKit/Analyser/`. `Bands` is the sixteen centres and the
+bandpass response; `Spectrum` is the window and the transform, and answers in
+dBFS; `BandScale` is the histogram and the two percentiles, one per band;
+`AnalyserColumns` is `SPEC_H`, `SPEC_G` and `SPEC_A` and the grading — by row for
+the column, by age for the trail — as `Shade` and `Density` rather than as
+colours, because §10 owns what an amber is. `Analyser` is the tap and the two
+clocks.
+
+The method is **D22** — a weighted transform where bash ran sixteen filters,
+checked against real ffmpeg running the script's own chain and agreeing to inside
+1.5 dB — and **D23**, the ten-a-second measurement under the twenty-a-second
+step. The autoscale is the one thing that could not be ported as it stood, and
+the difference is only the sample it is taken over: **§18.21**.
+
+`Analyser.tap` takes any `AVAudioNode`, on purpose. The deck's graph is not
+reachable from here and does not need to be, which is why §9 landed without
+touching `Play/` and why the whole of it is tested against an engine rendering
+offline with no sound card in the room. §6.1a — that the analyser reads the
+signal *before* the gain, so a record turned down still moves the columns — is a
+question about *which* node, and it is asked of §10 when it wires the two
+together.
 
 ---
 
@@ -1362,8 +1583,8 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-twenty are settled. Recorded here with the answer so that a departure from the
-script is never mistaken later for a porting mistake.
+twenty-four are settled. Recorded here with the answer so that a departure from
+the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
 and §18.15, raised there and closed here. D13 came out of writing §2, and D14
@@ -1371,7 +1592,12 @@ answers §18.4, which came due while §5 was being written. D15–D19 were all t
 before §4 was written: **D15** is the one place this port knowingly does
 something the script does not because the script is *wrong* rather than because a
 decision went the other way; **D16–D19** answer §18.1, §18.6, §18.7 and §18.11.
-**D20** came out of writing §4.3.
+**D20** came out of writing §4.3, and **D21** out of writing §6 — the second
+place, after D15, where the port does better than the script rather than
+differently. **D22–D24** came out of writing §7 and §9: two of them are about
+*method* rather than behaviour, which is what §9 explicitly asks for — the look
+survives, the mechanism cannot — and the third is the shape that keeps §7 from
+ever moving the needle.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1661,6 +1887,98 @@ that is shaped that way — and of the two ways to be wrong, having no fingerpri
 is much cheaper than having a confident wrong one. Came out of writing the parser
 rather than out of reading the script.
 
+**D21 — shuffle is gapless too. Improved, not retained.** → §6, §6.1b
+
+Bash gave the whole record to mpv and let mpv advance itself, which is why its
+auto-advance is gapless and why it could not shuffle without breaking it: to play
+something other than the next entry, it had to reach in and move the playlist
+position, and that interrupts the thing that was reading ahead (`player:3437`).
+The README says as much, and the parity document said as much until this landed
+— shuffle costs the seam, and that is the trade.
+
+Natively there is no playlist to reach into. One node is fed buffers, and the
+question *what plays after this* is asked once, in one place, by the thing doing
+the reading ahead — which asks `Transport`, and `Transport` answers out of the
+shuffled order or out of album order without the caller knowing which. Shuffle
+stops being an interruption and becomes an answer. So a shuffled record is
+gapless, and on an ambient album — the kind where the seam is audible at all —
+that is not a small difference.
+
+Two edges, both real:
+
+- Turning shuffle on, or `n`, or a pick, while the feeder has already read into
+  the track that *would* have followed: those frames are queued and the ear has
+  not heard them. They are dropped and the deck resyncs, which costs that one
+  seam. It is the same cost bash paid, but paid once when you press the key
+  rather than once per advance — and a key press is a moment you already expect
+  something to happen at.
+- Reading ahead means the order can be a step further along than the ear is, so
+  `n` and `p` have to be answers about what is *playing*. The history carries an
+  index and the engine settles it back to the ear before asking. Otherwise `p`
+  during the last two seconds of a track takes you back to the track you are
+  still listening to.
+
+This is an improvement over a program that has been used and debugged, so it is
+written down rather than made quietly: bash's behaviour here is a consequence of
+talking to mpv down a socket, not a decision about what shuffle should sound
+like, and the same reasoning D2 uses about drags applies.
+
+**D22 — the analyser's window. A transform, where bash ran a filter.** → §9
+
+The script measures a band by running the samples through an actual bandpass and
+asking `astats` for the RMS that comes out — sixteen decoding passes, offline, at
+forty times real time (`player:783`). Live, that is sixteen IIRs on the render
+thread. Instead one windowed transform is taken per tenth of a second and each
+band's level is the transform's power weighted by *that band's* frequency
+response — the same RBJ bandpass, `width_type=o`, `w=1.1`, coefficients built
+from ffmpeg's own `af_biquads.c` formula, evaluated as `|H(e^{jω})|²` rather than
+run as a filter.
+
+The numbers are the same numbers. `AnalyserAgainstFFmpegTests` writes a file with
+a tone in every one of the sixteen bands, runs the script's exact chain over it
+with real ffmpeg, and compares band for band: they agree to inside 1.5 dB across
+the whole spectrum, and a full-scale sine reads −3.01 dB to both. It is one
+sixteenth of the work and it needs no decode ahead of the ear.
+
+Two consequences worth having written down. The window is Hann rather than the
+square window an offline filter effectively gets — an FFT of a square window
+smears every tone across the spectrum through its own skirts, which would light
+bands the music is not in — and the transform is normalised by `Σw²` so a Hann
+window costs nothing in level. And the readings are of the window alone, with no
+memory of what came before, where ffmpeg's IIR carries its whole history; on a
+settled signal that is the 1.5 dB above, and on a transient it means this reacts
+one window faster than the script did, which is the direction you want.
+
+**D23 — the analyser's two clocks. Kept apart.** → §9, §10
+
+Levels arrive ten times a second (`SPEC_HZ`) and the columns step twenty times a
+second (`TICK_HZ`) — the script indexes a ten-a-second table by position once per
+tick, so every level is stepped twice (`player:2661`, `player:2878`). `SPEC_FALL`
+is 2 eighths per *step*, not per level: forty eighths a second, the whole height
+of a column in one.
+
+Recorded as a decision because it is invisible in the source and expensive to get
+wrong. Folded into one clock — which is the obvious reading of "ten frames a
+second" in §9's own heading — the trails fall at half the rate they should, and a
+peak takes two seconds to come down. `Analyser.frame()` is therefore the tick and
+not the measurement, and takes the latest reading whether or not it is new, which
+is exactly what indexing a table by position does.
+
+**D24 — resume is an observer. The deck never hears from it.** → §7, §6
+
+§7 says the position is offered and never applied, and the code is arranged so
+that it cannot be applied by accident: `ResumeWatch` reads `PlaybackEngine.state`
+on the tick and writes a file, and has no reference to the engine at all — no
+`apply`, no seek, nothing that moves the needle. Spending the offer hands back a
+row and a position for §10 to do something with when `u` is pressed.
+
+The consequence is that **§7 required no change to `Play/`**. The engine's own
+track changes and its finish are tick-driven, so an observer polling at the same
+rate sees both at the moment the engine does; §7's "written before a note of the
+new track has played" falls out of that rather than needing a hook. Worth saying
+because the alternative — a callback from the deck into a state file — would have
+put a filesystem write on the path that advances a record.
+
 ---
 
 ## 17. When something is missing
@@ -1718,13 +2036,17 @@ record.** Everything else quietly becomes a worse panel.
 - [ ] Thirteen extensions, case-insensitive, in one album with no special case
       anywhere (`player:1046`). A folder of FLACs with one MP3 bonus track is one
       album.
-- [ ] **Gapless must bridge a format, rate or layout change**, which is the
+- [x] **Gapless must bridge a format, rate or layout change**, which is the
       §6 requirement restated: this is exactly the album where the seam would
-      show (`player:2481`).
-- [ ] Per-file decoding is per-file. Natively that means the AVFoundation path
+      show (`player:2481`). Measured both ways round, and honestly: see §6.
+- [x] Per-file decoding is per-file. Natively that means the AVFoundation path
       and the ffmpeg fallback path can be in use in the same record, and the
       transition between two tracks that took different paths still has to be
-      gapless.
+      gapless. It is: the fallback decodes at the file's **native** rate rather
+      than at the record's, so both decoders present the same kind of frames and
+      the graph never finds out which one produced which. Measured across a WAV →
+      Opus join in both directions — not one frame lost through a subprocess and
+      a pipe, and the join no worse than Opus is in mid-track.
 
 ### A folder with no metadata at all
 
@@ -1744,10 +2066,11 @@ record.** Everything else quietly becomes a worse panel.
 
 ### The album disappears mid-play
 
-- [ ] The case §2 exists to prevent, and §6.3 exists to explain: fifty tracks
+- [x] The case §2 exists to prevent, and §6.3 exists to explain: fifty tracks
       failing in two seconds must not read as `END OF ALBUM` (`player:3285`).
-- [ ] When the source was a zip the message names the cause:
+- [x] When the source was a zip the message names the cause:
       `— THE UNPACKED COPY IS GONE. Q, THEN PLAY IT AGAIN` (`player:3315`).
+      Tested by deleting the files out from under a record that is playing.
 
 ### No ffmpeg
 
@@ -1770,9 +2093,11 @@ silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
 Eleven are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16 and 17**, each marked
-below and carrying the decision it became. The other seven are still open. **17**
+below and carrying the decision it became. The other ten are still open. **17**
 and **18** are the odd ones: not `player` behaviours at all, but holes in
-decisions made here, which is why 17 was answered as fast as it was found.
+decisions made here, which is why 17 was answered as fast as it was found. **21**
+is odder still — not a question but a consequence, listed because it is a
+difference from the script that nobody chose.
 
 Six of the seven open ones describe code that has not been written yet. **4** was
 the exception until §5 landed around it and forced the question; it is now D14.
@@ -1937,6 +2262,55 @@ question is only whether that was the right half to keep. It reads as yes.
     about the drive, and it should be answered with the drive plugged in, next to
     §1.3. Nothing in §4 changes either way — both produce a
     `TableOfContents`, and everything downstream of that is settled and tested.
+
+**Found while writing §7 and §9:**
+
+19. **Whose resume file is it.** `ResumeFile.standard()` resolves to
+    `${XDG_STATE_HOME:-$HOME/.local/state}/player/resume` — the script's path,
+    the script's directory name, the script's format, byte for byte
+    (`player:1538`). Two programs therefore share one file, and the sharing goes
+    both ways: stop a record halfway through in the terminal and MU/TH/UR offers
+    to pick it up, and the reverse.
+
+    That is either exactly the point or exactly the bug. `player` is still used —
+    over ssh, in pipes — and CLAUDE.md is explicit that it continues to exist
+    independently; a record is a record whichever program you happened to be at
+    when you stopped it, and one shared file is the only way that is true. But it
+    is also the one place this port writes into territory the script owns. The
+    file is never corrupted by sharing (both write whole and rename, both cap at
+    the same 200, the fourth field is free text to both), so the risk is not
+    breakage — it is that a program with a `.app` bundle is keeping state in a
+    directory named after a shell script.
+
+    *Share `player/resume`, or write `muthur/resume` and let the two forget each
+    other?* One constant. Nothing else in §7 changes either way.
+
+20. **`RESUME AT 9999`.** The offer names a *track number*, and a row that has
+    no track number in its tags falls back to 9999 — the same 9999 §3.1 sorts
+    untracked files under (`player:2828`, `player:474`). On a folder of untagged
+    rips every row is 9999, so the offer reads `▪ RESUME AT 9999 · 12:04` for the
+    fourth track as readily as for the first, which tells you nothing you can act
+    on. The row index is right there and is what `u` actually uses.
+
+    Ported as-is, because it is what the script does and the rule is not to
+    improve it quietly. *Name the row instead when there is no track number —
+    `RESUME AT TRACK 4` — or leave it saying 9999?*
+
+21. **The autoscale, before it has heard enough to scale.** §9's percentiles are
+    over the whole track in the script, which has decoded it before it draws a
+    frame. Live, they are over the track *so far*: the same histogram, the same
+    two percentiles, the same arithmetic, asked ten times a second of a growing
+    pile instead of once of a finished one. The columns therefore settle over the
+    opening bars rather than being right from the downbeat, and the 6 dB minimum
+    span is what stops the first few readings from being magnified into a full
+    column while they are the only readings there are.
+
+    This is not a decision that could have been avoided — a live tap does not
+    know the future — so it is listed as a consequence to be looked at rather
+    than a question to answer in advance. *How long the settling actually takes
+    is a thing to watch on a real record once §10 draws it*, and if it reads
+    badly the answer is a warm-up window or a carried-over scale, both of which
+    are changes to `BandScale` alone.
 
 ---
 
