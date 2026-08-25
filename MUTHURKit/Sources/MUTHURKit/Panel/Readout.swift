@@ -96,6 +96,7 @@ public enum Readout {
         case jump
         case next, previous
         case shuffle, repeatMode
+        case rescan
         case quit
     }
 
@@ -135,6 +136,16 @@ public enum Readout {
         [
             Cap("S", "SHUFFLE", .shuffle),
             Cap("R", "REPEAT", .repeatMode),
+            Cap("Q", "QUIT", .quit),
+        ],
+    ]
+
+    /// The picker's keycap row (`player:1134`).
+    public static let pickerLegend: [[Cap]] = [
+        [
+            Cap("↑↓", "SELECT", .selectUp, .selectDown),
+            Cap("⏎", "OPEN", .jump),
+            Cap("R", "RESCAN", .rescan),
             Cap("Q", "QUIT", .quit),
         ],
     ]

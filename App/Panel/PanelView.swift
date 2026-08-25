@@ -75,7 +75,16 @@ struct PanelView: View {
                 FaceplateView(meta: model.faceplateMeta)
                 PanelBlank()
 
-                if let header = model.header, let record = model.record {
+                if model.isPicking, let entries = model.pickerEntries {
+                    PickerView(
+                        entries: entries,
+                        cursor: model.pickerCursor,
+                        visibleRange: model.pickerVisible,
+                        below: model.pickerBelow,
+                        click: { model.pickerClick(row: $0) }
+                    )
+                    .frame(height: Grid.rows(rows + 4))
+                } else if let header = model.header, let record = model.record {
                     HeaderView(block: header)
                     PanelBlank()
                     TrackListView(
@@ -85,41 +94,43 @@ struct PanelView: View {
                     )
                     .frame(height: Grid.rows(listRows(rows: rows)))
                 } else {
-                    // No record yet. §1 is the source layer and does not exist,
-                    // so what stands here is the shortest honest sentence about
-                    // that rather than a pretend track list.
                     EmptyPanelView(stage: model.stage)
                         .frame(height: Grid.rows(rows + 4))
                 }
 
-                PanelBlank()
-                MeterView(
-                    label: Readout.trackLabel(row: model.state.row, of: trackCount),
-                    position: Int(model.state.positionInTrack),
-                    length: Int(model.state.trackDuration),
-                    cells: Meter.trackCells(
-                        done: Int(model.state.positionInTrack * 1000),
-                        total: Int(model.state.trackDuration * 1000),
-                        width: PanelGrid.stripWidth),
-                    seek: { cell, dragging in
-                        if !dragging { model.seekTrack(cell: cell) }
-                    }
-                )
+                if !model.isPicking {
+                    PanelBlank()
+                    MeterView(
+                        label: Readout.trackLabel(row: model.state.row, of: trackCount),
+                        position: Int(model.state.positionInTrack),
+                        length: Int(model.state.trackDuration),
+                        cells: Meter.trackCells(
+                            done: Int(model.state.positionInTrack * 1000),
+                            total: Int(model.state.trackDuration * 1000),
+                            width: PanelGrid.stripWidth),
+                        seek: { cell, dragging in
+                            if !dragging { model.seekTrack(cell: cell) }
+                        }
+                    )
+
+                    PanelBlank()
+                    MeterView(
+                        label: Readout.albumLabel,
+                        position: Int(model.state.positionInRecord),
+                        length: Int(model.state.recordDuration),
+                        cells: albumCells,
+                        seek: { cell, dragging in
+                            model.seekRecord(cell: cell, dragging: dragging)
+                        }
+                    )
+                    AnalyserView(grid: analyserGrid)
+                }
 
                 PanelBlank()
-                MeterView(
-                    label: Readout.albumLabel,
-                    position: Int(model.state.positionInRecord),
-                    length: Int(model.state.recordDuration),
-                    cells: albumCells,
-                    seek: { cell, dragging in
-                        model.seekRecord(cell: cell, dragging: dragging)
-                    }
+                KeycapsView(
+                    legend: model.isPicking ? Readout.pickerLegend : Readout.legend,
+                    press: tapped
                 )
-                AnalyserView(grid: analyserGrid)
-
-                PanelBlank()
-                KeycapsView(press: tapped)
 
                 if let status = model.statusLine {
                     PanelBlank()
@@ -264,6 +275,10 @@ struct PanelView: View {
     /// thirty seconds a shift-arrow does. The cap is the key, including the parts
     /// of the key that are not printed on it.
     private func perform(_ press: Readout.Press, shift: Bool = false) {
+        if model.isPicking {
+            performPicker(press)
+            return
+        }
         switch press {
         case .play: model.space()
         case .seekBack: model.seek(by: shift ? -30 : -5)
@@ -275,7 +290,19 @@ struct PanelView: View {
         case .previous: model.previous()
         case .shuffle: model.toggleShuffle()
         case .repeatMode: model.cycleRepeat()
+        case .rescan: break
         case .quit: NSApplication.shared.terminate(nil)
+        }
+    }
+
+    private func performPicker(_ press: Readout.Press) {
+        switch press {
+        case .selectUp: model.pickerStep(by: -1)
+        case .selectDown: model.pickerStep(by: 1)
+        case .jump: model.openPicked()
+        case .rescan: model.rescan()
+        case .quit: NSApplication.shared.terminate(nil)
+        default: break
         }
     }
 
@@ -286,6 +313,7 @@ struct PanelView: View {
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        if model.isPicking { return handlePicker(press) }
         let shift = press.modifiers.contains(.shift)
         switch press.key {
         case .space:
@@ -298,8 +326,6 @@ struct PanelView: View {
             perform(.selectUp)
         case .downArrow:
             perform(.selectDown)
-        // Not on the legend and not a cap: the row is already the width of the
-        // panel, and a page is the same select key with more of it.
         case .pageUp:
             model.step(by: -model.visibleRows)
         case .pageDown:
@@ -308,6 +334,29 @@ struct PanelView: View {
             perform(.jump)
         default:
             return letter(press)
+        }
+        return .handled
+    }
+
+    private func handlePicker(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .upArrow: model.pickerStep(by: -1)
+        case .downArrow: model.pickerStep(by: 1)
+        case .pageUp: model.pickerPageStep(by: -1)
+        case .pageDown: model.pickerPageStep(by: 1)
+        case .return: model.openPicked()
+        default: return pickerLetter(press)
+        }
+        return .handled
+    }
+
+    private func pickerLetter(_ press: KeyPress) -> KeyPress.Result {
+        switch press.characters.lowercased() {
+        case "k": model.pickerStep(by: -1)
+        case "j": model.pickerStep(by: 1)
+        case "r": model.rescan()
+        case "q": NSApplication.shared.terminate(nil)
+        default: return .ignored
         }
         return .handled
     }

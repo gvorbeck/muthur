@@ -37,7 +37,7 @@ part worth porting.
 
 ## Status
 
-**192 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**211 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
@@ -74,18 +74,15 @@ other. **The UI** — gate 4's second half — is what §6's eleven open
 boxes are waiting for, along with the whole of §10; the deck underneath them is
 written and measured, the analyser behind them is measured too, and what they are
 missing is somebody to press their keys and a surface to draw on. **§1, the
-source layer**, is
-still the piece that opens a folder, a zip or a disc and hands the result to §3;
-nothing calls §2, §3, §4 or §5 in anger until it exists. It also unblocks the
-two §2.2 boxes below (a zip's provenance has to reach `Record.read` before D12
-can ever fire outside a test), the three §2 teardown boxes (which need something
-with an exit path), and the two things §4 and §5 currently hand to nobody: the
-release MBID that comes off a disc in §4.3 and lets the sleeve skip the name
-search entirely, and `TitleSource` itself, which is the only one of §4's four
-sources nothing stamps — `tags` is what a folder or a zip gets, and there is
-nothing yet that knows a source is a folder. §6 has already borrowed the one
-piece of §1 it could not do without: `SourceKind`, because §6.3's message for a
-record that has vanished depends on whether it came out of a zip.
+source layer**, now opens folders and zips and hands the result to §3 —
+`SourceOpener`, `SourceScanner` and the picker are landed, `OpenRecord.swift` is
+deleted, and everything that was waiting on the source layer to carry
+`SourceKind` and `TitleSource` is unblocked. The two §2.2 boxes (zip provenance
+reaching `Record.read`, D12 switched on for real zips) are ticked. `TitleSource`
+is stamped `.tags` on every folder and zip by `SourceOpener.open`. What remains
+of §1 is the three §2 teardown boxes (which need the app's exit path), **§1.3**
+(disc detection and playback — the drive has to be present), and the five §1.1
+flags (`--cd`, `--dry-run`, `--check`, `--no-mb`, `--help`).
 
 **§1.3 is deliberately not written.** Disc detection wants the drive present, by
 your call; §19 is the list it gets written against.
@@ -233,14 +230,11 @@ What is still the empty frame:
 - `MUTHUR.xcodeproj` and `App/` — the app target. Ad-hoc signed, links
   `MUTHURKit`, and now draws §10's panel in its one window.
 
-  `App/OpenRecord.swift` **is not §1** and is marked as such in the file. §1 is
-  the whole source layer — the argument off the command line, the picker that
-  remembers where you keep records, the zip unpacked to scratch, the disc in the
-  drive, the collection lookup. This is one `NSOpenPanel` pointed at a folder,
-  plus a `MUTHUR_RECORD` environment variable so a launch lands straight on a
-  full panel, and it exists only so that §10 can be looked at while it is being
-  built. It should be deleted the day §1 lands, and §1's boxes stay unticked
-  until it is.
+  `App/OpenRecord.swift` is deleted — §1's source layer has landed. The app
+  now opens sources through `SourceOpener` (folders and zips), shows the picker
+  via `SourceScanner` when launched with no argument, and handles
+  `MUTHUR_RECORD` and Cmd-O directly in `MUTHURApp.swift`. §1.3 (disc) is
+  stubbed at the boundary.
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
   language mode on both halves.
 
@@ -325,12 +319,12 @@ material is not there.
 
 ### 1.1 Invocation
 
-- [ ] No argument → the source picker (`player:3531`).
-- [ ] A directory argument → play that folder (`player:3519`).
-- [ ] A `.zip`/`.ZIP` argument → unpack and play (`player:3523`).
-- [ ] Anything else that exists → `not a zip or a folder` (`player:3524`).
-- [ ] A path that does not exist → `no such file or directory` (`player:3518`).
-- [ ] Exactly one source argument; a second is an error (`player:337`).
+- [x] No argument → the source picker (`player:3531`).
+- [x] A directory argument → play that folder (`player:3519`).
+- [x] A `.zip`/`.ZIP` argument → unpack and play (`player:3523`).
+- [x] Anything else that exists → `not a zip or a folder` (`player:3524`).
+- [x] A path that does not exist → `no such file or directory` (`player:3518`).
+- [x] Exactly one source argument; a second is an error (`player:337`).
 - [ ] `--cd` → the disc, or die `no audio CD in the drive` (`player:3527`).
 - [ ] `-n` / `--dry-run` → read it, print the album, play nothing
       (`player:331`, `player:3540`).
@@ -341,14 +335,14 @@ material is not there.
 
 ### 1.2 The picker
 
-- [ ] Scans `PLAYER_DIRS` (default `~/Music:~/Downloads`), colon-separated
+- [x] Scans `PLAYER_DIRS` (default `~/Music:~/Downloads`), colon-separated
       (`player:1023`).
-- [ ] `find -maxdepth 1`: loose zips, and immediate subdirectories that contain
+- [x] `find -maxdepth 1`: loose zips, and immediate subdirectories that contain
       audio. The *scan* stays one level deep — the picker offers albums, not
       every folder on the disk (`player:1031`).
 - [ ] The disc, when there is one, is listed **first** — if there is a disc in
       the drive it is almost certainly what you came to play (`player:1018`).
-- [ ] Per-row detail column: `N tracks · in the drive`, `<du -h> · zip`,
+- [x] Per-row detail column: `N tracks · in the drive`, `<du -h> · zip`,
       `N tracks · folder`.
 - [ ] **Changed from bash (D18).** The disc's count is the same count every other
       row uses, not `ls | grep -ic '\.aiff\?'` (`player:1019`). A CDDA mount is
@@ -357,21 +351,21 @@ material is not there.
       drive` beside a disc that plays perfectly reads as a broken drive. One
       counter for all three source kinds, which is also the shape D7 gave the
       other two.
-- [ ] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
-- [ ] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
-- [ ] A folder is offered only if it contains audio (`player:1039`).
-- [ ] **Changed from bash (D7).** The count that decides this looks as deep as
+- [x] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
+- [x] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
+- [x] A folder is offered only if it contains audio (`player:1039`).
+- [x] **Changed from bash (D7).** The count that decides this looks as deep as
       playback does, not one level. In bash they disagreed — the picker counted
       at `maxdepth 1` while playback reads at any depth (`player:1050` vs.
       `player:1422`) — so an album whose tracks live in `CD1/` showed up as
       having none and was dropped from the list, while playing fine if you named
       it on the command line. The depth limit was a fork-cost dodge, not a
       guard; a single directory enumeration is cheap here.
-- [ ] One source and no argument is not a choice, it is the answer — skip the
+- [x] One source and no argument is not a choice, it is the answer — skip the
       picker entirely (`player:1117`).
-- [ ] Nothing to play at all → die with the directories it looked in
+- [x] Nothing to play at all → die with the directories it looked in
       (`player:1114`).
-- [ ] Keys: `↑↓`/`kj` move, `PgUp`/`PgDn` a screenful, `⏎` open, `r` rescan
+- [x] Keys: `↑↓`/`kj` move, `PgUp`/`PgDn` a screenful, `⏎` open, `r` rescan
       (status `▪ RESCANNED`), `q` walk away with exit 0 (`player:1134`).
 
 ### 1.3 The disc
@@ -520,16 +514,14 @@ The single most load-bearing piece of hard-won reasoning in the program.
       unreadable, source vanished mid-unpack, interrupted (`player:1230`). Plus
       two the script also distinguishes: an archive with nothing in it, and one
       that yielded nothing (`player:1379`, `player:1308`).
-- [ ] **The album knows it came out of a zip.** D12's rule only applies to a zip
+- [x] **The album knows it came out of a zip.** D12's rule only applies to a zip
       source, so something has to carry that fact from whatever opened the
-      source to whatever reads the album — the unpacker is the only thing that
-      knows it, and §3 is the only thing that needs it. Nothing carries it today
-      because there is no source layer between them yet (§1).
-- [ ] **D12 is switched on for real zips.** `Record.read` takes
-      `discsFromSubdirectories`, it is implemented and tested, and every caller
-      that passes `true` is a test. The one real caller is the zip path in §1,
-      which is not written; until it is, an actual two-disc zip still
-      interleaves. → D12
+      source to whatever reads the album. `SourceOpener.open` carries
+      `SourceKind` through to `Record.read`, so the zip path now knows it is a
+      zip.
+- [x] **D12 is switched on for real zips.** `Record.read` takes
+      `discsFromSubdirectories`, and `SourceOpener.openZip` passes `true` when
+      the unpacked result spans more than one directory. → D12
 
 ---
 
@@ -637,10 +629,9 @@ Four sources, tried in order of trust, and **the panel always says which one you
 got**. A track list is only as good as its source, which is why it is on screen
 rather than in a log (README, `player:2054`).
 
-- [ ] `tags` — embedded metadata. The normal case, and the only source a folder
-      or a zip ever has (`player:1417`). *The only one of the four nothing
-      stamps yet: it is what a source that is not a disc gets, and there is no
-      source layer to stamp it. §1.*
+- [x] `tags` — embedded metadata. The normal case, and the only source a folder
+      or a zip ever has (`player:1417`). Stamped by `SourceOpener.open` — the
+      source layer now carries `TitleSource.tags` on every folder and zip.
 - [x] `CD-Text` — read off the disc's lead-in (`player:2251`).
 - [x] `MusicBrainz` — looked up by disc ID (`player:2253`).
 - [x] `track numbers` — nothing could say (`player:2237`), and the panel says

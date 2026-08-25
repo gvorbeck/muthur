@@ -13,13 +13,15 @@ import SwiftUI
 /// and a drawn switch that does nothing when you push it is the one thing on a
 /// panel this literal that reads as broken rather than as decoration.
 struct KeycapsView: View {
+    /// Which legend to draw — the playing panel's or the picker's.
+    var legend: [[Readout.Cap]] = Readout.legend
     /// What a press asks for. The view knows which cap was hit and nothing about
     /// what it means; `PanelView` owns that, so a cap and its key cannot drift.
     let press: (Readout.Press) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(Readout.legend.enumerated()), id: \.offset) { _, caps in
+            ForEach(Array(legend.enumerated()), id: \.offset) { _, caps in
                 HStack(spacing: 0) {
                     Spacer().frame(width: Grid.margin)
                     ForEach(Array(caps.enumerated()), id: \.offset) { index, cap in

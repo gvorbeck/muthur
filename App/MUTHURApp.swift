@@ -1,10 +1,6 @@
 import MUTHURKit
 import SwiftUI
 
-// Nothing stands between launching and sound (docs/parity.md D8). Until §1 gives
-// the app a way to be handed a record — an argument, a picker, a zip, the disc
-// in the drive — that promise is the one thing here that cannot be kept, and
-// `OpenRecord` is a placeholder standing where §1 goes.
 @main
 struct MUTHURApp: App {
     @State private var model = PanelModel()
@@ -13,17 +9,19 @@ struct MUTHURApp: App {
         WindowGroup("MU/TH/UR") {
             PanelView(model: model)
                 .task {
-                    if let preset = OpenRecord.preset { model.open(folder: preset) }
+                    if CommandLine.arguments.count > 1 {
+                        let path = CommandLine.arguments[1]
+                        do {
+                            let (url, kind) = try SourceOpener.resolve(path: path)
+                            model.open(source: url, kind: kind)
+                        } catch {
+                            model.die("\(error)")
+                        }
+                    } else {
+                        model.scan()
+                    }
                 }
         }
         .windowResizability(.contentMinSize)
-        .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("Open Record…") {
-                    if let folder = OpenRecord.ask() { model.open(folder: folder) }
-                }
-                .keyboardShortcut("o")
-            }
-        }
     }
 }

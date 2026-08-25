@@ -40,6 +40,11 @@ public enum Faceplate {
         return text
     }
 
+    /// The picker's meta: `N SOURCES` or `1 SOURCE`.
+    public static func pickerMeta(count: Int) -> String {
+        "\(count) \(count == 1 ? "SOURCE" : "SOURCES")"
+    }
+
     /// §6.1a's level, stamped at the tail of the meta. New (D1): bash had no
     /// volume and so had nothing to put here.
     ///

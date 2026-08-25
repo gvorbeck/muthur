@@ -852,7 +852,9 @@ struct KeycapTests {
     /// required, because `u`, `m` and the volume pair are deliberately not on it.
     @Test("Every press a cap can make is one the legend names")
     func wired() {
-        let onCaps = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
-        #expect(onCaps == Set(Readout.Press.allCases))
+        let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
+        let picker = Set(Readout.pickerLegend.flatMap { $0 }.flatMap(\.presses))
+        let all = playing.union(picker)
+        #expect(all == Set(Readout.Press.allCases))
     }
 }

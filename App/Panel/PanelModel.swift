@@ -23,9 +23,18 @@ final class PanelModel {
     private(set) var titleSource: TitleSource?
     private(set) var sourceKind: SourceKind = .folder
 
-    /// The stage the panel is at when there is no record yet. §1 will replace
-    /// the whole of this with a real source layer.
+    /// The stage the panel is at when there is no record yet.
     private(set) var stage: String?
+
+    /// The scratch directory a zip was unpacked into.
+    private(set) var scratch: Scratch?
+
+    // MARK: - The picker (§1.2)
+
+    private(set) var pickerEntries: [PickerEntry]?
+    var pickerCursor = 0
+
+    var isPicking: Bool { pickerEntries != nil && record == nil }
 
     // MARK: - The deck
 
@@ -144,32 +153,112 @@ final class PanelModel {
         start()
     }
 
-    // MARK: - Opening a record
+    // MARK: - Opening a record (§1)
 
-    /// **Not §1.** §1 is the source layer — the picker, the zip, the disc, the
-    /// argument off the command line, the collection lookup — and none of it
-    /// exists yet. This is the shortest path from a folder on disk to something
-    /// the panel can draw, so that the panel can be looked at while it is being
-    /// built, and it should be deleted the day §1 lands.
-    func open(folder: URL) {
+    /// The script's `die()` — a message and nothing else.
+    func die(_ message: String) {
+        stage = "▪ \(message)"
+    }
+
+    /// Open a source — folder or zip — by URL and kind.
+    func open(source url: URL, kind: SourceKind) {
         stage = "OPENING"
         record = nil
+        pickerEntries = nil
         Task {
             do {
-                let label = folder.lastPathComponent
-                let read = try await Record.read(
-                    directory: folder, sourceLabel: label,
-                    progress: { [weak self] progress in
-                        Task { @MainActor in
-                            self?.stage = "READING · \(progress.percent)% · \(progress.filename)"
-                        }
+                let opened = try await SourceOpener.open(
+                    url: url, kind: kind,
+                    progress: { [weak self] text in
+                        Task { @MainActor in self?.stage = text }
                     }
                 )
-                adopt(read, source: .folder, titleSource: .tags, directory: folder)
+                self.scratch = opened.scratch
+                adopt(
+                    opened.record, source: opened.source,
+                    titleSource: opened.titleSource, directory: opened.directory
+                )
             } catch {
                 stage = "\(error)"
             }
         }
+    }
+
+    // MARK: - The picker (§1.2)
+
+    /// Scan the default directories for sources and show the picker — or open
+    /// directly when there is exactly one.
+    func scan() {
+        let directories = SourceScanner.defaultDirectories()
+        let found = SourceScanner.scan(directories: directories)
+
+        switch found.count {
+        case 0:
+            let searched = directories.map(\.path).joined(separator: ", ")
+            stage = "NOTHING TO PLAY IN \(searched.uppercased())"
+        case 1:
+            open(source: found[0].url, kind: found[0].kind)
+        default:
+            pickerEntries = found
+            pickerCursor = 0
+        }
+    }
+
+    func rescan() {
+        let directories = SourceScanner.defaultDirectories()
+        let found = SourceScanner.scan(directories: directories)
+        pickerEntries = found.isEmpty ? nil : found
+        pickerCursor = min(pickerCursor, max(0, found.count - 1))
+        pickerStatus = Readout.status("RESCANNED")
+        if found.isEmpty {
+            let searched = directories.map(\.path).joined(separator: ", ")
+            stage = "NOTHING TO PLAY IN \(searched.uppercased())"
+        }
+    }
+
+    func pickerStep(by delta: Int) {
+        guard let entries = pickerEntries, !entries.isEmpty else { return }
+        pickerCursor = max(0, min(entries.count - 1, pickerCursor + delta))
+    }
+
+    func pickerPageStep(by pages: Int) {
+        pickerStep(by: pages * visibleRows)
+    }
+
+    func openPicked() {
+        guard let entries = pickerEntries,
+              pickerCursor >= 0, pickerCursor < entries.count
+        else { return }
+        let entry = entries[pickerCursor]
+        open(source: entry.url, kind: entry.kind)
+    }
+
+    func pickerClick(row: Int) {
+        guard let entries = pickerEntries,
+              row >= 0, row < entries.count
+        else { return }
+        if row == pickerCursor {
+            openPicked()
+        } else {
+            pickerCursor = row
+        }
+    }
+
+    /// The visible window of the picker list.
+    var pickerVisible: Range<Int> {
+        guard let entries = pickerEntries, !entries.isEmpty else { return 0..<0 }
+        let count = entries.count
+        let rows = visibleRows
+        if count <= rows { return 0..<count }
+        var top = pickerCursor - rows / 2
+        top = max(0, min(top, count - rows))
+        return top..<min(top + rows, count)
+    }
+
+    var pickerBelow: Int {
+        guard let entries = pickerEntries else { return 0 }
+        let range = pickerVisible
+        return max(0, entries.count - range.upperBound)
     }
 
     private func adopt(
@@ -259,16 +348,23 @@ final class PanelModel {
     }
 
     var faceplateMeta: String {
-        Faceplate.meta(
+        if let entries = pickerEntries, record == nil {
+            return Faceplate.pickerMeta(count: entries.count)
+        }
+        return Faceplate.meta(
             mode: mode, trackCount: record?.order.count ?? 0, source: titleSource,
             level: Faceplate.level(volume: state.volume, muted: state.muted)
         )
     }
 
+    /// A status message set by the picker.
+    private(set) var pickerStatus: String?
+
     /// The status line, which the resume offer gets to borrow when the deck has
     /// nothing of its own to say. A record you have not started yet is exactly
     /// when the offer is worth reading.
     var statusLine: String? {
+        if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
         if let offer { return offer.text }
         return nil
