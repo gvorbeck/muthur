@@ -42,13 +42,22 @@ public struct Record: Sendable {
 
     // MARK: - Reading
 
-    public enum Failure: Error, Equatable {
+    public enum Failure: Error, Equatable, CustomStringConvertible {
         /// Nothing with an audio extension under the source at all
         /// (`player:1423`).
         case noAudio(source: String)
         /// Files were found and not one of them could be read
         /// (`player:1494`).
         case noReadableAudio(source: String)
+
+        public var description: String {
+            switch self {
+            case .noAudio(let source):
+                "no audio in \(source)"
+            case .noReadableAudio(let source):
+                "no readable audio in \(source)"
+            }
+        }
     }
 
     /// Where the loading meter is up to. `read` of `total` is progress through

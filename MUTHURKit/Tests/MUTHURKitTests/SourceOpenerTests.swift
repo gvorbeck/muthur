@@ -36,6 +36,13 @@ struct SourceOpenerTests {
         #expect(kind == .zip)
     }
 
+    @Test func resolveDirectoryNamedZip() throws {
+        let tmp = TempDirectory("opener-dir-zip")
+        let dir = tmp.directory("Rumours.zip")
+        let (_, kind) = try SourceOpener.resolve(path: dir.path)
+        #expect(kind == .folder)
+    }
+
     @Test func resolveNonexistent() throws {
         #expect(throws: SourceOpener.Failure.self) {
             try SourceOpener.resolve(path: "/nonexistent/path/to/nothing")

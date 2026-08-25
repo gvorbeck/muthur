@@ -179,7 +179,7 @@ final class PanelModel {
                     titleSource: opened.titleSource, directory: opened.directory
                 )
             } catch {
-                stage = "\(error)"
+                die("\(error)")
             }
         }
     }

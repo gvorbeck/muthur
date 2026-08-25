@@ -25,9 +25,9 @@ public enum SourceOpener {
         public var description: String {
             switch self {
             case .notFound(let path):
-                "\(path): no such file or directory"
+                "no such file or directory: \(path)"
             case .notASource(let path):
-                "\(path): not a zip or a folder"
+                "not a zip or a folder: \(path)"
             case .discNotImplemented:
                 "disc sources are not yet implemented"
             }
@@ -41,12 +41,12 @@ public enum SourceOpener {
         guard fm.fileExists(atPath: url.path) else {
             throw Failure.notFound(path: path)
         }
-        if url.pathExtension.lowercased() == "zip" {
-            return (url, .zip)
-        }
         var isDir: ObjCBool = false
         if fm.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
             return (url, .folder)
+        }
+        if url.pathExtension.lowercased() == "zip" {
+            return (url, .zip)
         }
         throw Failure.notASource(path: path)
     }
