@@ -138,12 +138,7 @@ public struct ResumeFile: Sendable {
         /// behaviour. **Nothing about the file changes** — §18.19 froze that,
         /// and the bash player has to keep reading it.
         public var text: String {
-            "▪ RESUME AT \(row + 1) · \(Offer.mmss(position)) — PRESS U"
-        }
-
-        /// `panel.sh:148`. Minutes are not padded; seconds always are.
-        static func mmss(_ seconds: Int) -> String {
-            String(format: "%d:%02d", seconds / 60, seconds % 60)
+            Readout.status("RESUME AT \(row + 1) · \(Readout.mmss(position)) — PRESS U")
         }
     }
 

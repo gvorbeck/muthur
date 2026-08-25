@@ -127,14 +127,31 @@ public final class Analyser: @unchecked Sendable {
         columns.step(latest ?? [Int](repeating: 0, count: Bands.count))
     }
 
-    /// A new track. Columns and scales both — a scale carried over from the last
-    /// track is the last track's scale, and heights carried over read as a
-    /// glitch (`player:3389`).
+    /// A new track: the columns, and only the columns.
+    ///
+    /// Heights carried across a track change read as a glitch, so they go
+    /// (`player:3389`). **The scales stay** (D33). The script can afford to
+    /// start each track's scale from nothing because it has the whole track
+    /// before it draws anything; this cannot, and the previous track is by far
+    /// the best evidence available about this one — same record, same room, same
+    /// mastering. Measured, it takes side two's opening from eleven eighths out
+    /// to four. It does nothing for track one, which is what the seed is for.
     public func newTrack() {
         lock.lock()
         defer { lock.unlock() }
         columns.reset()
+        latest = nil
+        filled = 0
+        measured = [Double](repeating: Spectrum.floor, count: Bands.count)
+    }
+
+    /// A new record, which is where the scales *do* go — another record's scale
+    /// is another record's scale, and this one is owed a cold start.
+    public func newRecord() {
+        lock.lock()
+        defer { lock.unlock() }
         for band in scales.indices { scales[band].reset() }
+        columns.reset()
         latest = nil
         filled = 0
         measured = [Double](repeating: Spectrum.floor, count: Bands.count)

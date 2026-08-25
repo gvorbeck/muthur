@@ -73,6 +73,16 @@ public actor PlaybackEngine {
         public var status: Status?
         public var volume: Float
         public var muted: Bool
+
+        /// A deck with nothing on it. §10 needs something to draw in the moment
+        /// between the window appearing and the first answer coming back across
+        /// the actor boundary, and a blank panel drawn from real zeroes is more
+        /// honest than one drawn from whatever the last record left behind.
+        public static let empty = State(
+            mode: .stopped, row: 0, positionInTrack: 0, trackDuration: 0,
+            positionInRecord: 0, recordDuration: 0, shuffle: false,
+            repeatMode: .off, status: nil, volume: 1, muted: false
+        )
     }
 
     // MARK: - The graph
@@ -81,6 +91,8 @@ public actor PlaybackEngine {
     private let player = AVAudioPlayerNode()
     private let offline: Bool
     private var running = false
+    /// §9, waiting for a player node to hang off. See `listen`.
+    private var listener: Analyser?
     private var canonical = CanonicalFormat.format(
         rate: CanonicalFormat.fallbackRate, channels: CanonicalFormat.fallbackChannels
     )
@@ -202,10 +214,12 @@ public actor PlaybackEngine {
         applyGain()
         try engine.start()
         running = true
+        listener?.tap(player)
     }
 
     private func teardown() {
         if running {
+            listener?.untap(player)
             player.stop()
             engine.stop()
             engine.disconnectNodeOutput(player)
@@ -421,12 +435,20 @@ public actor PlaybackEngine {
     ///
     /// The node stays private: handing it out would let a caller reconnect the
     /// graph, and the analyser only ever needed somewhere to listen.
+    /// The listener is remembered rather than wired straight in, because the
+    /// player node only exists in the graph while a record is on the deck: it is
+    /// attached in `startGraph` and detached again in `teardown`, and a tap on a
+    /// detached node is not a quiet no-op — AVAudioEngine raises. So §9 says once
+    /// that it wants to listen, and the graph hands it the player every time
+    /// there is a player to hand it.
     public func listen(_ analyser: Analyser) {
-        analyser.tap(player)
+        listener = analyser
+        if running { analyser.tap(player) }
     }
 
     public func stopListening(_ analyser: Analyser) {
-        analyser.untap(player)
+        if running { analyser.untap(player) }
+        if listener === analyser { listener = nil }
     }
 
     // MARK: - §6.4 The meters as controls
@@ -520,6 +542,11 @@ public actor PlaybackEngine {
     /// blocks — which is what makes the whole of §6 testable without a sound
     /// card and without waiting in real time for a record to finish.
     public func pump() {
+        // An empty deck. §10's clock starts with the window, not with the
+        // record, so the first few hundred ticks arrive before there is a graph
+        // to pump — and asking a detached node what time it is raises rather
+        // than answering.
+        guard running else { return }
         serviceSeek()
         fill()
         observe()

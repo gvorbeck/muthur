@@ -37,21 +37,28 @@ part worth porting.
 
 ## Status
 
-**141 of 263 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**192 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
 those are the same box in different clothes — the command that runs a tool
 against a drive there is no drive for. §2, §2.1 and §2.2 are done bar five: three
 that need an exit path to hang off, and two that need the source layer. §3 and
-§3.1 are done whole, the CD-only filename rescue included. §6, §6.1b, §6.2 and
-§6.3 are done whole, and §6.1, §6.1a and §6.4 are done bar what is plainly the
-panel's half rather than the deck's — the cursor, the wheel, the mouse buttons,
-the faceplate, the analyser and the key bindings themselves. **All eleven of §6's
-remaining boxes are waiting on the panel — none of them on the engine.** It takes
-four of §17's with it: the two degraded paths for an album that vanishes while it
-is playing, and the two about a folder of mixed formats, which is the same
-requirement §6 opens with and the album it would be audible on.
+§3.1 are done whole, the CD-only filename rescue included. **§6 and all six of
+its subsections are now done whole** — §10 closed the eleven boxes that were
+waiting on a panel to exist: the cursor against the playhead, browsing, the key
+bindings themselves, the wheel, the mouse buttons, the status line's `u`, and
+the four that §6.1a's volume needed a faceplate for. It takes four of §17's with
+it: the two degraded paths for an album that vanishes while it is playing, and
+the two about a folder of mixed formats, which is the same requirement §6 opens
+with and the album it would be audible on.
+
+§10 itself is **most of the way and deliberately not finished**. The layout, the
+arithmetic, the behaviour, the amber and the type are done and on screen. **Four
+of its boxes stay open and not one of them is §10's**: the faceplate cannot be
+shown true on *every* stage while there is only one stage, `SHELF`/`NOTE` need
+§8, the year cannot come from three sources while only tags exist, and the
+loading stage's per-file album meter needs §1 to have a file to load.
 
 **§7 and §9 are the new ones, and both are done whole** — twenty boxes, and
 §6.2's resume entry with them, which had been waiting for §7 to have one to
@@ -93,8 +100,17 @@ off the drive is a question to answer with the drive plugged in. **§18.19,
 file is shared with the bash script or owned outright, what the offer says for a
 row with no track number, and how long a live autoscale takes to settle. The
 first two want an answer before §10 draws anything that depends on them; the
-third is a thing to watch on a real record rather than a question. Ten open items
-remain in §18.
+third was a thing to watch on a real record rather than a question, and **it has
+now been watched, measured and answered** — the cold scale read high by three and
+a half rows over the opening of a track that fades in, which was worse than
+§18.21 assumed and was a direction rather than a delay, and **D33** answers it.
+**§18.22 and §18.23** came out of §10 and are both answered as fast as they were
+found — the missing fourth line in `np_scroll` goes in (**D31**), and the two
+places the port measures a character wider than `cwidth` does stay as they are
+(**D32**). **§18.24** is open: the script scales a cover to the sleeve box
+exactly and stretches a cover that is not square; the port keeps the aspect
+instead. **§18.25** was newest and is now closed unguarded — D30 made `QUIT` a
+switch, and §7 is why that is safe. Eight open items remain in §18.
 
 What has landed:
 
@@ -165,7 +181,23 @@ What has landed:
   numbers in dBFS and a grid of graded cells, and **no colours and no glyphs** —
   §10 owns those. The whole of it is measured against tones with known answers,
   and against real ffmpeg running the script's own filter chain.
-- 370 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
+- **§10 — the panel, first pass.** `App/Panel/`. `PanelModel` is the other half
+  of the script's `while read_key` loop: what is on screen, what a key does to
+  it, and a twenty-a-second tick that sleeps between frames rather than queueing
+  them — `player:2643`'s lesson, that a window behind another window drains
+  slowly and queued ticks replay as visible catch-up lag. `Grid` is what makes
+  the character grid literally true rather than nearly true: every measurement is
+  a column count out of `MUTHURKit/Panel` times one measured cell, so the 52
+  columns `TrackColumns` gives the titles are 52 columns on screen. The blocks
+  are `FaceplateView`, `HeaderView`, `TrackListView`, `MeterView`, `AnalyserView`
+  and `KeycapsView`, and they are monospaced `Text` runs everywhere the script
+  printed text and `Canvas` for the two meters and the analyser — drawn rather
+  than typed, so a band boundary lands where it falls instead of on the nearest
+  of eight glyphs.
+
+  **The amber, the glyphs and the type are not this pass.** Everything about how
+  it looks is in `Theme` and nowhere else, so tuning any of it is one file.
+- 431 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
   on a machine with nothing in the drive — that is §19, and it is the list of
   what is still unproven rather than untested. Five more skip without `ffmpeg`
   (the cross-decoder seam, and §9's three against the script's own chain), and
@@ -197,7 +229,16 @@ What is still the empty frame:
   earns that arrangement twice over: an audio engine that can only be tested by
   listening to it is an audio engine nobody tests.
 - `MUTHUR.xcodeproj` and `App/` — the app target. Ad-hoc signed, links
-  `MUTHURKit`, opens one empty window, does nothing else.
+  `MUTHURKit`, and now draws §10's panel in its one window.
+
+  `App/OpenRecord.swift` **is not §1** and is marked as such in the file. §1 is
+  the whole source layer — the argument off the command line, the picker that
+  remembers where you keep records, the zip unpacked to scratch, the disc in the
+  drive, the collection lookup. This is one `NSOpenPanel` pointed at a folder,
+  plus a `MUTHUR_RECORD` environment variable so a launch lands straight on a
+  full panel, and it exists only so that §10 can be looked at while it is being
+  built. It should be deleted the day §1 lands, and §1's boxes stay unticked
+  until it is.
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
   language mode on both halves.
 
@@ -866,6 +907,50 @@ Anything that answered counts, including a rate-limit page or an error document:
 those are the catalogue talking, and the retry ladder above is what handles them.
 The distinction is only between *asked* and *could not ask*.
 
+### 5.4 Drawing it
+
+Everything above is the finding. This is the last step, and it is a view: by the
+time a sleeve reaches it the bytes are on disk and nothing is waiting on
+anything.
+
+- [x] **Column 74, row 3** — the gutter takes 72 and 73 and the cover starts
+      level with the album title (`player:504`, `player:1746`). This is what the
+      fixed panel width is *for*.
+- [x] `art_tick`'s three bounds, ported to `SleeveFrame` (`player:3133`): as wide
+      as the window spares, no taller than the rows above the analyser, and
+      nothing at all below `ART_MIN` (12 columns). **No `ART_MAX`** — the ceiling
+      is deliberately dropped (**D2**), so a window dragged wider keeps giving
+      the sleeve more.
+- [x] The sleeve stops where the analyser starts. In bash the reason was the
+      strobing repaint (`player:3119`); here the analyser does not erase what is
+      beside it, but the rule stays because the *layout* reason stands — the
+      instrument's rows are the instrument's.
+- [x] Decoded straight to the size it is drawn at, and re-decoded when that size
+      changes, rather than a full decode and a scale.
+- [x] No cover means no cover: the panel is unchanged and the window keeps its
+      shape.
+- [x] **The treatment: phosphor.** The cover is quantised to the panel's own
+      ramp with a 4×4 ordered dither, which is the halftone in a printed sleeve
+      as much as it is a dither. A crisp JPEG beside an instrument is brighter
+      than the data on it, which is the one rule the palette has.
+- [x] **And capped.** The sleeve's ramp is the panel's resampled to stop two
+      steps below the brightest, so the cover can be as bright as the badge and
+      no brighter (`Theme.sleeveRamp`). Eight levels either way: the ceiling is
+      bought by resampling, not by throwing stops away, because the levels are
+      what stop a sky becoming stripes.
+- [x] **The edge: the bezel.** A lit rectangle against the dark reads as a hole
+      in the screen rather than an object on it. Two were built — a dim rule, and
+      the rule with the picture darkened into its own edges — and the bezel won:
+      the darkening is what turns the rule from a line drawn *near* the picture
+      into the picture's own edge, so the sleeve sits on the panel instead of
+      being cut out of it. `MUTHUR_SLEEVE_EDGE=rule` keeps the other.
+- [x] **The ceiling is level with the plate**, at 5 along the ramp
+      (`Theme.sleeveCeiling`) — settled, and the number the ramp is cut at.
+- [ ] **§18.24** — a cover that is not square. The script fills the box exactly
+      and stretches; the port keeps the aspect. **Deliberately still open**: the
+      letterboxing is confirmed right and the flag stays up, so the divergence is
+      never mistaken for something nobody noticed.
+
 ---
 
 ## 6. Playback
@@ -981,13 +1066,15 @@ measurement.
 | `-` `=` | volume down / up — **new (D1)** |
 | `m` | mute / unmute — **new (D1)** |
 
-- [ ] All of the above (`player:2687`).
-- [ ] **Cursor and playhead are two different things.** `♪` is the track the
+- [x] All of the above (`player:2687`). Bound in `PanelView.handle` and
+      `PanelView.letter`; the arrows and the vi pair go to the same call so there
+      is one behaviour and two ways to reach it.
+- [x] **Cursor and playhead are two different things.** `♪` is the track the
       music is coming out of (`‖` when paused); the highlighted row with `▶` in
       the gutter is the cursor. Usually they agree; when you browse ahead they do
       not, and the panel has to be able to say so — which is why the playing mark
       is not a second arrow (`player:2344`).
-- [ ] Moving the cursor is browsing, and browsing stops the cursor chasing the
+- [x] Moving the cursor is browsing, and browsing stops the cursor chasing the
       music until you pick something with it again. `⏎`, `n`, `p`, a click on the
       album meter and the resume offer all put it back to following
       (`player:2693`).
@@ -1009,10 +1096,11 @@ measurement.
       sure of than two (`player:2704`, `player:3486`). Proved by counting file
       opens rather than by reading the code: a looping track opens its file once.
 - [x] Shuffle — see §6.1b. **Changed from bash (D4).**
-- [ ] Status line messages: `▪ SHUFFLE ON/OFF`, `▪ REPEAT OFF/ALBUM/TRACK`
+- [x] Status line messages: `▪ SHUFFLE ON/OFF`, `▪ REPEAT OFF/ALBUM/TRACK`
       (`player:2702`, `player:2704`). `u` takes the resume offer and is bound
-      only while there is one (`player:2720`). *The two messages are written and
-      pinned to the character; the box stays open on `u`, which needs §7.*
+      only while there is one (`player:2720`) — the key returns `.ignored` with
+      no offer on the panel, so it is the offer being *readable* that makes the
+      key live, which is the whole of why the script bound it that way.
 - [x] Starting a track clears the status line — including "end of album", which a
       track starting has just made untrue (`player:3398`).
 
@@ -1029,11 +1117,16 @@ Now Playing widget cannot, because it looks like a deck and a deck has a level.
       when reading the test: the main mixer's gain **ramps** rather than steps —
       which is what stops a volume change clicking, and which means a level has to
       be measured after it has settled or the old level is what comes back.
-- [ ] The hardware volume keys stay the system's. macOS handles them above the
+- [x] The hardware volume keys stay the system's. macOS handles them above the
       app and they never arrive here — nothing to bind, nothing to fight. What
       the media keys owe us is play/pause/next/previous (§14), which is separate.
-- [ ] The level survives a quit. A deck left at 3 is at 3 when you come back.
-- [ ] Shown on the faceplate, in the chrome amber, not as data.
+- [x] The level survives a quit. A deck left at 3 is at 3 when you come back.
+      It lives in the app's own `UserDefaults` and **not** in the resume file:
+      §18.19 froze that file's four fields so the bash player goes on reading it,
+      and a level is not one of the four.
+- [x] Shown on the faceplate, in the chrome amber, not as data — `VOL 88`, or
+      `MUTE`, last in the meta run after the mode, the count and the title
+      source.
 - [x] Mute is a state you can see, not a level of zero you have to infer — "no
       sound and I do not know why" is exactly the question the panel exists to
       answer, and §11 answers the other half of it. The level is kept while muted
@@ -1130,11 +1223,17 @@ which is a track you have not heard.
       whichever track that lands in. The target row is the last one starting at
       or before the point; the remainder is an offset into it (`player:3329`).
 - [x] Click the **track** meter → seek within the track.
-- [ ] Click a row to select, click it again to play it. The first click moves the
+- [x] Click a row to select, click it again to play it. The first click moves the
       cursor and the second starts it, which is the difference between reading
       the list with the pointer and being made to listen to whatever the pointer
       happened to land on (`player:3213`).
-- [ ] The wheel walks the track list (`player:3188`).
+- [x] The wheel walks the track list (`player:3188`). A local `NSEvent` monitor
+      rather than a view that catches scrolls: a view that catches scrolls has to
+      sit over the panel, and it would then be in the way of every click on it.
+      There is one panel and one window, and its one long list is the track list,
+      so a scroll anywhere in it means the list. The accumulator carries the
+      remainder between events so a trackpad's small deltas still add up to whole
+      rows rather than being thrown away.
 - [x] **Changed from bash (D2).** A drag on the album meter crosses track
       boundaries freely — drag the whole length of the record and the needle
       follows. Bash confined a drag to the track it started in (`player:3340`)
@@ -1152,8 +1251,10 @@ which is a track you have not heard.
       the move lands in the track being left, not the one arriving
       (`player:3336`). The native equivalent — do not seek an item that is not
       the current item — has to be preserved even though the mechanism differs.
-- [ ] Middle and right buttons mean nothing here; answering them with a seek
-      would be a nasty surprise (`player:3194`).
+- [x] Middle and right buttons mean nothing here; answering them with a seek
+      would be a nasty surprise (`player:3194`). Structurally true rather than
+      filtered for: `DragGesture` and `onTapGesture` only ever hear the left
+      button, so there is nothing to ignore.
 
 One thing the far right-hand end of the album meter found, worth writing down
 because it will look like an odd line of code otherwise: dropping the needle on
@@ -1293,9 +1394,31 @@ hertz (`player:92`, `player:99`).
 - [x] **A column jumps to its new level instantly; only the fall is slowed.** An
       analyser that eased upward would read as a slow analyser, not a smooth one
       (`player:605`).
-- [x] Peak-hold trail: it sinks 2 eighths a frame and dims with age down the
-      amber ramp, so it reads as the same light going out. A fast transient stays
-      visible for longer than the tenth of a second it lasted (`player:667`).
+- [x] Peak-hold trail: `SPEC_FALL` is 2, and it is 2 eighths **a frame** — the
+      tick's twenty a second, not the levels' ten (`player:105`, `player:2661`,
+      `player:2878`, and **D23** on why those are different numbers). Forty
+      eighths a second is the whole column in one second. It dims with age down
+      the amber ramp, so it reads as the same light going out, and a fast
+      transient stays visible for longer than the tenth of a second it lasted
+      (`player:667`).
+
+      *This is the VU ballistics, and they were already here: fast attack is the
+      box above, slow decay is `SPEC_FALL` on the trail, and the falling peak cap
+      is the trail itself. `AnalyserColumns.step` is `spec_step` (`player:609`)
+      and nothing was added on top of it — a second layer of damping would be a
+      silent divergence from a script that has been used and debugged.*
+- [x] **The column is not damped, and that is decided, not pending.** The script
+      damps the trail only and lets the column drop instantly (`player:611`).
+      Damping both is what a VU meter does, and the temptation to do it here
+      comes from the phrase "VU ballistics" rather than from anything on the
+      panel. **This is not a VU meter.** `spec.md`'s reference points are
+      oscilloscopes and spectrum analysers, and those damp exactly the way the
+      script does — for the reason that makes the whole display work: *the column
+      is the instantaneous reading and the trail is the memory of it*. Damping
+      both collapses two instruments into one, and the moment the column is slowed
+      toward the trail the trail stops reading as a peak-hold, because a peak-hold
+      is only legible as the distance between a fast thing and a slow one.
+      **Closed against. Do not reopen it from the phrase alone.**
 - [x] Filled cells are graded **by row, not by band**: the top is brightest, so a
       column that reaches the ceiling *arrives* there rather than merely being
       tall (`player:632`).
@@ -1307,7 +1430,11 @@ hertz (`player:92`, `player:99`).
       its own ceiling with a long thin tail down into the gaps between songs;
       scale the tail and every band ends up pinned near the top, twitching —
       which is what this did at first. Throw the tail away and the columns use
-      their whole height.
+      their whole height. **Over the record, not over the track** (D33): the
+      script can scale each track by itself because it has decoded the whole of
+      it before it draws a frame, and a live tap cannot, so the sample is the
+      band's history since the record went on. §18.21 is the measurement that
+      settles it and the arithmetic above is untouched.
 - [x] Minimum scale width 6 dB, so a band that genuinely does not move — a
       constant hiss, a held tone — stays honestly flat a quarter of the way up
       rather than having its own noise magnified to fill the column
@@ -1350,16 +1477,34 @@ clocks.
 The method is **D22** — a weighted transform where bash ran sixteen filters,
 checked against real ffmpeg running the script's own chain and agreeing to inside
 1.5 dB — and **D23**, the ten-a-second measurement under the twenty-a-second
-step. The autoscale is the one thing that could not be ported as it stood, and
-the difference is only the sample it is taken over: **§18.21**.
+step. The autoscale is the one thing that could not be ported as it stood,
+because the difference is the sample it is taken over: **§18.21**, measured and
+answered as **D33** — the scales now live across a track change, and the
+histogram starts as though the band had been at full scale all along, so the
+scale comes down onto the record and a cold analyser draws short. The price is
+five blank seconds at the top of a record, measured and accepted.
 
 `Analyser.tap` takes any `AVAudioNode`, on purpose. The deck's graph is not
 reachable from here and does not need to be, which is why §9 landed without
 touching `Play/` and why the whole of it is tested against an engine rendering
 offline with no sound card in the room. §6.1a — that the analyser reads the
 signal *before* the gain, so a record turned down still moves the columns — is a
-question about *which* node, and it is asked of §10 when it wires the two
-together.
+question about *which* node, and it was answered when §10 wired the two together:
+the player node, ahead of the main mixer that carries the gain.
+
+Wiring them cost two lines in `Play/`, and both were the same bug wearing
+different clothes — **the player node is only in the graph while a record is on
+the deck.** It is attached in `startGraph` and detached again in `teardown`, and
+AVAudioEngine does not treat a detached node as an empty room: it raises. §10
+starts its clock with the *window*, not with the record, so it does two things
+the offline suites never did — it asks the analyser to listen before anything is
+loaded, and it pumps an empty deck twenty times a second while you decide what to
+play. Both terminated the app on launch. So `listen(_:)` now remembers who wants
+to listen and hands them the player each time there is one to hand over — which
+also fixes the second record, where the tap would otherwise have been lost with
+the node it was on — and `pump()` returns immediately when there is no graph.
+Both are §10 genuinely requiring `Play/`, and both were found by running the app
+rather than by a test, because the suites always load a record first.
 
 ---
 
@@ -1372,13 +1517,20 @@ drop the constraint where it only ever existed because of the terminal.
 - [ ] Faceplate on every stage — badge, rule, and the machine's state stamped at
       the far end the way a deck prints its mode. Every screen wearing the same
       one is most of why they read as one instrument (`panel.sh:256`).
-- [ ] Faceplate meta on the now-playing panel: `PLAYING · 9 TRACKS · tags`
+      *`FaceplateView` is written and takes its meta as an argument, so a second
+      stage wears it by being handed one. The box stays open because there is
+      only one stage so far: the picker is §1, the shelf is §8, diagnostics is
+      §11, and "every screen" cannot be shown true against a single screen.*
+- [x] Faceplate meta on the now-playing panel: `PLAYING · 9 TRACKS · tags`
       (`player:2320`). Mode labels: `PLAYING`, `PAUSED`, `STOPPED`, `FINISHED`.
 - [ ] Header block: `ALBUM`, `ARTIST`, `SOURCE`, then `SHELF`/`NOTE` when the
       record is in the collection. **The metadata source is not repeated here** —
       the faceplate says it, and saying it twice on one screen reads like two
       different facts (`player:2325`).
-- [ ] **Changed from bash (D6). The year is on the panel**, set after the artist
+      *The three that always show, and the rule about not repeating the source,
+      are done and drawn. `SHELF`/`NOTE` need §8's collection lookup to have
+      anything to say.*
+- [x] **Changed from bash (D6). The year is on the panel**, set after the artist
       as `(1979)`, the same shape `-n` prints. In bash it appeared only in `-n`
       (`player:3542`) while the panel's `SHELF` line carried the *collection's*
       year (`player:2333`) — so a record not in the collection showed no year
@@ -1388,57 +1540,130 @@ drop the constraint where it only ever existed because of the terminal.
       release date, then the collection. `SHELF` stops carrying it and keeps
       genre and tags, by the same rule as the source label above — where the two
       disagree, that disagreement is not worth two lines on a faceplate.
-- [ ] **Amber is the chrome — rules, labels, the badge — and never the data, so
-      the titles stay the brightest thing on the screen** (`panel.sh:84`).
-- [ ] Band colours zigzag light/dark/light/dark around the panel's own amber, so
+- [x] **Amber is the chrome — rules, labels, the badge — and never the data, so
+      the titles stay the brightest thing on the screen** (`panel.sh:84`). Left
+      unticked for a while on a misreading: titles are the brightest thing drawn,
+      which looked like a violation. It is not. **The rule constrains the amber,
+      not the brightness** — titles are `Theme.text` and not amber at all, and
+      track titles being the brightest thing on a music player is the rule
+      working, because they are the thing being read. Row numbers and durations
+      are `Theme.etch`, which is the chrome, which is where the amber lives.
+- [x] Band colours zigzag light/dark/light/dark around the panel's own amber, so
       neighbouring bands separate on brightness even where the hues are cousins
       and the edges survive without colour vision (`panel.sh:92`, `panel.sh:97`).
-- [ ] **The artist column is dropped on an album and kept on a compilation.** On
+- [x] **The artist column is dropped on an album and kept on a compilation.** On
       an album every row would carry the same name and that name is already at
       the top: a column that repeats one fact fifty times is not a column, it is
       a margin with writing on it. Dropping it is the difference between
       `Libet's all joyful camarad…` and the title the record actually has
       (`player:2270`).
-- [ ] The test is against the *album artist*, not merely "they all agree": a
+- [x] The test is against the *album artist*, not merely "they all agree": a
       record whose tracks say `Miles Davis Quintet` under an album credited to
       `Miles Davis` is not repeating the header, it is saying something else
       (`player:2301`).
-- [ ] Decided once per record, not per row — this gives the titles the slack, it
+- [x] Decided once per record, not per row — this gives the titles the slack, it
       does not make the edges ragged (`player:2284`).
-- [ ] The artist column is sized to the longest name the record actually
+- [x] The artist column is sized to the longest name the record actually
       contains, and right-aligned against the durations: two ragged edges facing
       each other read as a gap of no particular width, two flush ones read as a
       margin (`panel.sh:362`, `panel.sh:366`).
-- [ ] Truncation is visible — a cut title ends in `…` (`panel.sh:338`,
+- [x] Truncation is visible — a cut title ends in `…` (`panel.sh:338`,
       `panel.sh:358`).
-- [ ] Two meters, because they answer different questions and each is the wrong
+- [x] Two meters, because they answer different questions and each is the wrong
       answer to the other's: the track bar is "how much of this song is left",
       which is what you want when deciding whether to skip; the album meter is
       the whole record divided into its tracks in proportion, so you can see the
       shape of the record and where in that shape you are (`player:2260`).
-- [ ] Album meter band widths by **largest remainder**, so a longer track can
+- [x] Album meter band widths by **largest remainder**, so a longer track can
       never be drawn narrower than a shorter one. Truncating each running total
       independently made exactly that happen — a 3:14 rounded down while the 2:58
       after it landed on a boundary and got more — which is the one comparison
       the meter exists to support (`panel.sh:406`, `panel.sh:414`).
-- [ ] A track too short to earn any width gets no band and consumes no colour, so
+- [x] A track too short to earn any width gets no band and consumes no colour, so
       the two tracks either side of it still contrast (`panel.sh:448`,
       `panel.sh:453`).
-- [ ] The head — the playhead — wins over any band boundary in the cell it is
+- [x] The head — the playhead — wins over any band boundary in the cell it is
       in. It is the one thing on the bar that is moving (`panel.sh:484`,
       `panel.sh:505`).
-- [ ] Eighth-cell resolution: a boundary falling mid-column is drawn as a partial
+- [x] Eighth-cell resolution: a boundary falling mid-column is drawn as a partial
       block of the outgoing colour over the incoming one as background. Eight
       times the resolution without one extra column, which is what lets a few
       cells still say that a 3:14 is longer than a 2:58 (`panel.sh:398`,
       `panel.sh:500`).
-- [ ] `▾ N MORE` when the list is clamped, worded the same wherever that happens
+      *Reasoning kept, mechanism improved. `Meter` still works in eighths — that
+      is the arithmetic deciding which band a column belongs to, and it is what
+      the suite checks against the script. What changes is the last step: the
+      strips are drawn rather than typed, so the boundary lands where it actually
+      falls instead of being rounded to the nearest of eight glyphs on the way to
+      the screen. The script wanted eighths because a terminal gave it nothing
+      finer; it is the only reason it wanted them.*
+- [x] `▾ N MORE` when the list is clamped, worded the same wherever that happens
       (`panel.sh:384`).
-- [ ] Keycap legend rows, both of them (`player:2429`, `player:2430`).
+- [x] Keycap legend rows, both of them (`player:2429`, `player:2430`).
 - [ ] Loading stage: the album meter with no bands yet, one per file as they
       land, which is the honest picture of the wait. Distinct stages `OPENING`,
       `READING`, `READING DISC` with a per-file/per-step line
       (`player:1148`).
+- [x] **Clickable keycaps** (**D30**). The legend was a picture of a keyboard on
+      an instrument that answered the pointer everywhere else (§6.4), and a drawn
+      switch that does nothing when you push it reads as broken rather than as
+      decoration. Every cap is now a switch: it lights while the contact is made,
+      and `←→` and `↑↓` are **rockers**, split at the two glyphs they are drawn
+      with, so the half you push is the direction you get. The two rockers repeat
+      while held, at the system's own key-repeat delay and interval rather than at
+      a rate invented here; the single-throw caps fire once, because a held `S`
+      toggling shuffle twenty times a second is a coin being flipped. Shift is
+      carried, so a shift-click on `←→` seeks the thirty seconds a shift-arrow
+      does.
+
+**The look pass** — `spec.md:78–110`, the aging and CRT treatment. This is where
+the panel stops being a layout and starts being an object:
+
+- [x] Phosphor: one colour throughout, running brighter toward white in the core
+      and dimmer at the edge. **A glowing cell does not change hue** — a lit
+      character is the same phosphor harder, which is the rule the whole ramp is
+      built on and the reason nothing on the panel is allowed a second colour.
+- [x] Bloom, tight. A wide bloom is the thing that turns a letter into a smear,
+      and this has to survive an hour of being looked at (`Theme.bloomRadius`).
+- [x] Scanlines, uneven raster, vignette, sheen, bowed glass, rounded corners,
+      and a chassis with real thickness around all of it.
+- [x] **The glass is the deep one and the text is the bright one** (**D28**). The
+      veils are drawn over the panel and the levels into it, so the deep optics
+      sit over console-brightness lettering. `Theme.vignetteClear` starts the
+      fall-off outside the column the panel is set in: the corners go deep and
+      the track list pays nothing.
+- [x] **The curvature is the glass's, not the text's** (**D29**). The glass
+      curves; the words do not, because a bowed layout makes every column sum in
+      this section a lie about where things are.
+- [x] **Type for chrome and readouts** (**D28**). The dotted lettering and the
+      segmented figures stay behind `MUTHUR_LETTERING=matrix` and
+      `MUTHUR_NUMERALS=segment`. Both paths are drawn in a `Canvas` on the same
+      cell, so the columns agree and neither can ellipsize.
+- [x] **The wordmark is dots** (**D27**) — the character generator's own, at
+      twice the pitch, so the name is made of the same light as the titles and
+      ages with them. The stamped plate was built and rejected.
+- [x] **Changed from bash (D26). The room under the last track is filled with a
+      run-out** — a tightening spiral of grooves ending on the dead groove.
+      **This diverges from `player:2341`**, where `np_frame`'s loop stops at the
+      last track and everything below the list is ground. The script is right for
+      a terminal, where those rows are the shell's; an app window's bottom edge
+      belongs to the instrument. `MUTHUR_COMPOSITION=deck` restores the script's
+      behaviour.
+- [x] **No flicker, by construction rather than by tuning.** Nothing in the
+      treatment is a function of time: the scanlines, the unevenness, the
+      vignette, the sheen, the bow and the burn are all drawn once and do not
+      move. A CRT that flickers is a CRT in a film; one you have been sitting in
+      front of for nine months just sits there being slightly uneven.
+- [x] **Reduce Transparency honoured** — every one of these is a veil over the
+      content, which is exactly what the setting is asking about, so `Bloom` and
+      `ScreenEffects` simply are not there when it is on.
+- [x] **Reduce Motion has nothing here to turn off, and that is the answer, not
+      an omission.** The only things on this panel that move are the analyser
+      columns and the two playheads, and all three are *readings* — the setting
+      asks for decorative animation to stop, and freezing a level meter over
+      sound is the same lie §9 refuses in the other direction, where columns
+      dance over silence. Nothing decorative animates, so there is nothing to
+      suppress.
 
 **(terminal)** — reasoning kept, mechanism dropped:
 
@@ -1571,8 +1796,11 @@ All eight are documented in the script's own header comment (`player:47`).
 - [ ] Dock icon, its own Cmd-Tab identity, album art in the Dock while playing.
 - [ ] ffmpeg as a *fallback* decoder only, for what AVFoundation will not take
       (notably Opus and Ogg).
-- [ ] Drag-scrubbing on both meters (the terminal could not do it).
-- [ ] Reduce Motion and Reduce Transparency honoured.
+- [x] Drag-scrubbing on both meters (the terminal could not do it) — §6.4, and
+      the clickable keycaps (**D30**) are the same argument finished.
+- [x] Reduce Motion and Reduce Transparency honoured — see §10. Transparency
+      drops the veils; Motion has nothing to act on, because everything that
+      moves on this panel is a reading and not an animation.
 
 ---
 
@@ -2003,6 +2231,285 @@ so this makes the sentence agree with the behaviour rather than with the tag.
 four tab-separated fields go in and come out, because §18.19 makes that permanent
 and the bash player has to keep reading them.
 
+**D26 — the room under the last track. Filled with a run-out.** → §10
+
+`np_frame`'s track loop stops at the last track and the meters go on the next
+line, so on a short record everything below the list is ground (`player:2341`).
+That is faithful and it is right *for a terminal*, because a terminal window **is**
+the terminal — the empty rows under the frame are the shell's own, and reading
+them as nothing is reading them correctly.
+
+An app window is not the terminal. Its bottom edge belongs to the instrument, and
+an instrument that stops halfway down its own chassis leaves a void under the
+keycaps rather than a floor. So the room is filled: the record's lead-out, a
+tightening spiral of grooves ending on the dead groove, drawn dim enough to be
+surface and not data. **The object being built is a machine that reaches the
+bottom of its own case**, and the run-out is what a record does with the space
+after the music for exactly the same reason.
+
+`runout` is the default and this is a **deliberate divergence from
+`player:2341`**, flagged in §10. `MUTHUR_COMPOSITION=deck` restores the script's
+behaviour, kept because the divergence is a taste call and taste calls should be
+answerable at runtime.
+
+The grooves are not evenly spaced. Even spacing reads as a table with nothing in
+it; what says *lead-out* is the pitch closing as the spiral runs in. The first
+attempt stepped the pitch down by a constant factor per groove, which tightens in
+principle and is invisible over the height this field actually gets — the eye
+read it as regular. They are placed against the height instead, the gap falling
+away as `(1 − t)^p`, so the closing is visible at whatever size the window is.
+
+**D27 — the wordmark. Driven onto the tube, not screwed to the front of it.**
+→ §10
+
+Two were built: the character generator's own dots at twice the pitch, and a
+stamped metal nameplate with the name cut into it and lit from above. The plate
+lost. A plate does not glow and cannot burn in, because it is not part of the
+display — it stays factory-fresh while everything around it ages, and on a screen
+it reads as a chip stuck on the glass rather than as something the machine drew.
+
+The dots are doing something type cannot. **MU/TH/UR is the thing that is
+*running*, and the panel is what it says** — so the name has to be made of the
+same light as the track titles, and has to get old with them. This is also why it
+is drawn from shapes and never imported as a picture.
+
+Note that this is the one place the dots win. Everywhere else they lost, which is
+D28's other half.
+
+**D28 — the glass is the deep one and the text is the bright one.** → §10, §5.4
+
+Two complete looks were built and each was internally consistent and wrong in one
+half. The deep tube had the better glass — real curvature, a heavy vignette,
+rounded corners, sheen — and took the lettering down into the murk with it. The
+console had the better text — bright, crisp, legible at a glance — and a glass too
+timid to be worth having.
+
+They were never a package. The veils are drawn **over** the panel and the levels
+are drawn **into** it, so there is nothing coupling the depth of the glass to the
+brightness of the type. What ships is the half of each that was right: the deep
+tube's optics over the console's lettering.
+
+The mechanism that makes this literally true is `Theme.vignetteClear` — the
+vignette stays completely clear out to 0.62 of its radius, so the fall-off starts
+*outside* the column the panel is set in. The corners go as deep as the tube look
+wanted and the track list pays nothing for it. **The glass goes around the text,
+not on it.** Readability wins every time, because this has to survive an hour of
+being looked at.
+
+The same call settles the character generator: **type is the default for chrome
+and readouts.** Monospaced type is already a readout on a character grid — the
+column arithmetic was written for it — and at 13pt it keeps the one thing seven
+segments give away, a `1` that cannot be mistaken for anything else. The dotted
+lettering and the segmented figures are the period-correct answer and they cost
+legibility, which is a trade to be looked at rather than assumed, so they stay
+behind `MUTHUR_LETTERING=matrix` and `MUTHUR_NUMERALS=segment`.
+
+Nothing downstream cares which is on. Both are laid on the same cell and **both
+are drawn in a `Canvas`**, so the columns land in the same place and neither can
+be truncated — which was the point of dotting the faceplate in the first place,
+and it turns out the guarantee was bought by drawing, not by the dots (§10,
+`FaceplateView`).
+
+**D29 — the curvature is the glass's, not the text's.** → §10
+
+A bowed raster is a property of the tube: the phosphor is on a curved surface, so
+the *light* bends. Bending the layout with it — running the panel through a
+distortion so the lines themselves bow — would mean the character grid no longer
+lands on the character grid, and every column arithmetic in §10 becomes a lie
+about where things are. It also makes text at the edges permanently harder to
+read, at every window size, forever.
+
+So `Theme.bow` is small even at the deep setting, and it is applied to the raster
+and the veils. **The glass curves; the words do not.**
+
+**D30 — the keycaps are switches, and one place decides what they mean.**
+→ §10, §6.4, §14
+
+§6.4 had already put the meters and the track list under the pointer, which left
+the legend as the one drawn control on the panel that did nothing when pushed.
+That is worse than not drawing it: a picture of a keyboard is documentation, but
+a *lit keycap on a chassis* is a switch, and a switch that does not answer reads
+as broken rather than as decoration.
+
+Three calls inside it.
+
+**The rockers.** `←→` and `↑↓` are two glyphs on one plate, which is a rocker and
+not a button, so the plate is split in the order the glyphs are drawn and the end
+you push is the direction you get. `Readout.Cap` carries one press or two, and the
+view divides the plate by how many there are — the geometry is not written down
+twice.
+
+**What repeats.** The two rockers, and nothing else. Holding `←→` to run through
+a track and `↑↓` to run down the list is the entire point of them being rockers,
+and the keyboard already does it (`onKeyPress(phases: [.down, .repeat])`). The
+single-throw caps fire once: a held `S` toggling shuffle twenty times a second is
+not a faster way of doing anything, it is a coin being flipped. The repeat delay
+and interval are `NSEvent`'s, asked for rather than invented, because a cap
+repeating at some rate of this panel's own choosing would be a *different* switch
+from the key it depicts and the whole claim is that it is the same one.
+
+**One dispatcher.** `PanelView.perform(_:shift:)` is the only thing that knows
+what a press means, and both the key and the drawn cap go through it. A binding
+added to one is added to both or to neither — which is the only arrangement in
+which a legend can be trusted to still be true a year from now. Shift is carried
+through it, so a shift-click on `←→` seeks the thirty seconds a shift-arrow does:
+the cap is the key, including the parts of the key that are not printed on it.
+
+The cap **lights** when pressed rather than sinking, one step up the plate and one
+up the ink, both off the panel's own ramp — an illuminated pushbutton says the
+contact is made by drawing more current, and the phosphor rule holds: it does not
+change colour, it runs harder.
+
+`Q` is now one click from quitting mid-record, where before it was one keystroke.
+A pointer can land somewhere a finger cannot, so this is not quite the same
+hazard — flagged as **§18.25** rather than quietly guarded, because putting a
+confirmation on a one-key quit would be improving the script rather than porting
+it.
+
+**D31 — the scroll window's fourth line. Added.** → §18.22, §6, §10
+
+`np_scroll` has three lines (`player:2904`): a cursor above the window pulls the
+top up to it, a cursor below pushes the bottom down, a cursor inside moves
+nothing. There is no fourth line pulling the top back up when the window has more
+room than it needs, so a terminal made taller draws a short list with blank space
+under it until the cursor next moves.
+
+**The environment changed, not the script's judgement.** A `SIGWINCH` is a rare
+event and the next arrow key fixes it, so in bash this is nearly invisible. Here
+the window is dragged by its corner and the list re-lays out continuously while
+it is being dragged — the same three lines are asked hundreds of times where bash
+was asked twice, and the blank space stops being a stale frame and becomes the
+thing you are looking at while you drag.
+
+The fourth line is one `if`, it only ever shrinks `top`, and it only fires when
+the list cannot fill the window from where it is. It is therefore silent in every
+case bash was actually in, which is the test a divergence like this has to pass:
+it is not a different judgement, it is the same judgement asked a question the
+script was never asked. `Cursor.reflow` is where it lives and two tests hold both
+halves down.
+
+**D32 — the two width divergences. The port is right, and stays.** → §18.23, §10
+
+`cwidth` (`panel.sh:274`) decides how many columns a character occupies, and the
+port disagrees with it twice. Conjoining jamo `U+1160–U+11FF` render as part of
+the preceding syllable; bash counts them one column each and the port counts them
+zero, as it does every other combining mark. And bash's fullwidth-Latin test is a
+bracket comparison against collation order, which on this machine puts `Ａ-Ｚ`
+outside the range its own comment says is wide; the port takes the comment.
+
+Both are the port being **right** rather than merely different, which is exactly
+the case `CLAUDE.md` says to flag rather than quietly fix — so it was flagged, and
+this is the answer. **Do not port a measurement bug.** A width function exists to
+stop a row overrunning, and a `cwidth` that measures a Hangul title longer than it
+draws fails at the one job it has. `PanelAgainstBashTests` checks the port against
+the script everywhere else and carries these two as named exceptions, so the
+divergence is a decision and cannot drift back into an accident.
+
+**D33 — the scale starts at the ceiling and comes down, so a cold analyser draws
+short.** → §18.21, §9
+
+The autoscale is the one thing in §9 that could not be ported as it stood: the
+script has the whole track before it draws a frame and the port does not.
+Measured, that cost more than the entry assumed — 27.9 eighths of a 40-eighth
+column over the opening five seconds of a track that fades in, peaking at the
+whole column, and **wrong upward on every track tried**, because a scale that has
+not yet heard the loud part puts both its percentiles too low and maps everything
+above where it belongs.
+
+Two changes, and the second is the one that matters:
+
+**The scales live across a track change.** The previous track is by far the best
+evidence available about this one — same record, same room, same mastering — and
+the script can only afford to start each track cold because it has the future.
+`Analyser.newTrack` now clears the columns alone; `Analyser.newRecord` is where
+the scales go, because another record's scale is another record's scale.
+Measured, it takes the openings from 11.3, 16.1 and 21.0 eighths out to about 5,
+7 and 7. It does nothing at all for track one.
+
+**And the histogram starts at full scale.** A band that has heard nothing is
+claimed to have been **at 0 dBFS all along** — a point mass at the top bin, not a
+flat spread across the range. Both anchors therefore start at the ceiling, the
+cold scale is narrow and at the top, and everything quieter than full scale draws
+nothing until real evidence has pulled the bottom anchor down to where the record
+actually lives. The scale descends onto the record rather than rising to meet it.
+
+This is an initial condition and not a tuning. The value is full scale, the one
+level a band cannot exceed. The weight is one pseudo-reading per resolvable
+half-decibel — the mass a flat prior over this histogram has by construction —
+held fixed while the *shape* was measured, so that what was compared was where
+the mass sits and nothing else. It is never removed; a threshold would be the
+second number, and it does not need one, because a record dilutes it during its
+first track and the scales carry, so it is spent **once per record** rather than
+once per track.
+
+**A warm-up window was rejected** and would have been the obvious move: it needs
+a length and a picture to show during it, which is two invented numbers, and §18
+items do not get code before they get an answer.
+
+**Three priors, measured against each other**, first five seconds, in eighths of
+a 40-eighth column, on the first four sides of *Rumours*. Signed is the half that
+decides it — positive is the port drawing taller than the script:
+
+| track | none | flat | full scale, weight 1 | full scale, full weight |
+| --- | --- | --- | --- | --- |
+| Second Hand News | 27.9 / 40 / **+27.9** | 14.0 / 27 / **+14.0** | 27.2 / 40 / **+27.2** | 0.0 / 4 / **−0.0** |
+| Dreams | 4.2 / 19 / −3.0 | 3.8 / 15 / −2.5 | 4.2 / 19 / −3.0 | 5.1 / 18 / −5.0 |
+| Never Going Back Again | 6.4 / 24 / −6.4 | 5.7 / 23 / −5.7 | 6.4 / 24 / −6.4 | 6.7 / 25 / −6.7 |
+| Don't Stop | 6.8 / 17 / +5.7 | 7.1 / 17 / +6.1 | 6.8 / 17 / +5.7 | 6.6 / 16 / +5.5 |
+
+**The flat prior was measured and rejected.** *Anything is possible* halves the
+opening error and takes the peak off the ceiling, and it cannot turn the bias
+over, for a reason that is arithmetic rather than tuning: a scale ninety decibels
+wide still maps a −60 dBFS fade-in a third of the way up the column. Only raising
+the **bottom** anchor puts a fade-in under the floor.
+
+**Weight is not a free parameter, and it nearly hid the result.** One literal
+full-scale observation is gone inside a tenth of a second and measures
+indistinguishably from no prior at all — 27.2 against 27.9. The prior only does
+anything at the mass a prior on this histogram has.
+
+**The bias turns over**: +27.9 to −0.0, peak 40 to 4. "Never tall" would still be
+too strong and the headline no longer claims it — over the first fifteen seconds
+the worst upward excursion is 6 to 9 eighths, a little over one cell of eight,
+against a cold scale's whole column, and short cells outnumber tall by better
+than two to one on every side. That is the claim, and it is held down by
+`AutoscaleSettlingTests.errsShort`.
+
+**What the prior costs, and it is the thing eighths cannot see.** Nought is a
+blank panel and three is a sliver, and the two read the same in a mean. Measured
+as the percentage of the sixteen bands drawing anything at all, second by second,
+on a cold scale:
+
+| track | prior | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Second Hand News | script | 0 | 0 | 0 | 0 | 2 | 24 | 100 | 100 | 98 |
+| | flat | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| | **full scale** | 0 | 0 | 0 | 0 | 0 | 10 | 100 | 100 | 100 |
+| Dreams | script | 45 | 75 | 86 | 59 | 58 | 82 | 78 | 52 | 82 |
+| | **full scale** | 0 | 0 | 0 | 0 | 0 | 3 | 19 | 44 | 89 |
+| Never Going Back Again | script | 36 | 66 | 96 | 84 | 98 | 90 | 91 | 95 | 100 |
+| | **full scale** | 0 | 0 | 0 | 0 | 0 | 8 | 90 | 96 | 100 |
+| Don't Stop | script | 42 | 34 | 48 | 64 | 78 | 56 | 69 | 92 | 97 |
+| | **full scale** | 0 | 0 | 0 | 0 | 0 | 7 | 96 | 100 | 100 |
+
+**A record opens on an entirely blank analyser for five seconds.** Not the lit
+floor row §9's idle state draws — `AnalyserColumns.cells(row:)` returns `.field`
+at height nought, so it is blank panel, over audible music, where the script is
+already drawing on a third to a half of the bands. It is over by the ninth second
+in every case, and it is **once per record and not once per track**, because the
+scales carry. On a track that fades in it is exactly right and the script is
+blank too. On a track that opens loud it is wrong, in the sanctioned direction.
+
+That is the trade, and both ends of it are pinned by
+`AutoscaleSettlingTests.blankAtTheTopOfARecord` so neither can grow: nothing lit
+for five seconds, and better than 85% lit by the ninth. The flat prior's row is
+the failure this replaces — every band lit from second zero on a fade-in the
+script leaves dark, which is the analyser inventing a song.
+
+The *arithmetic* — the two anchors, the 0.60, the 6 dB minimum span — is
+unchanged, and the tests that hold it down still ask it of an unseeded scale,
+because the sum is the script's and only the starting point moved.
+
 ---
 
 ## 17. When something is missing
@@ -2116,15 +2623,23 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Thirteen are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16, 17, 19 and 20**,
-each marked below and carrying the decision it became. The other eight are still
-open. **17** and **18** are the odd ones: not `player` behaviours at all, but
-holes in decisions made here, which is why 17 was answered as fast as it was
-found. **21** is odder still — not a question but a consequence, listed because
-it is a difference from the script that nobody chose, and it stays open until it
-has been watched on a real record.
+Of twenty-five, seventeen are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16,
+17, 19, 20, 21, 22, 23 and 25** — each marked below and carrying the decision it
+became. The other eight are open. **17**, **18** and **25** are the odd ones: not
+`player` behaviours at all, but holes in decisions made here, which is why 17 and
+25 were both answered as fast as they were found. **21** is odder still — not a
+question but a consequence, listed because it is a difference from the script
+that nobody chose. It was **watched on a real record and measured**, the
+measurement found something worse than the entry assumed *and pointing in a
+direction*, and it is now closed as **D33**. **22** and **23** came out of §10
+and were answered the same day: both were flagged rather than fixed first, which
+is what `CLAUDE.md` asks for even when the port is the one that is right, and
+they went opposite ways — 22 adds a line the script does not have, 23 keeps two
+the port already had. **24** is the same shape and is still waiting: the sleeve
+is drawn now, and the one thing about drawing it that the script and the port do
+not agree on is what to do with a cover that is not square.
 
-Six of the seven open ones describe code that has not been written yet. **4** was
+Most of the open ones describe code that has not been written yet. **4** was
 the exception until §5 landed around it and forced the question; it is now D14.
 **1**, **6**, **7** and **11** came due together when §4 was about to be written
 and were answered before a line of it existed — 1 and 11 in the code that landed,
@@ -2333,9 +2848,215 @@ question is only whether that was the right half to keep. It reads as yes.
     badly the answer is a warm-up window or a carried-over scale, both of which
     are changes to `BandScale` alone.
 
-    **Left open deliberately, and correctly flagged rather than acted on.** It
-    closes when it has been watched on a real record with the panel drawing it,
-    and not before.
+    **MEASURED, AND IT WAS WORSE THAN THIS ENTRY ASSUMED.** Both scales were run
+    over the same real record window for window and compared in the unit the
+    difference is visible in — eighths of a cell, of which a column has forty.
+    `AutoscaleSettlingTests` is the measurement and holds the shape down.
+
+    Mean disagreement across all sixteen bands, in eighths, over the first four
+    sides of *Rumours*, in five-second buckets from the downbeat:
+
+    | | 0–5s | 5–10s | 10–15s | 20–25s | 55–60s |
+    |---|---|---|---|---|---|
+    | Second Hand News | **28** | 17 | 13 | 8 | 3 |
+    | Dreams | 11 | 7 | 7 | 5 | 4 |
+    | Never Going Back Again | 16 | 8 | 5 | 4 | 2 |
+    | Don't Stop | **21** | 16 | 11 | 7 | 3 |
+
+    Peak disagreement in the first bucket is **40 eighths on all four** — the
+    whole column, floor to ceiling. Second Hand News fades in: the script draws
+    a mean height of 0 over the first five seconds and the port draws 28, which
+    is three and a half of the five rows. That is not a settling anyone would
+    describe as "over the opening bars"; it is *a different picture* for the
+    first ten seconds and a visibly different one for thirty.
+
+    **And the error has a direction.** It is upward, on every track, by more
+    than three to one: the live scale has not yet heard the loudest part of the
+    track, so its 25th percentile sits too low and every level maps above where
+    the finished scale puts it. This is the same failure §9's autoscale exists
+    to prevent — bands pinned near the top — arriving by the other road.
+
+    Of the two fixes named above, **the carried-over scale was measured too**.
+    Starting side two from side one's finished histogram takes its opening
+    bucket from 11 eighths to 4 and its peak from 40 to 19; sides three and four
+    improve as much. It is a real fix for every track but the first — **and it
+    can do nothing whatever for the first**, which is the track you are on every
+    time you put a record on. So it is half an answer at best.
+
+    The warm-up window was not built, because choosing its length and what the
+    scale does during it means inventing two numbers, and §18 items do not get
+    code before they get an answer.
+
+    **ANSWERED — D33, and it is both halves.** Carry the scales between tracks,
+    which is measured and free; and for the track you start on, do not build a
+    warm-up but *flip the initial condition*, so that a band which has heard
+    nothing is claimed to have been at full scale all along and the scale comes
+    **down** onto the record instead of up to meet it. One value, and it is not
+    arbitrary — full scale, the only level a band cannot exceed. Drawing 28 of 40
+    over a fade-in is the analyser inventing a song; drawing nothing over a
+    fade-in is just a quiet fade-in.
+
+    **The shape of the prior was the whole question, and the first attempt got it
+    wrong.** *Anything is possible* — one count in every bin, a flat spread — is
+    not the same claim as *the loud part is coming*, and only the second one can
+    work, for a reason that is arithmetic rather than taste: a wide scale still
+    maps a −60 dBFS fade-in a third of the way up. It is the **bottom** anchor
+    that has to move. Both were measured, and so was the weight, which nearly hid
+    the result.
+
+    Same rig, same four sides of *Rumours*, same buckets, same eighths. First
+    bucket (0–5s), mean / peak / signed, positive being the port drawing *taller*
+    than the script. Track one is uncarried; the rest carry from the track before:
+
+    | | cold | flat prior | full scale, weight 1 | **full scale, full weight** |
+    |---|---|---|---|---|
+    | Second Hand News | 27.9 / 40 / **+27.9** | 14.0 / 27 / **+14.0** | 27.2 / 40 / **+27.2** | **0.0 / 4 / −0.0** |
+    | Dreams | 11.3 / 40 / +10.9 | 3.8 / 15 / −2.5 | 4.2 / 19 / −3.0 | 5.1 / 18 / −5.0 |
+    | Never Going Back Again | 16.1 / 40 / +16.1 | 5.7 / 23 / −5.7 | 6.4 / 24 / −6.4 | 6.7 / 25 / −6.7 |
+    | Don't Stop | 21.0 / 40 / +21.0 | 7.1 / 17 / +6.1 | 6.8 / 17 / +5.7 | 6.6 / 16 / +5.5 |
+
+    Steady state, the 55–60s bucket, mean: cold 2.9 / 5.3 / 7.0 / 4.4; flat
+    6.3 / 4.1 / 6.4 / 4.4; full weight **7.7 / 6.5 / 7.6 / 3.9**. The point mass
+    does cost steady state about 1.4 eighths against the flat prior, as suspected
+    — under a row either way.
+
+    **The bias turns over.** +27.9 to −0.0 on the track you cannot carry into,
+    and the peak off the ceiling from 40 to 4. Total opening error across the
+    four sides is 18.4 eighths against the flat prior's 30.6.
+
+    **Weight is not a free parameter.** One literal full-scale observation is
+    diluted inside a tenth of a second and measures indistinguishably from no
+    prior at all, 27.2 against 27.9. The weight that ships is one pseudo-reading
+    per resolvable half-decibel — the mass a flat prior over this histogram has
+    by construction — held fixed while the shape was measured, so what was
+    compared was where the mass sits and nothing else. It was not tuned.
+
+    **"Never tall" is not literally true and D33 no longer claims it.** Over the
+    first fifteen seconds the worst upward excursion is 6 to 9 eighths, a little
+    over one cell of eight, against a cold scale's whole column; short cells
+    outnumber tall by better than two to one on every side. The decision is named
+    for what it does — the scale starts at the ceiling and comes down — and
+    `errsShort` holds the numbers.
+
+    **The price, and it is bigger than the eighths let on.** Nought is a blank
+    panel and three is a sliver, and a mean cannot tell them apart. Measured as
+    the percentage of bands drawing anything at all: **a record opens on a
+    completely blank analyser for five seconds** — `.field`, not §9's lit idle
+    row — over audible music where the script is already drawing on a third to a
+    half of the bands. Full table in D33. It is over by the ninth second, and it
+    is once per record rather than once per track, because the scales carry. On a
+    fade-in it is exactly right and the script is blank too; on a loud opening it
+    is wrong, in the sanctioned direction. `blankAtTheTopOfARecord` pins both
+    ends so neither can grow.
+
+    **The steady-state cost is a known permanent divergence, not a cost that is
+    going to be addressed.** The scale is now made of the record rather than of
+    the track, so a track quieter than its neighbours reads low for its whole
+    length — worst measured, 7.7 eighths a minute in, about a fifth of a row.
+    Nobody should reopen this looking for a fix: there isn't one coming.
+    `steadyStateCost` holds it under a row of five, which is the right guard.
+
+    Per-record scaling does show something the script hides — the dynamics
+    *between* tracks, a quiet track reading quiet next to a loud one instead of
+    every track being renormalised to fill its own column. **That is not the
+    justification**, and it is written here only so it is not mistaken for one.
+    Preferring it because it is better would be improving the script, which is
+    not what a port does. The justification is narrower and it is the whole of
+    it: of two divergences that could not both be avoided, this is the cheaper.
+
+22. **The scroll window is never pulled back up. — ANSWERED: the fourth line
+    goes in.** → §6, §10 `np_scroll` has three lines
+    (`player:2904`): a cursor above the window pulls the top up to it, a cursor
+    below pushes the bottom down to it, a cursor inside moves nothing. There is
+    no fourth line pulling the top back up when the window has more room than it
+    needs — so a terminal made *taller* leaves `np_top` where it was and draws a
+    short list with blank space under it until the cursor next moves.
+
+    **The environment changed, not the script's judgement.** In bash this is
+    nearly invisible: a `SIGWINCH` is a rare event and the next arrow key fixes
+    it. Here the window is dragged by its corner and the list re-lays out
+    continuously while it is being dragged, so the same three lines are asked the
+    question hundreds of times where bash was asked it twice — and the blank
+    space under a short list stops being a stale frame and becomes the thing you
+    are looking at while you drag. The fourth line is one `if`, it only ever
+    shrinks `top`, and it only fires when the list cannot fill the window from
+    where it is, so it is silent in every case bash was actually in. Two tests
+    hold both halves down. → **D31.**
+
+23. **Two width divergences. — ANSWERED: the port is correct, and stays.** →
+    §10 `cwidth`
+    (`panel.sh:274`) decides how many columns a character occupies, and the port
+    disagrees with it twice — in both cases having chosen the answer that keeps a
+    row from overrunning:
+
+    - **Conjoining jamo.** `U+1160–U+11FF` render as part of the preceding
+      syllable and bash counts them as one column each. The port counts them
+      zero, as it does every other combining mark, because counting them as one
+      makes a Hangul title measure longer than it draws.
+    - **Fullwidth Latin.** Bash's wide range is a bracket comparison against
+      collation order, which on this machine puts `Ａ-Ｚ` outside the range its
+      own comment says is wide. The port takes the comment.
+
+    Both are the port being *right* rather than different, which is exactly the
+    case `CLAUDE.md` says to flag rather than quietly fix. **Confirmed: do not
+    port a measurement bug.** A width function exists to stop a row overrunning,
+    and a `cwidth` that measures a Hangul title longer than it draws fails at the
+    one job it has. The divergence stands and is a decision now, not a drift.
+    → **D32.**
+
+24. **A sleeve that is not square. — OPEN, and the port currently diverges.**
+    → §5, §10 `art_render_blocks` hands ffmpeg
+    `scale=$w:$((h*2))` (`player:2974`), which is an exact size and not a fit: a
+    cover that is 1500×1200 is squashed into the square box, and one that is
+    1200×1500 is stretched out into it. The port preserves aspect and letterboxes
+    inside the same box instead.
+
+    **This is flagged, not fixed.** The rest of `art_tick` is written as if every
+    cover were square — `h=$((w/2))` then `w=$((h*2))` is the *cell's* aspect
+    being undone, nothing to do with the picture's — so there is no sign the
+    script ever weighed the two and picked stretching. Which makes it look like a
+    case it did not meet rather than one it settled, and that is the shape of
+    thing `CLAUDE.md` says to raise.
+
+    Almost every cover is square, so this is invisible on almost every record.
+    Where it is not: a gatefold scan or a CD booklet photographed off-centre. The
+    two answers are *fill the box exactly, as bash does* — the sleeve is always
+    the size `art_tick` computed and the panel's rhythm is never broken — or
+    *keep the aspect*, which is what is written now and what leaves a band of
+    ground above and below a wide cover.
+
+    **Held open on purpose.** The letterboxing is confirmed as the behaviour to
+    ship; this entry stays up so the divergence is never mistaken for something
+    nobody noticed. It closes when a cover that is not square has actually been
+    looked at beside the panel.
+
+25. **A `QUIT` cap that is one click from the end of the record. — ANSWERED:
+    leave it, unguarded.** → §10, D30 Not a `player` behaviour: a hole in a decision made
+    here. `q` quits with no confirmation and that is the script's (`player:2547`),
+    correctly ported and not in question. **D30 then drew it as a switch**, and a
+    pointer can land somewhere a finger cannot — a mis-aimed click on the second
+    keycap row now ends a record where before it took a deliberate keystroke.
+
+    The three answers are: leave it, because the cap is the key and the key
+    quits — which is the consistent one and the reason nothing has been done;
+    move `QUIT` off the clickable set while leaving it on the legend, which makes
+    one cap a picture and the other eight switches and is the worst of the three;
+    or hold the cap, so quitting by pointer takes a press of some duration where
+    quitting by key takes none.
+
+    **Flagged rather than guarded**, which was right — putting a confirmation on
+    a one-key quit would be improving the script rather than porting it, and this
+    is exactly the shape `CLAUDE.md` says to raise instead.
+
+    **Closed as the first of the three: leave it, and no guard.** The reason it
+    is safe is already in the build, and it is §7. **The resume file means a
+    mis-clicked `QUIT` costs nothing** — the position is written as the record
+    plays, so reopening offers you the record back at the spot you were at. The
+    hazard D30 introduced is a hazard about *losing your place*, and losing your
+    place is the one thing this program already refuses to let happen. A hold
+    would guard against a cost that is not there, at the price of making the cap
+    a different switch from the key it depicts, which is the whole claim D30
+    makes.
 
 ---
 

@@ -22,6 +22,21 @@ import Foundation
 /// a growing pile instead of once of a finished one. The scale therefore settles
 /// during the opening bars rather than being right from the downbeat, which is
 /// the price of not knowing the future and is §18.21.
+///
+/// **And which way it settles from is a decision** (D33). Measured, a cold
+/// histogram was wrong *upward* on every track tried, by better than three to
+/// one: it has not yet heard the loud part, so both percentiles sit low, and
+/// every level maps above where the finished scale puts it. That is the one
+/// direction the error must not go — a fade-in drawing three and a half rows is
+/// the analyser inventing a song, where a fade-in drawing nothing is just a
+/// quiet fade-in.
+///
+/// So a band that has heard nothing is claimed to have been **at full scale all
+/// along** (see `Prior`). The bottom anchor then starts at the ceiling with it,
+/// which is the part that does the work: everything quieter than full scale
+/// draws nothing until real evidence has pulled the anchor down to where the
+/// record actually lives. The scale descends onto the record rather than rising
+/// to meet it, and a fade-in sits under the floor where the script puts it.
 public struct BandScale: Sendable, Equatable {
 
     /// `SPEC_WINDOW` (`player:98`). A band that genuinely does not move — a
@@ -32,16 +47,88 @@ public struct BandScale: Sendable, Equatable {
 
     /// Half-decibel bins from −90 to 0. A whole one is too coarse to divide a
     /// scale that can come out six decibels wide (`player:846`).
-    private var histogram = [Int](repeating: 0, count: 181)
+    static let bins = 181
+
+    /// **The prior's weight, and it is not a second number.** One pseudo-reading
+    /// per bin the histogram can resolve — the mass a flat prior over this
+    /// histogram has by construction, held fixed while the *shape* of the prior
+    /// was measured, so that what §18.21 compared was where the mass sits and
+    /// nothing else.
+    static let priorMass = BandScale.bins
+
+    private var histogram = [Int](repeating: 0, count: BandScale.bins)
     private var count = 0
 
-    public init() {}
+    /// What the band is claimed to have done before it was heard at all.
+    ///
+    /// Only `fullScale` ships. The other two exist because §18.21 was settled by
+    /// measuring the three against each other on real material, and a decision
+    /// made by measurement should stay measurable.
+    enum Prior {
+        /// Nothing. What the script effectively has, since it never scales a
+        /// track it has not already decoded.
+        case none
 
-    /// The columns reset at every track change, and so does this: a scale
-    /// carried over from the last track is the last track's scale.
+        /// One count in every bin — *anything is possible*. The cold scale is as
+        /// wide as a band can be, which halves the opening error but cannot turn
+        /// it over: a scale ninety-odd decibels wide still puts a −60 dBFS
+        /// fade-in a third of the way up. Measured and rejected.
+        case flat
+
+        /// Everything at 0 dBFS — *the loud part is coming*. Both anchors start
+        /// at the ceiling, so the cold scale is narrow and at the top and
+        /// anything quieter than full scale draws nothing at all.
+        ///
+        /// The weight matters and is the thing that nearly hid this result. At
+        /// weight one the prior is gone inside a tenth of a second and the
+        /// analyser behaves exactly as if it had no prior at all — measured, 27.2
+        /// eighths against a cold scale's 27.9. At `priorMass` it holds the top
+        /// anchor at full scale until the record has played about two and
+        /// three-quarter minutes, and then dilutes and never comes back, because
+        /// the scales carry across a track change.
+        case fullScale(weight: Int)
+    }
+
+    public init() { seed(.fullScale(weight: BandScale.priorMass)) }
+
+    init(_ prior: Prior) { seed(prior) }
+
+    /// Seeded as the app seeds it, or not at all. Nothing in the app builds the
+    /// unseeded one — the §18.21 measurement does, because comparing the starts
+    /// is the whole of what it measures.
+    init(seeded: Bool) {
+        seed(seeded ? .fullScale(weight: BandScale.priorMass) : .none)
+    }
+
+    /// **A new record**, not a new track. A scale carried over from another
+    /// record is that record's scale; one carried over from the previous track
+    /// is the same performers in the same room an hour apart, and is most of the
+    /// evidence this band is ever going to get about track one (D33).
     public mutating func reset() {
         for index in histogram.indices { histogram[index] = 0 }
         count = 0
+        seed(.fullScale(weight: BandScale.priorMass))
+    }
+
+    /// The initial condition, and not a tuning: the only value in it is full
+    /// scale, which is the one level a band cannot exceed, and the only weight in
+    /// it is the histogram's own resolution.
+    ///
+    /// It is never removed. Taking it out at some threshold would be the second
+    /// number, and it does not need taking out — a record dilutes it in its first
+    /// track and the scales carry, so it is spent once per record and not once
+    /// per track.
+    private mutating func seed(_ prior: Prior) {
+        switch prior {
+        case .none:
+            break
+        case .flat:
+            for index in histogram.indices { histogram[index] = 1 }
+            count = histogram.count
+        case .fullScale(let weight):
+            histogram[histogram.count - 1] += weight
+            count += weight
+        }
     }
 
     public mutating func observe(_ dB: Double) {
@@ -76,8 +163,9 @@ public struct BandScale: Sendable, Equatable {
             // in hand both marks land in the thousands and an empty bin cannot
             // satisfy them; with four frames in hand both marks are nought, and
             // without this the scan would answer −90 to both before it had
-            // looked at a single reading. It changes nothing at all once a
-            // second of music has gone by.
+            // looked at a single reading. The seed now covers that case as
+            // well — it stands for the unseeded scale the measurement builds,
+            // and it changes nothing at all once a second of music has gone by.
             guard cumulative > 0 else { continue }
             if !haveA && cumulative >= wantA {
                 q25 = Double(bin) / 2 - 90

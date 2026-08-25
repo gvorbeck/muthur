@@ -253,9 +253,13 @@ struct AnalyserTests {
 
     // MARK: - The scale
 
+    /// The next three are the *arithmetic* — `SPEC_WINDOW`, the two anchors,
+    /// the 0.60 between them — and they are asked of an unseeded scale on
+    /// purpose. The seed is an initial condition (D33) and not part of the sum;
+    /// what these hold down is the sum, which is the script's and does not move.
     @Test("A band that does not move stays honestly flat a quarter of the way up")
     func minimumSpan() {
-        var scale = BandScale()
+        var scale = BandScale(seeded: false)
         for _ in 0..<200 { scale.observe(-20) }
         let (lo, hi) = scale.bounds
         #expect(abs(hi - lo - BandScale.minimumSpan) < 0.001)
@@ -267,7 +271,7 @@ struct AnalyserTests {
     func percentileAnchors() {
         // A hundred readings spread evenly from −60 to −11 dB. The 25th
         // percentile is −50 and the 90th is −15, in half-decibel bins.
-        var scale = BandScale()
+        var scale = BandScale(seeded: false)
         for step in 0..<100 { scale.observe(-60 + Double(step) * 0.5) }
 
         let quarter = scale.height(of: -50)
@@ -305,23 +309,48 @@ struct AnalyserTests {
         #expect(scale.height(of: .nan) == 0)
     }
 
-    @Test("One reading is not enough to know anything, and does not pretend to be")
+    /// One reading is still not enough to know anything — what changed is what
+    /// it says while it does not know (D33). It used to answer a quarter of the
+    /// way up whatever the level was, which is a distribution it has not got.
+    /// Now it says nothing at all, because the only thing it is entitled to
+    /// assume is that the loud part has not arrived yet.
+    @Test("One reading is not enough to know anything, and draws nothing")
     func firstReading() {
-        var scale = BandScale()
+        var scale = BandScale(seeded: true)
         scale.observe(-24)
         let (lo, hi) = scale.bounds
+
+        // Both anchors are still at the ceiling, so the scale is the minimum
+        // span sitting at the top of the range rather than anywhere near −24.
         #expect(abs(hi - lo - BandScale.minimumSpan) < 0.001)
-        #expect(scale.height(of: -24) == 10)
+        #expect(lo > -3, "the cold scale has already come down to \(lo)")
+
+        // A loud reading is a quiet one until something louder is heard, which
+        // is the whole point: a fade-in cannot be drawn as a chorus. Nothing
+        // short of full scale itself gets off the floor of a cold band, and that
+        // is the cost of the prior as well as the reason for it — §18.21.
+        #expect(scale.height(of: -24) == 0)
+        #expect(scale.height(of: -3) == 0)
+        #expect(scale.height(of: 0) > 0, "not even full scale reaches the cold scale")
     }
 
-    @Test("A new track is a new scale")
+    /// **Not a new track** — that keeps the scale now, which is the other half
+    /// of D33. This is what a new record does.
+    @Test("A new record is a new scale, and it comes back at the ceiling")
     func scaleResets() {
         var scale = BandScale()
         for _ in 0..<500 { scale.observe(-6) }
-        #expect(scale.height(of: -40) == 0)
+        // A record that lives at −6 uses the column at −6. A band that never
+        // moves gets the minimum span and sits honestly at the quarter mark,
+        // which is `minimumSpan` doing exactly its job (`player:866`).
+        #expect(scale.height(of: -6) >= AnalyserColumns.top / 4)
+
         scale.reset()
-        scale.observe(-40)
-        #expect(scale.height(of: -40) == 10)
+        let (lo, hi) = scale.bounds
+        #expect(abs(hi - lo - BandScale.minimumSpan) < 0.001)
+        // And on a record that has not been heard, the same level is nothing —
+        // until this record says otherwise.
+        #expect(scale.height(of: -6) == 0)
     }
 
     // MARK: - The columns
@@ -527,10 +556,19 @@ struct AnalyserTests {
         #expect(analyser.isIdle)
     }
 
-    @Test("A new track resets the analyser as well as the columns")
+    @Test("A new track clears the columns and the last reading")
     func newTrack() {
         let analyser = Analyser()
         analyser.hear(Self.tone(60, seconds: 1.0))
+        for _ in 0..<4 { analyser.frame() }
+        // A reading, but no column yet: one second into a record the scales are
+        // still up at the ceiling and nothing is drawn (D33, §18.21).
+        #expect(analyser.levels.contains { $0 > Spectrum.floor })
+        #expect(analyser.state.height.allSatisfy { $0 == 0 })
+
+        // Seven seconds in, the prior has been pulled down and there is a
+        // column to clear — which is what this test is actually about.
+        analyser.hear(Self.tone(60, seconds: 6.0))
         for _ in 0..<4 { analyser.frame() }
         #expect(analyser.state.height.contains { $0 > 0 })
 
@@ -539,13 +577,45 @@ struct AnalyserTests {
         #expect(analyser.levels.allSatisfy { $0 == Spectrum.floor })
     }
 
+    /// D33, at the level anyone would notice it: two tracks of the same record
+    /// are one scale, and two records are two.
+    @Test("The scale survives a track change and does not survive a record change")
+    func scaleCarriesBetweenTracks() {
+        let analyser = Analyser()
+
+        // A minute of a loud, narrow band: enough evidence to bury the seed.
+        for _ in 0..<600 { analyser.hear(Self.tone(60, seconds: 0.1, amplitude: 0.9)) }
+        analyser.frame()
+        let lit = Self.band(containing: 60)
+        let learned = analyser.state.height[lit]
+        #expect(learned > 0)
+
+        // The next track. One window in, the same tone still draws what it drew
+        // before, because the minute it took to learn that is still there.
+        analyser.newTrack()
+        analyser.hear(Self.tone(60, seconds: 0.1, amplitude: 0.9))
+        analyser.frame()
+        let carried = analyser.state.height[lit]
+        #expect(carried == learned, "carried \(carried), learned \(learned)")
+
+        // A new record throws it away and starts at the ceiling, so the very
+        // same tone draws short until the evidence comes back (D33).
+        analyser.newRecord()
+        analyser.hear(Self.tone(60, seconds: 0.1, amplitude: 0.9))
+        analyser.frame()
+        let cold = analyser.state.height[lit]
+
+        #expect(cold < carried, "cold \(cold), carried \(carried)")
+    }
+
     @Test("Twenty frames a second over ten measurements a second")
     func twoClocks() {
         let analyser = Analyser()
-        // A second of music as it would actually arrive: a window's worth of
-        // samples, then the two frames the panel draws in that tenth of a
-        // second. Ten windows, twenty frames.
-        for _ in 0..<10 {
+        // Music as it would actually arrive: a window's worth of samples, then
+        // the two frames the panel draws in that tenth of a second. Seven
+        // seconds of it, because that is how long a record takes to pull its
+        // scales down off the ceiling and draw anything at all (D33, §18.21).
+        for _ in 0..<70 {
             analyser.hear(Self.tone(1000, seconds: 0.1))
             analyser.frame()
             analyser.frame()
@@ -608,7 +678,15 @@ struct AnalyserTests {
         let lit = Self.band(containing: 1000)
         #expect(analyser.levels[lit] > -12)
         #expect(!analyser.isIdle)
-        #expect(analyser.state.height[lit] > 0)
+
+        // **The columns are deliberately not asserted here.** Offline rendering
+        // does not deliver a tap callback per render call — measured, eight
+        // seconds through the graph arrived as seventeen buffers and about one
+        // and seven tenths of a second of audio — so how much the scales have
+        // heard is not something this test controls, and under D33 that is
+        // exactly what decides whether anything is drawn. The tap's own contract
+        // is the reading and the shape of the bands around it; the columns are
+        // `twoClocks`, where the windows are counted.
 
         // And the columns fall away either side of it.
         for band in 0..<Bands.count where abs(band - lit) >= 3 {
