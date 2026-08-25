@@ -103,7 +103,9 @@ first two want an answer before §10 draws anything that depends on them; the
 third was a thing to watch on a real record rather than a question, and **it has
 now been watched, measured and answered** — the cold scale read high by three and
 a half rows over the opening of a track that fades in, which was worse than
-§18.21 assumed and was a direction rather than a delay, and **D33** answers it.
+§18.21 assumed and was a direction rather than a delay. **D33** answers it in three
+passes: the prior's shape, then its location, then its weight swept against
+the script's own opening.
 **§18.22 and §18.23** came out of §10 and are both answered as fast as they were
 found — the missing fourth line in `np_scroll` goes in (**D31**), and the two
 places the port measures a character wider than `cwidth` does stay as they are
@@ -1481,8 +1483,8 @@ step. The autoscale is the one thing that could not be ported as it stood,
 because the difference is the sample it is taken over: **§18.21**, measured and
 answered as **D33** — the scales now live across a track change, and the
 histogram starts as though the band had been at full scale all along, so the
-scale comes down onto the record and a cold analyser draws short. The price is
-five blank seconds at the top of a record, measured and accepted.
+scale comes down onto the record instead of up to meet it. How long it stays at
+the ceiling is a duration, and it is fitted to the script rather than chosen.
 
 `Analyser.tap` takes any `AVAudioNode`, on purpose. The deck's graph is not
 reachable from here and does not need to be, which is why §9 landed without
@@ -2405,8 +2407,8 @@ draws fails at the one job it has. `PanelAgainstBashTests` checks the port again
 the script everywhere else and carries these two as named exceptions, so the
 divergence is a decision and cannot drift back into an accident.
 
-**D33 — the scale starts at the ceiling and comes down, so a cold analyser draws
-short.** → §18.21, §9
+**D33 — the scale starts at the ceiling, and how long it stays there is fitted
+to the script.** → §18.21, §9
 
 The autoscale is the one thing in §9 that could not be ported as it stood: the
 script has the whole track before it draws a frame and the port does not.
@@ -2416,95 +2418,155 @@ whole column, and **wrong upward on every track tried**, because a scale that ha
 not yet heard the loud part puts both its percentiles too low and maps everything
 above where it belongs.
 
-Two changes, and the second is the one that matters:
+Three changes, and they answer three separate questions: *carry or not*, *where
+the prior sits*, and *how long it lasts*.
 
 **The scales live across a track change.** The previous track is by far the best
 evidence available about this one — same record, same room, same mastering — and
 the script can only afford to start each track cold because it has the future.
 `Analyser.newTrack` now clears the columns alone; `Analyser.newRecord` is where
 the scales go, because another record's scale is another record's scale.
-Measured, it takes the openings from 11.3, 16.1 and 21.0 eighths out to about 5,
-7 and 7. It does nothing at all for track one.
+Measured, it takes the openings from 11.3, 16.1 and 21.0 eighths out to 4.1, 6.5
+and 6.8. It does nothing at all for track one.
 
-**And the histogram starts at full scale.** A band that has heard nothing is
-claimed to have been **at 0 dBFS all along** — a point mass at the top bin, not a
-flat spread across the range. Both anchors therefore start at the ceiling, the
-cold scale is narrow and at the top, and everything quieter than full scale draws
-nothing until real evidence has pulled the bottom anchor down to where the record
-actually lives. The scale descends onto the record rather than rising to meet it.
+**The prior sits at full scale.** A band that has heard nothing is claimed to
+have been **at 0 dBFS all along** — a point mass at the top bin, not a flat
+spread. Both anchors start at the ceiling and the scale descends onto the record
+rather than rising to meet it. Measured against the alternatives at one fixed
+mass, so that only the shape varied (first five seconds, mean / peak / signed,
+positive being the port drawing taller):
 
-This is an initial condition and not a tuning. The value is full scale, the one
-level a band cannot exceed. The weight is one pseudo-reading per resolvable
-half-decibel — the mass a flat prior over this histogram has by construction —
-held fixed while the *shape* was measured, so that what was compared was where
-the mass sits and nothing else. It is never removed; a threshold would be the
-second number, and it does not need one, because a record dilutes it during its
-first track and the scales carry, so it is spent **once per record** rather than
-once per track.
+| prior on Second Hand News | result |
+| --- | --- |
+| none | 27.9 / 40 / **+27.9** |
+| flat, *anything is possible* | 14.0 / 27 / **+14.0** |
+| full scale, weight 1 | 27.2 / 40 / **+27.2** |
+| full scale, same mass as flat | 0.0 / 4 / **−0.0** |
 
-**A warm-up window was rejected** and would have been the obvious move: it needs
-a length and a picture to show during it, which is two invented numbers, and §18
-items do not get code before they get an answer.
+The flat prior halves the error and cannot turn it over, for a reason that is
+arithmetic rather than taste: a scale ninety decibels wide still maps a −60 dBFS
+fade-in a third of the way up. Only raising the **bottom** anchor puts a fade-in
+under the floor. And weight one is no prior at all — it dilutes inside a tenth of
+a second.
 
-**Three priors, measured against each other**, first five seconds, in eighths of
-a 40-eighth column, on the first four sides of *Rumours*. Signed is the half that
-decides it — positive is the port drawing taller than the script:
+**The weight is a duration, and that is the second number this was supposed to
+avoid.** It was recorded here as "not a second number", on the grounds that the
+mass was inherited from the flat control rather than chosen. That was wrong, and
+the algebra says so plainly: the bottom anchor comes off the seed once
+`0.25(N + w) ≤ N` and the top once `0.90(N + w) ≤ N`, so at ten windows a second
+the weight *is* a length of time. At the flat mass that is five seconds of dark
+panel and two and three-quarter minutes of pinned ceiling. A warm-up window was
+rejected at the top of §18.21 for needing an invented length; picking a mass
+picked a length anyway. **The warm-up window and the point-mass prior are the
+same number in different clothes**, and it could not have been avoided.
 
-| track | none | flat | full scale, weight 1 | full scale, full weight |
-| --- | --- | --- | --- | --- |
-| Second Hand News | 27.9 / 40 / **+27.9** | 14.0 / 27 / **+14.0** | 27.2 / 40 / **+27.2** | 0.0 / 4 / **−0.0** |
-| Dreams | 4.2 / 19 / −3.0 | 3.8 / 15 / −2.5 | 4.2 / 19 / −3.0 | 5.1 / 18 / −5.0 |
-| Never Going Back Again | 6.4 / 24 / −6.4 | 5.7 / 23 / −5.7 | 6.4 / 24 / −6.4 | 6.7 / 25 / −6.7 |
-| Don't Stop | 6.8 / 17 / +5.7 | 7.1 / 17 / +6.1 | 6.8 / 17 / +5.7 | 6.6 / 16 / +5.5 |
+**So it is fitted rather than invented.** The objective, stated before the sweep
+and unchanged after: the mean absolute difference in percentage points between
+the port's lit-band curve and the script's, over seconds 0–9, across the first
+four sides of *Rumours*, each decoded **cold** — because the scales carry only
+within a sitting, so any track can be the one you dropped the needle on. Forty
+points, no weighting between tracks, no tie-breaks. Swept 0 to 400.
 
-**The flat prior was measured and rejected.** *Anything is possible* halves the
-opening error and takes the peak off the ceiling, and it cannot turn the bias
-over, for a reason that is arithmetic rather than tuning: a scale ninety decibels
-wide still maps a −60 dBFS fade-in a third of the way up the column. Only raising
-the **bottom** anchor puts a fade-in under the floor.
+| weight | 0 | 25 | 45 | **55** | 70 | 100 | 181 | 400 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| mean \|Δ lit%\| | 34.0 | 29.7 | 27.8 | **27.2** | 28.5 | 28.4 | 34.5 | 65.0 |
 
-**Weight is not a free parameter, and it nearly hid the result.** One literal
-full-scale observation is gone inside a tenth of a second and measures
-indistinguishably from no prior at all — 27.2 against 27.9. The prior only does
-anything at the mass a prior on this histogram has.
+**55**, and the basin is broad: everything from 40 to 105 scores within 1.6
+points of the minimum, so the value is not balanced on a knife edge and a change
+of a few either way is not a regression. The two ends are the two failures, and
+they score almost identically — 34.0 for inventing a song, 34.5 for erasing one.
 
-**The bias turns over**: +27.9 to −0.0, peak 40 to 4. "Never tall" would still be
-too strong and the headline no longer claims it — over the first fifteen seconds
-the worst upward excursion is 6 to 9 eighths, a little over one cell of eight,
-against a cold scale's whole column, and short cells outnumber tall by better
-than two to one on every side. That is the claim, and it is held down by
-`AutoscaleSettlingTests.errsShort`.
+**This is fitting, not tuning, and the difference is the target.** The objective
+is the script's own behaviour, and `CLAUDE.md` makes the script the authority
+where anything conflicts with it. No part of the sweep was scored against how the
+panel looks to anyone. It should not be re-litigated as taste.
 
-**What the prior costs, and it is the thing eighths cannot see.** Nought is a
-blank panel and three is a sliver, and the two read the same in a mean. Measured
-as the percentage of the sixteen bands drawing anything at all, second by second,
-on a cold scale:
+**What it does**, as the percentage of the sixteen bands drawing anything, second
+by second, cold — the script, the fitted weight, and the heavy prior it replaces:
 
-| track | prior | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| track | | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Second Hand News | script | 0 | 0 | 0 | 0 | 2 | 24 | 100 | 100 | 98 |
-| | flat | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
-| | **full scale** | 0 | 0 | 0 | 0 | 0 | 10 | 100 | 100 | 100 |
+| | **×55** | 0 | 30 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| | ×181 | 0 | 0 | 0 | 0 | 0 | 10 | 100 | 100 | 100 |
 | Dreams | script | 45 | 75 | 86 | 59 | 58 | 82 | 78 | 52 | 82 |
-| | **full scale** | 0 | 0 | 0 | 0 | 0 | 3 | 19 | 44 | 89 |
+| | **×55** | 0 | 18 | 84 | 80 | 92 | 96 | 99 | 94 | 98 |
+| | ×181 | 0 | 0 | 0 | 0 | 0 | 3 | 19 | 44 | 89 |
 | Never Going Back Again | script | 36 | 66 | 96 | 84 | 98 | 90 | 91 | 95 | 100 |
-| | **full scale** | 0 | 0 | 0 | 0 | 0 | 8 | 90 | 96 | 100 |
+| | **×55** | 0 | 28 | 98 | 100 | 100 | 96 | 99 | 100 | 100 |
+| | ×181 | 0 | 0 | 0 | 0 | 0 | 8 | 90 | 96 | 100 |
 | Don't Stop | script | 42 | 34 | 48 | 64 | 78 | 56 | 69 | 92 | 97 |
-| | **full scale** | 0 | 0 | 0 | 0 | 0 | 7 | 96 | 100 | 100 |
+| | **×55** | 0 | 26 | 96 | 100 | 100 | 100 | 100 | 100 | 100 |
+| | ×181 | 0 | 0 | 0 | 0 | 0 | 7 | 96 | 100 | 100 |
 
-**A record opens on an entirely blank analyser for five seconds.** Not the lit
-floor row §9's idle state draws — `AnalyserColumns.cells(row:)` returns `.field`
-at height nought, so it is blank panel, over audible music, where the script is
-already drawing on a third to a half of the bands. It is over by the ninth second
-in every case, and it is **once per record and not once per track**, because the
-scales carry. On a track that fades in it is exactly right and the script is
-blank too. On a track that opens loud it is wrong, in the sanctioned direction.
+**One dark second at the top of a record, not five**, and every side is past four
+fifths of its bands by the third. Both ends are pinned by
+`neitherBlankNorFlooded` so neither failure can return: nothing may open above
+half its bands lit, and nothing may still be under four fifths at two seconds.
 
-That is the trade, and both ends of it are pinned by
-`AutoscaleSettlingTests.blankAtTheTopOfARecord` so neither can grow: nothing lit
-for five seconds, and better than 85% lit by the ninth. The flat prior's row is
-the failure this replaces — every band lit from second zero on a fade-in the
-script leaves dark, which is the analyser inventing a song.
+**And the eighths, which the fit did not optimise**, so they are a report rather
+than a target. Cold, first five seconds:
+
+| track | none | **×55** | ×181 |
+| --- | --- | --- | --- |
+| Second Hand News | 27.9 / 40 / +27.9 | **9.4 / 21 / +9.4** | 0.0 / 4 / −0.0 |
+| Dreams | 11.3 / 40 / +10.9 | **10.2 / 40 / −8.3** | 13.0 / 40 / −13.0 |
+| Never Going Back Again | 16.1 / 40 / +16.1 | **7.0 / 35 / −5.8** | 12.7 / 40 / −12.7 |
+| Don't Stop | 21.0 / 40 / +21.0 | **5.0 / 24 / +2.5** | 3.8 / 30 / −3.8 |
+
+**The direction claim is gone and D33 no longer makes one.** The fitted weight
+reads *tall* over the fade-in — +9.4 eighths, peaking at 21 — where the heavy
+prior read nothing. That is the trade, taken deliberately: one fade-in reading
+just over a row tall beats three loud openings reading blank, and the failure
+that started this was a peak of forty over a track that had not begun. No cold
+column reaches the top row from nothing, and `nothingRunsTheColumn` holds that.
+
+**The steady-state cost is a known permanent divergence, not a cost that is going
+to be addressed.** The scale is made of the record rather than of the track, so a
+track quieter than its neighbours reads low for its whole length. Measured over
+55–60 s on all four sides: **carried**, against **scaled by itself** — a live
+scale started fresh on that track, prior and all, which is exactly what the app
+does when you drop the needle there.
+
+| a minute in, eighths | carried | by itself | what the carry costs |
+| --- | --- | --- | --- |
+| Second Hand News | 3.2 | 3.2 | — (it *is* the first side) |
+| Dreams | 5.4 | 3.1 | +2.3 |
+| Never Going Back Again | 7.2 | 2.9 | +4.3 |
+| Don't Stop | 4.2 | 2.0 | +2.2 |
+
+**The carry costs less than this entry used to imply.** 7.2 is the whole
+divergence, not the price of carrying: 2.9 of it is there whether anything
+carried or not, because a live scale a minute in still has not heard the rest of
+the track and the script has. The carry's own share is **4.3 eighths on the worst
+side and 2.3 across the three that carry** — half a row. That is the number to
+argue with, if anyone ever does. Nobody should reopen this looking for a fix:
+there isn't one coming. `steadyStateCost` computes both columns and holds them.
+
+The first side is the check on the arithmetic. With nothing to carry the two
+columns have to be the same figure, and they are, to the last digit.
+
+**The fitted prior is not quite spent at a minute on a quiet track.** By itself
+with *no* prior at all Never Going Back Again reads 1.7 rather than 2.9: the top
+anchor comes off the seed at 9w windows, which at w = 55 is 49.5 s, so a track
+this quiet still carries a trace of the prior into the 55–60 s bucket. A fifth of
+a row, and it is part of the fitted weight's price rather than a fault in it.
+
+*(Two corrections to earlier revisions of this entry, both of the same kind —
+a number attributed to the carry that belonged to the prior. The first put the
+figure at 7.7 and blamed the carry for all of it; that was measured under the
+heavy prior, where the top anchor is still pinned a minute in, so a third of it
+was the prior. The second is that 2.9 was right but unsourced, and a per-track
+baseline that nothing computes is a number waiting to drift. It is now measured
+rather than quoted.)*
+
+Per-record scaling does show something the script hides — the dynamics *between*
+tracks, a quiet track reading quiet next to a loud one instead of every track
+being renormalised to fill its own column. **That is not the justification**, and
+it is written here only so it is not mistaken for one. Preferring it because it
+is better would be improving the script, which is not what a port does. The
+justification is narrower and it is the whole of it: of two divergences that
+could not both be avoided, this is the cheaper.
 
 The *arithmetic* — the two anchors, the 0.60, the 6 dB minimum span — is
 unchanged, and the tests that hold it down still ask it of an unseeded scale,
@@ -2887,82 +2949,96 @@ question is only whether that was the right half to keep. It reads as yes.
     scale does during it means inventing two numbers, and §18 items do not get
     code before they get an answer.
 
-    **ANSWERED — D33, and it is both halves.** Carry the scales between tracks,
-    which is measured and free; and for the track you start on, do not build a
-    warm-up but *flip the initial condition*, so that a band which has heard
-    nothing is claimed to have been at full scale all along and the scale comes
-    **down** onto the record instead of up to meet it. One value, and it is not
-    arbitrary — full scale, the only level a band cannot exceed. Drawing 28 of 40
-    over a fade-in is the analyser inventing a song; drawing nothing over a
-    fade-in is just a quiet fade-in.
+    **ANSWERED — D33, and it took three passes to get right.** Carry the scales
+    between tracks, which is measured and free; and for the track you start on,
+    do not build a warm-up but *flip the initial condition*, so that a band which
+    has heard nothing is claimed to have been at full scale all along and the
+    scale comes **down** onto the record instead of up to meet it.
 
-    **The shape of the prior was the whole question, and the first attempt got it
-    wrong.** *Anything is possible* — one count in every bin, a flat spread — is
-    not the same claim as *the loud part is coming*, and only the second one can
-    work, for a reason that is arithmetic rather than taste: a wide scale still
-    maps a −60 dBFS fade-in a third of the way up. It is the **bottom** anchor
-    that has to move. Both were measured, and so was the weight, which nearly hid
-    the result.
+    **Pass one got the shape wrong.** "Assume the loud part is coming" was
+    implemented as "assume anything is possible" — one count in every bin, a flat
+    spread. Those are different claims and only the second one can work: a scale
+    ninety decibels wide still maps a −60 dBFS fade-in a third of the way up the
+    column. It is the **bottom** anchor that has to move.
 
-    Same rig, same four sides of *Rumours*, same buckets, same eighths. First
-    bucket (0–5s), mean / peak / signed, positive being the port drawing *taller*
-    than the script. Track one is uncarried; the rest carry from the track before:
+    **Pass two got the location right and the duration by accident.** A point
+    mass at 0 dBFS turns the bias over on track one — 27.9 eighths to 0.0, peak
+    40 to 4. But it was measured at the mass a *flat* prior over this histogram
+    has by construction, 181, which was the correct control for isolating shape
+    and is not a shipping value. At that weight the panel is **blank for five
+    seconds** at the top of every record, over audible music, on sides where the
+    script is already drawing on a third to a half of the bands. That is the
+    opening objection pointed the other way: an analyser that looks broken at the
+    moment you press play. Past that point the direction of the error is no
+    longer the thing that matters.
 
-    | | cold | flat prior | full scale, weight 1 | **full scale, full weight** |
-    |---|---|---|---|---|
-    | Second Hand News | 27.9 / 40 / **+27.9** | 14.0 / 27 / **+14.0** | 27.2 / 40 / **+27.2** | **0.0 / 4 / −0.0** |
-    | Dreams | 11.3 / 40 / +10.9 | 3.8 / 15 / −2.5 | 4.2 / 19 / −3.0 | 5.1 / 18 / −5.0 |
-    | Never Going Back Again | 16.1 / 40 / +16.1 | 5.7 / 23 / −5.7 | 6.4 / 24 / −6.4 | 6.7 / 25 / −6.7 |
-    | Don't Stop | 21.0 / 40 / +21.0 | 7.1 / 17 / +6.1 | 6.8 / 17 / +5.7 | 6.6 / 16 / +5.5 |
+    **And the weight is a duration, which is the second number this entry claimed
+    to have avoided.** The bottom anchor comes off the seed once
+    `0.25(N + w) ≤ N` and the top once `0.90(N + w) ≤ N`; at ten windows a second
+    the weight is a length of time and nothing else. The warm-up window rejected
+    above for needing an invented length, and the point-mass prior, are **the
+    same number in different clothes**. It was not avoidable. Recorded here
+    rather than quietly corrected, because the claim that it had been avoided is
+    in this document's history.
 
-    Steady state, the 55–60s bucket, mean: cold 2.9 / 5.3 / 7.0 / 4.4; flat
-    6.3 / 4.1 / 6.4 / 4.4; full weight **7.7 / 6.5 / 7.6 / 3.9**. The point mass
-    does cost steady state about 1.4 eighths against the flat prior, as suspected
-    — under a row either way.
+    **Pass three fits it.** Objective, stated before the sweep and unchanged
+    after: the mean absolute difference in percentage points between the port's
+    lit-band curve and the script's, over seconds 0–9, across the same four
+    sides, each decoded **cold** — the scales carry only within a sitting, so any
+    track can be the one you dropped the needle on. Forty points, no weighting,
+    no tie-breaks. Swept 0 to 400.
 
-    **The bias turns over.** +27.9 to −0.0 on the track you cannot carry into,
-    and the peak off the ceiling from 40 to 4. Total opening error across the
-    four sides is 18.4 eighths against the flat prior's 30.6.
+    | weight | 0 | 25 | 45 | **55** | 70 | 100 | 181 | 400 |
+    |---|---|---|---|---|---|---|---|---|
+    | mean \|Δ lit%\| | 34.0 | 29.7 | 27.8 | **27.2** | 28.5 | 28.4 | 34.5 | 65.0 |
 
-    **Weight is not a free parameter.** One literal full-scale observation is
-    diluted inside a tenth of a second and measures indistinguishably from no
-    prior at all, 27.2 against 27.9. The weight that ships is one pseudo-reading
-    per resolvable half-decibel — the mass a flat prior over this histogram has
-    by construction — held fixed while the shape was measured, so what was
-    compared was where the mass sits and nothing else. It was not tuned.
+    **55.** The basin is broad — 40 through 105 all score within 1.6 points — so
+    the value is robust rather than knife-edge. The two ends score almost the
+    same, 34.0 for inventing a song and 34.5 for erasing one, which is the whole
+    shape of the problem in two numbers.
 
-    **"Never tall" is not literally true and D33 no longer claims it.** Over the
-    first fifteen seconds the worst upward excursion is 6 to 9 eighths, a little
-    over one cell of eight, against a cold scale's whole column; short cells
-    outnumber tall by better than two to one on every side. The decision is named
-    for what it does — the scale starts at the ceiling and comes down — and
-    `errsShort` holds the numbers.
+    **This is fitting, not tuning.** The target is the script, which `CLAUDE.md`
+    makes the authority; nothing was scored against how the panel looks to
+    anyone. Full lit-band and eighths tables are in D33.
 
-    **The price, and it is bigger than the eighths let on.** Nought is a blank
-    panel and three is a sliver, and a mean cannot tell them apart. Measured as
-    the percentage of bands drawing anything at all: **a record opens on a
-    completely blank analyser for five seconds** — `.field`, not §9's lit idle
-    row — over audible music where the script is already drawing on a third to a
-    half of the bands. Full table in D33. It is over by the ninth second, and it
-    is once per record rather than once per track, because the scales carry. On a
-    fade-in it is exactly right and the script is blank too; on a loud opening it
-    is wrong, in the sanctioned direction. `blankAtTheTopOfARecord` pins both
-    ends so neither can grow.
+    **What it costs, stated as the trade it is.** The dark start goes from five
+    seconds to one. In exchange the fade-in now reads *tall* — +9.4 eighths,
+    peaking at 21 — where the heavy prior read nothing, and D33 no longer claims
+    a direction, because it no longer has one. One fade-in reading just over a
+    row tall beats three loud openings reading blank. No cold column reaches the
+    top row from nothing, which was the original failure at a peak of forty.
 
     **The steady-state cost is a known permanent divergence, not a cost that is
-    going to be addressed.** The scale is now made of the record rather than of
-    the track, so a track quieter than its neighbours reads low for its whole
-    length — worst measured, 7.7 eighths a minute in, about a fifth of a row.
-    Nobody should reopen this looking for a fix: there isn't one coming.
-    `steadyStateCost` holds it under a row of five, which is the right guard.
+    going to be addressed.** The scale is made of the record rather than of the
+    track, so a track quieter than its neighbours reads low for its whole length
+    — worst measured, 7.2 eighths a minute in on Never Going Back Again, against
+    2.9 for the same side scaled by itself. **The carry's own share is the
+    difference, 4.3 eighths, not the 7.2**: a live scale a minute in has still
+    not heard the rest of the track, and that half of the gap would be there
+    with nothing carried. Nobody should reopen this looking for a fix: there
+    isn't one coming. `steadyStateCost` computes the per-track baseline rather
+    than quoting it, and holds both columns under a row of five.
+
+    Two figures in this entry were corrected, both the same mistake — a number
+    charged to the carry that belonged to the prior. The earlier 7.7 was
+    measured under the heavy prior; and 2.9, though right, was unsourced until
+    now. D33 has the table.
 
     Per-record scaling does show something the script hides — the dynamics
-    *between* tracks, a quiet track reading quiet next to a loud one instead of
-    every track being renormalised to fill its own column. **That is not the
-    justification**, and it is written here only so it is not mistaken for one.
-    Preferring it because it is better would be improving the script, which is
-    not what a port does. The justification is narrower and it is the whole of
-    it: of two divergences that could not both be avoided, this is the cheaper.
+    *between* tracks. **That is not the justification**, and it is written down
+    only so it is not mistaken for one: preferring it because it is better would
+    be improving the script, which is not what a port does. The justification is
+    that of two divergences that could not both be avoided, this is the cheaper.
+
+    **A note on the rig, found while closing this.** The one test that fed the
+    analyser through an `AVAudioEngine` in `enableManualRenderingMode` was
+    asserting something it could never have established: measured, eight seconds
+    pushed through an offline graph reached the tap as seventeen buffers and
+    74,970 frames of 356,352 — under a fifth. Offline, a tap proves what a window
+    *measures* and can prove nothing that depends on **how many** windows have
+    gone by, which since D33 includes every column height. The rest of the suite
+    was audited and nothing else was making the claim; `Analyser.tap` now carries
+    the rule.
 
 22. **The scroll window is never pulled back up. — ANSWERED: the fourth line
     goes in.** → §6, §10 `np_scroll` has three lines

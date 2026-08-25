@@ -230,12 +230,23 @@ public final class Analyser: @unchecked Sendable {
     ///
     /// Any node, on purpose: the deck's own graph is not reachable from here and
     /// does not need to be, and a test that builds its own engine offline gets
-    /// the identical path through the identical code. §6.1a — the analyser reads
-    /// the signal *before* the gain — is a question about *which* node, and it
-    /// is asked of `Play/`, not of here.
+    /// the identical path through the identical *code*. §6.1a — the analyser
+    /// reads the signal *before* the gain — is a question about *which* node,
+    /// and it is asked of `Play/`, not of here.
     ///
     /// The buffer size is a request rather than an instruction; the window is
     /// filled across buffers whatever size they turn out to be.
+    ///
+    /// **It is not the identical amount of audio, and no test may assume it
+    /// is.** Under `enableManualRenderingMode` the tap is fed on a best-effort
+    /// basis and drops most of it: measured, eight seconds pushed through an
+    /// offline graph arrived here as seventeen buffers and 74,970 frames of
+    /// 356,352 — under a fifth, and under two seconds of music. Offline, this
+    /// path proves *what a window measures*; it cannot prove anything that
+    /// depends on **how many** windows have gone by, which since D33 includes
+    /// every column height. Count the windows by calling `hear` directly, or
+    /// capture the graph's output with `PlaybackEngine.render` — that reads the
+    /// render block rather than the tap and loses nothing.
     public func tap(
         _ node: AVAudioNode, bus: AVAudioNodeBus = 0, bufferSize: AVAudioFrameCount = 4096
     ) {

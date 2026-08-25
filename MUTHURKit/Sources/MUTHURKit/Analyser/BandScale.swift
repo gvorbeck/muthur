@@ -23,20 +23,24 @@ import Foundation
 /// during the opening bars rather than being right from the downbeat, which is
 /// the price of not knowing the future and is §18.21.
 ///
-/// **And which way it settles from is a decision** (D33). Measured, a cold
-/// histogram was wrong *upward* on every track tried, by better than three to
-/// one: it has not yet heard the loud part, so both percentiles sit low, and
-/// every level maps above where the finished scale puts it. That is the one
-/// direction the error must not go — a fade-in drawing three and a half rows is
-/// the analyser inventing a song, where a fade-in drawing nothing is just a
-/// quiet fade-in.
+/// **Where it settles from is a decision, and so is how long it takes** (D33).
+/// Measured, a cold histogram was wrong *upward* on every track tried, by better
+/// than three to one: it has not yet heard the loud part, so both percentiles sit
+/// low, and every level maps above where the finished scale puts it. A fade-in
+/// drawn three and a half rows tall is the analyser inventing a song.
 ///
 /// So a band that has heard nothing is claimed to have been **at full scale all
-/// along** (see `Prior`). The bottom anchor then starts at the ceiling with it,
-/// which is the part that does the work: everything quieter than full scale
-/// draws nothing until real evidence has pulled the anchor down to where the
-/// record actually lives. The scale descends onto the record rather than rising
-/// to meet it, and a fade-in sits under the floor where the script puts it.
+/// along** (see `Prior`). Both anchors start at the ceiling and the scale
+/// descends onto the record rather than rising to meet it, which is what stops
+/// the invention. The bottom anchor is the one that shows: while it is still up
+/// there, nothing is drawn at all.
+///
+/// **That makes the prior's weight a length of time, and it is fitted to the
+/// script** (`priorWeight`). Pushed far enough the other way it stops inventing
+/// and starts erasing — a blank panel over a loud opening is the same failure
+/// pointed the other way, and measured, it lasted five seconds. The weight is
+/// swept against the script's own behaviour rather than chosen, so what the
+/// opening looks like is the script's answer and not anyone's preference.
 public struct BandScale: Sendable, Equatable {
 
     /// `SPEC_WINDOW` (`player:98`). A band that genuinely does not move — a
@@ -49,12 +53,30 @@ public struct BandScale: Sendable, Equatable {
     /// scale that can come out six decibels wide (`player:846`).
     static let bins = 181
 
-    /// **The prior's weight, and it is not a second number.** One pseudo-reading
-    /// per bin the histogram can resolve — the mass a flat prior over this
-    /// histogram has by construction, held fixed while the *shape* of the prior
-    /// was measured, so that what §18.21 compared was where the mass sits and
-    /// nothing else.
-    static let priorMass = BandScale.bins
+    /// The mass a flat prior over this histogram has by construction. Held fixed
+    /// while the prior's *shape* was measured, so that what §18.21 compared was
+    /// where the mass sits and nothing else. It is a control, not a setting, and
+    /// nothing ships at it.
+    static let flatMass = BandScale.bins
+
+    /// **The prior's weight, and it is a duration.**
+    ///
+    /// This was claimed to be "not a second number" and that was wrong. The
+    /// weight is the only thing setting how long the prior outvotes the record,
+    /// and the arithmetic says exactly how long: the bottom anchor comes off the
+    /// seed once `0.25(N + w) ≤ N`, and the top once `0.90(N + w) ≤ N`. At 55,
+    /// with ten windows a second, that is **1.9 seconds** for the bottom anchor
+    /// and **49.5 seconds** for the top. The bottom one is the number you can
+    /// see: it is how long the panel stays dark at the start of a record.
+    ///
+    /// Which means a warm-up window was never actually avoided — it was only
+    /// spelled differently. §18.21 rejected one for needing an invented length,
+    /// then picked a length anyway by picking a mass. So it is **fitted** rather
+    /// than invented: swept, and set to the value that minimises total
+    /// divergence from the script's own lit-band curve over the opening ten
+    /// seconds of four real sides. The objective is the script, which `CLAUDE.md`
+    /// makes the authority, and that is what separates this from taste.
+    static let priorWeight = 55
 
     private var histogram = [Int](repeating: 0, count: BandScale.bins)
     private var count = 0
@@ -79,17 +101,16 @@ public struct BandScale: Sendable, Equatable {
         /// at the ceiling, so the cold scale is narrow and at the top and
         /// anything quieter than full scale draws nothing at all.
         ///
-        /// The weight matters and is the thing that nearly hid this result. At
-        /// weight one the prior is gone inside a tenth of a second and the
-        /// analyser behaves exactly as if it had no prior at all — measured, 27.2
-        /// eighths against a cold scale's 27.9. At `priorMass` it holds the top
-        /// anchor at full scale until the record has played about two and
-        /// three-quarter minutes, and then dilutes and never comes back, because
-        /// the scales carry across a track change.
+        /// **The weight is how many seconds that lasts**, and it nearly hid this
+        /// result twice. At weight one the prior is gone inside a tenth of a
+        /// second and the analyser behaves exactly as if it had none — measured,
+        /// 27.2 eighths against a cold scale's 27.9. At `flatMass` it holds the
+        /// bottom anchor up for five seconds and the panel is blank over audible
+        /// music. `priorWeight` is the swept answer in between.
         case fullScale(weight: Int)
     }
 
-    public init() { seed(.fullScale(weight: BandScale.priorMass)) }
+    public init() { seed(.fullScale(weight: BandScale.priorWeight)) }
 
     init(_ prior: Prior) { seed(prior) }
 
@@ -97,7 +118,7 @@ public struct BandScale: Sendable, Equatable {
     /// unseeded one — the §18.21 measurement does, because comparing the starts
     /// is the whole of what it measures.
     init(seeded: Bool) {
-        seed(seeded ? .fullScale(weight: BandScale.priorMass) : .none)
+        seed(seeded ? .fullScale(weight: BandScale.priorWeight) : .none)
     }
 
     /// **A new record**, not a new track. A scale carried over from another
@@ -107,17 +128,18 @@ public struct BandScale: Sendable, Equatable {
     public mutating func reset() {
         for index in histogram.indices { histogram[index] = 0 }
         count = 0
-        seed(.fullScale(weight: BandScale.priorMass))
+        seed(.fullScale(weight: BandScale.priorWeight))
     }
 
-    /// The initial condition, and not a tuning: the only value in it is full
-    /// scale, which is the one level a band cannot exceed, and the only weight in
-    /// it is the histogram's own resolution.
+    /// The initial condition. Its *level* is not a choice — full scale, the one
+    /// level a band cannot exceed. Its *weight* is a choice, and it is the length
+    /// of the warm-up this was supposed not to need; see `priorWeight` for what
+    /// it was fitted against.
     ///
-    /// It is never removed. Taking it out at some threshold would be the second
-    /// number, and it does not need taking out — a record dilutes it in its first
-    /// track and the scales carry, so it is spent once per record and not once
-    /// per track.
+    /// It is never removed. Taking it out at some threshold would put a second
+    /// number in, and it does not need taking out — a record dilutes it during
+    /// its first track and the scales carry, so it is spent once per record and
+    /// not once per track.
     private mutating func seed(_ prior: Prior) {
         switch prior {
         case .none:
