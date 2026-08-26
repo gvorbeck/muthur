@@ -60,6 +60,12 @@ enum Fixtures {
         FileManager.default.fileExists(atPath: url.path)
     }
 
+    /// There, and with something in it.
+    static func hasBytes(_ url: URL) -> Bool {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return (attributes?[.size] as? Int ?? 0) > 0
+    }
+
     // MARK: - Tagged material
 
     /// Eleven MP4s, `track=3/11`, `disc=1/1`, `date=1977-02-04T08:00:00Z` —
@@ -102,6 +108,76 @@ enum Fixtures {
             .filter { $0.pathExtension.lowercased() == "zip" }
             .filter { !zipMembers($0).isEmpty }
             .sorted { $0.path < $1.path }
+    }
+
+    /// **Can the zip fixtures be built here at all?** Two binaries and something
+    /// to point them at: `ffprobe` to tell a tagged rip from an untagged one,
+    /// `ffmpeg` to cut a seam out of one, and at least one zip of audio to try.
+    ///
+    /// This is the *absence* half of D41 and it is a skip, which is the answer
+    /// three other sites in this suite already give to a missing binary — §9's
+    /// comparison against ffmpeg, §17's cross-decoder seam, and the bash panel
+    /// tests when the script is not on the machine. A tool that is not installed
+    /// means the test cannot run, and saying so is honest.
+    ///
+    /// What is *not* covered by this, deliberately: a zip directory with audio
+    /// in it that yields no usable fixture. That is the loud half — the material
+    /// is there and the fixture stopped finding it, which is the failure this
+    /// whole arrangement exists to make impossible to miss.
+    ///
+    /// Computed once. `audioZips()` shells out to `unzip` per archive, and a
+    /// gate is asked more often than a fixture is.
+    static let canHuntZipFixtures: Bool =
+        locate("ffmpeg") != nil && locate("ffprobe") != nil && !audioZips().isEmpty
+
+    /// **A zipped album with no tags in it, hunted rather than taken by
+    /// position.**
+    ///
+    /// This used to be `audioZips().first`, and position is a bug. A tagged
+    /// FLAC album landed in the zip directory, sorted ahead of the untagged rip,
+    /// and four assertions about the 9999 path started failing — then the album
+    /// was moved away again and they healed on their own. Nothing about the
+    /// program changed in either direction. A material fixture has to say what
+    /// it needs and go looking for it; the alphabet is not a specification.
+    ///
+    /// "Untagged" is asked of the album's first member, because a rip either
+    /// went through a tagger or it did not. If an album turns out to be mixed,
+    /// the test's own assertions fail and name it, which is the right place for
+    /// that surprise to surface.
+    static func untaggedZippedAlbum() -> (zip: URL, unpacked: URL)? {
+        for zip in audioZips() where !firstMemberIsTagged(zip) {
+            if let unpacked = headsOfZippedAlbum(zip) { return (zip, unpacked) }
+        }
+        return nil
+    }
+
+    /// Does the first audio member carry any of the three tags §3 reads for
+    /// ordering and naming? Asked of the same truncated head the test will
+    /// read, so selection and assertion cannot disagree about the bytes.
+    static func firstMemberIsTagged(_ zip: URL) -> Bool {
+        guard let member = zipMembers(zip).first, let ffprobe = locate("ffprobe") else {
+            // Cannot tell, so do not offer it as an untagged rip. A machine with
+            // no `ffprobe` never reaches here — `canHuntZipFixtures` has already
+            // skipped the tests that ask — so this only ever fires for an
+            // archive that would not open.
+            return true
+        }
+        let scratch = cacheRoot.appending(path: "probe-\(UUID().uuidString).bin")
+        try? FileManager.default.createDirectory(
+            at: cacheRoot, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        guard head(of: member, in: zip, bytes: 2_000_000, to: scratch) else { return true }
+
+        let output =
+            run(
+                ffprobe.path,
+                [
+                    "-v", "error", "-show_entries", "format_tags=title,album,track",
+                    "-of", "default=nw=1", scratch.path,
+                ]
+            ) ?? ""
+        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// The audio entries inside a zip, in the order the archive lists them.
@@ -166,10 +242,26 @@ enum Fixtures {
     /// Shelling out is deliberate and is scaffolding only: it builds the fixture,
     /// it is not in the path of anything being tested. A few megabytes, cached
     /// beside the other fixtures and never in the repository.
+    /// **Uncompressed only, and hunted for.** The cut is `-c:a copy` into an
+    /// AIFF container, which can hold PCM and nothing else: handed a FLAC album
+    /// ffmpeg writes a zero-byte file and exits non-zero, and this whole fixture
+    /// comes back `nil`. That is exactly what happened when a FLAC album sorted
+    /// ahead of the AIFF rip — two gapless tests stopped running and said
+    /// nothing about it for two days, which is the cost this array exists to
+    /// stop paying.
+    static let pcmExtensions: Set<String> = ["aiff", "aif", "wav"]
+
     static func continuousSeam(seconds: Int = 8) -> (before: URL, after: URL)? {
         guard let ffmpeg = locate("ffmpeg") else { return nil }
         guard
-            let zip = audioZips().first(where: { zipMembers($0).count >= 2 })
+            let zip = audioZips().first(where: { candidate in
+                let members = zipMembers(candidate)
+                return members.count >= 2
+                    && members.allSatisfy {
+                        pcmExtensions.contains(
+                            URL(fileURLWithPath: $0).pathExtension.lowercased())
+                    }
+            })
         else { return nil }
 
         let members = zipMembers(zip)
@@ -177,7 +269,10 @@ enum Fixtures {
         let destination = cacheRoot.appending(path: "seam/\(name)")
         let before = destination.appending(path: "before.aiff")
         let after = destination.appending(path: "after.aiff")
-        if exists(before) && exists(after) { return (before, after) }
+        // Non-empty, not merely present. A failed `-c:a copy` leaves the
+        // zero-byte file `-y` had already opened, and a cached zero-byte cut
+        // would be handed back for ever after as though it were music.
+        if hasBytes(before) && hasBytes(after) { return (before, after) }
 
         try? FileManager.default.createDirectory(
             at: destination, withIntermediateDirectories: true

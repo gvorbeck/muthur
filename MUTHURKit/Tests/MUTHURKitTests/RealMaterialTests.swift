@@ -119,13 +119,41 @@ struct RealMaterialTests {
         }
     }
 
+    /// What this test says when there is audio to look through and none of it
+    /// is a rip. Not the same as there being nothing to look through — that is
+    /// the gate's business, and it skips.
+    static let wantedUntaggedZip = """
+        every audio zip in \(Fixtures.zipDirectory.path) is tagged.
+
+        §3.1's 9999 path needs one zipped album whose audio files carry no title, \
+        album or track tags — a plain rip, straight off a disc, that has never \
+        been through a tagger. There is audio here, so this is not a bare \
+        machine: the rip this test was written against is gone, or has since \
+        been through a tagger.
+
+        Put one back, or point MUTHUR_TEST_ZIPS at a directory that has one.
+        """
+
+    /// **Not by position, and loud about the difference between absent and
+    /// lost.** When this took `audioZips().first` it went red the day a tagged
+    /// album sorted ahead of the rip and green again the day that album was
+    /// moved away, and neither had anything to do with the code.
+    ///
+    /// So, D41: the gate skips when the fixture cannot be built here at all —
+    /// no `ffprobe`, or no zips of audio to look through — and the `#require`
+    /// **fails** when there is a zip directory full of audio and nothing in it
+    /// is an untagged rip. The second case is the one that must never be quiet:
+    /// the material is on the machine and the fixture stopped finding it.
     @Test(
         "an untagged AIFF rip lands on 9999 and orders by its filenames",
-        .enabled(if: !Fixtures.audioZips().isEmpty)
+        .enabled(if: Fixtures.canHuntZipFixtures)
     )
     func untaggedZippedAlbumOrdersByName() async throws {
-        let zip = try #require(Fixtures.audioZips().first)
-        let unpacked = try #require(Fixtures.headsOfZippedAlbum(zip))
+        let fixture = try #require(
+            Fixtures.untaggedZippedAlbum(),
+            Comment(rawValue: RealMaterialTests.wantedUntaggedZip)
+        )
+        let (zip, unpacked) = fixture
 
         let record = try await Record.read(
             directory: unpacked, sourceLabel: zip.lastPathComponent

@@ -123,11 +123,26 @@ row (`player:367`), §9 made that row a live tap rather than a shell-out, and th
 question
 went with it, leaving `--check` reporting `ok` on a machine that could not play
 an Opus. It now lives on `playback`, asks after both `ffmpeg` and `ffprobe`, and
-names whichever is missing. Two questions came out of it, **§18.27** (D11's
-untitled-track notice was decided and never drawn, and building it needs wording
-and a threshold that exist nowhere in the script) and **§18.28** (`cd_text`'s
-`2>&1` lets an error mentioning a *title* suppress the very fallback that error
-should trigger — inherited verbatim, and not touchable until there is a disc).
+names whichever is missing. Two questions came out of it. **§18.27** is already
+closed: D11's untitled-track notice is **deliberately not drawn**, and D11 is
+amended in place to say so — the script has no such notice, drawing one would
+need three invented numbers, and it contradicts the "no placeholder" box §17 has
+just ticked. The counting half stays and earns its keep feeding the sort.
+**§18.28** stays open by design (`cd_text`'s `2>&1` lets an error mentioning a
+*title* suppress the very fallback that error should trigger — inherited
+verbatim, and not touchable until there is a disc).
+
+**A third thing came out of the test run rather than the section, and is D41.**
+§17's own report showed two of §6's real-material seam tests had stopped running
+on 24 August and said nothing about it, and four §3.1 assertions going red and
+then green again inside one afternoon as albums moved through the zip directory.
+One cause both times: a fixture taken **by position** out of a directory that
+changes, while the material it wanted was on the machine the whole time. Fixtures
+now hunt by criterion, a cached cut is checked for bytes rather than existence,
+and a hunt that comes back empty **with audio present** is a failure that names
+what it wanted. Skipping for genuine absence is untouched and stays everywhere it
+already was — no `Rumours`, no catalogue, no music library, no ffmpeg, no disc.
+
 Two corrections: the mixed-format box said thirteen extensions and there are
 twelve (`player:1046–1048`), and the untagged-sleeve box read as though the
 script declined to ask MusicBrainz without an artist. It asks (`player:1825`);
@@ -181,10 +196,11 @@ and the script (`player:2215`) has MusicBrainz overwriting the tag year, so D6
 was amended in place to the script's order. It is unobservable until §1.3 lets a
 tagged record be looked up on a disc, and that is precisely why it was worth
 settling before §1.3 arrives. **§18.27 and §18.28** are the newest, both out of
-§17 and both needing an answer rather than an implementation — the wording,
-placement and threshold of D11's undrawn notice, and whether the port may narrow
-`cd_text`'s fallback test on a disc path where the script is the authority. Nine
-open items remain in §18.
+§17. §18.27 is **closed the same turn it was raised** — D11's notice is not
+built, deliberately, and D11 is amended in place rather than joined by a second
+decision. **§18.28** is open and is a disc question: whether the port may narrow
+`cd_text`'s fallback test, where the script is the authority and there is no way
+to try it without a disc. Eight open items remain in §18.
 
 What has landed:
 
@@ -2141,16 +2157,40 @@ done and reaches 100 exactly once. Making it count only the readable files means
 a denominator you cannot know until you have finished, which is a meter that
 jumps. Left alone deliberately, not inherited by accident.
 
-**D11 — `UNTAGGED`. Finished, as derived data.** → §18.15, §18.27, §15, §10
+**D11 — `UNTAGGED`. Finished, as derived data. The notice is deliberately not
+drawn.** → §18.15, §18.27, §15, §10, §17
 
-The flag looks like the start of a notice that was never built, so build the
-notice. But not as a flag: `Record.unnumberedCount` is computed from the rows
-whenever it is asked, because §4 rewrites rows after §3 has read them and a
-remembered boolean would still be describing the album as it arrived. The number
-is also more use than the boolean — "3 of 12 tracks are untitled" is a different
-sentence from "this album has no tags", and the panel can tell which it is
-looking at. The script's variable stays in §15 as vestigial: what is being
-ported is the intention behind it, not the variable.
+Not as a flag: `Record.unnumberedCount` is computed from the rows whenever it is
+asked, because §4 rewrites rows after §3 has read them and a remembered boolean
+would still be describing the album as it arrived. The script's variable stays
+in §15 as vestigial: what is being ported is the intention behind it, not the
+variable.
+
+**Amended after §17, in place.** This decision originally read "the flag looks
+like the start of a notice that was never built, so build the notice", on the
+argument that "3 of 12 tracks are untitled" is a different sentence from "this
+album has no tags" and the panel can tell which it is looking at. That is still
+true and the notice is still **not being built**, which is a decision and not an
+omission — recorded here so that nobody finds the undrawn counts later and
+builds it thinking it was forgotten.
+
+Three reasons, and the first is decisive:
+
+1. **The script has no such notice.** `UNTAGGED=1` (`player:1451`) is set and
+   then only ever read to pick a sort key. There is nothing to port.
+2. **It would need three inventions** — where the line goes, what it says, and
+   the threshold at which it says it — and none is derivable from anything.
+   It would be the first line in the program with no ancestor.
+3. **It contradicts §17.** The "no metadata at all" box is explicit that artist
+   and year stay empty and the panel simply has less on it: no placeholder, no
+   "Unknown Artist". A row that appears only on thin records is a placeholder
+   wearing a number.
+
+**The counting half stays and earns its keep**: `unnumberedCount` is what feeds
+9999 into the sort (`player:1451`, `player:1511`), and `unreadableCount` is what
+lets §6.3 tell *missing* from *unreadable* in the sentence it stops on. Both are
+measured, both are tested, and neither is drawn on its own. If a notice is ever
+wanted, this is the decision to reopen — not a gap to fill in.
 
 **D12 — disc numbers. No inference from names; a subdirectory is a disc.**
 → §18.14, §2.2, §3
@@ -2967,6 +3007,60 @@ The four formats are named in one place — `AudioSourceOpener.fallbackOrder`, a
 array rather than a set precisely because §11 reads them out to a person and a
 set would name them in a different order every launch.
 
+**D41 — a fixture may skip for what is absent. It may not go quiet about what is
+there.** → §3.1, §6, §19
+
+The material tier is full of skips and stays that way. Six §9 autoscale tests and
+two in §3 want `Rumours`; §8's catalogue tests want the CSV; §1's opener wants a
+music library; §3's zip-name test wants any zip at all; §19's five want a disc
+through `MUTHUR_TEST_TOC` and friends; §9's ffmpeg comparison, §17's cross-decoder
+seam and the bash panel tests want a binary that may not be installed. **All of
+those are correct and none of them changes.** A fresh clone should be green rather
+than red about somebody else's record collection, somebody else's Homebrew, or a
+disc nobody has. If the thing is not there, the test cannot run, and saying so is
+honest.
+
+The rule is about a narrower and nastier case: **a fixture that stops covering
+its case while the material it needs is still on the machine.** That is not
+absence, it is a silent loss of coverage, and it has now happened twice.
+
+- **Position picked the wrong file.** `audioZips().first` chose §3.1's
+  untagged-rip fixture. On 26 August a tagged FLAC album landed in the zip
+  directory, sorted ahead of the AIFF rip, and four assertions about the 9999
+  path went red; later the same day that album was moved away and they went green
+  again. Nothing about the program changed in either direction, and the rip the
+  test was written against was on the machine the whole time.
+- **A cached empty cut stood in for music.** The same drift on 24 August broke
+  §6's seam fixture — a FLAC album cannot be cut with `-c:a copy` into an AIFF
+  container, so ffmpeg left the zero-byte file `-y` had opened and the fixture
+  returned `nil`. The two tests were `.enabled(if: seam != nil)`, so they simply
+  stopped running. They are the strongest claims §6 makes — sample-for-sample
+  identity across a real join, and no step at it — and the suite reported green
+  without them for two days. Worse, `exists()` would have handed that zero-byte
+  file back for ever after as though it were music.
+
+So, three things, and only the third is new law:
+
+1. **Fixtures hunt by criterion, never by position.** `untaggedZippedAlbum()`
+   looks for an album with no title, album or track tag;
+   `continuousSeam()` for two or more uncompressed tracks. The alphabet is not a
+   specification.
+2. **A cached artefact is checked for content, not existence.** `hasBytes`, not
+   `exists`.
+3. **When the material is present and the hunt comes back empty, that is a
+   failure that names what it wanted** — not a skip. Audio in the zip directory
+   and no untagged rip in it means the rip is gone or has been through a tagger,
+   and somebody has to know. Three tests do this, and the message tells you what
+   to put back and that `MUTHUR_TEST_ZIPS` will redirect them.
+
+**The ffmpeg case is decided as a skip**, which is where the contradiction was.
+`continuousSeam()` needs `ffmpeg` and the tag probe needs `ffprobe`, and for one
+turn those two absences made three tests fail while three other sites in the same
+suite skipped for exactly the same missing binary. A missing tool cannot be both.
+It is absence, it goes with `Rumours` and the drive, and `canHuntZipFixtures`
+gates all three tests on the binaries **and** on there being any audio zip to look
+through — so a bare machine skips, and only a furnished one can fail.
+
 ---
 
 ## 17. When something is missing
@@ -3080,9 +3174,10 @@ because half a box is not a box.
       (`player:1497`). Artist and year stay empty and the panel simply has less
       on it — no placeholder, no "Unknown Artist". Asserted as a header block of
       exactly `ALBUM`, `ARTIST`, `SOURCE` whose artist value is `—` and which
-      contains none of "Unknown", "Various", "N/A" or "Untitled". See §18.27:
-      D11's untitled-track notice is the one thing in this section that is not
-      yet drawn, and it is in tension with this box.
+      contains none of "Unknown", "Various", "N/A" or "Untitled". D11's
+      untitled-track notice would have been the exception to this box, and
+      §18.27 closed it in this box's favour: the notice is deliberately not
+      drawn. Nothing appears on a thin record that is not on a full one.
 - [x] Source stays `tags` even when there were none, because for a folder there
       is nothing else it could be. Only a CD gets a fallback chain (§4).
 - [x] The sleeve is still looked for beside the record (§5.1), which for an
@@ -3635,8 +3730,9 @@ question is only whether that was the right half to keep. It reads as yes.
     none pretends to. It is settled now so that **§1.3 inherits a rule instead of
     stopping to ask for one**, which is the whole value of answering it early.
 
-27. **D11's untitled-track notice was decided and never drawn. — OPEN, and it
-    needs a sentence I would have to invent.** → §17, §10, §16
+27. **D11's untitled-track notice was decided and never drawn. — ANSWERED: it
+    stays undrawn, and that is a decision. D11 amended in place.** → §17, §10,
+    §16
 
     D11 reads that the untagged flag "looks like the start of a notice that was
     never built, so build the notice", and draws the distinction sharply: "*3 of
@@ -3663,8 +3759,13 @@ question is only whether that was the right half to keep. It reads as yes.
       number in the script to take one from.
 
     It is in tension with §17's "no placeholder, no 'Unknown Artist'" box, which
-    is now ticked: both cannot be maximally true. The counts stay measured and
-    undrawn until this is answered.
+    is now ticked: both cannot be maximally true.
+
+    **Answered: do not build it.** D11 is amended in place rather than joined by
+    a second decision about the same question — the counting half stays and feeds
+    the sort, the drawing half is deliberately not drawn, and D11 now says so in
+    as many words so that the undrawn counts are never mistaken for an unfinished
+    job. Reopen D11 if a notice is ever wanted; do not fill in a gap.
 
 28. **`cd_text`'s fallback can be suppressed by the error that should trigger
     it. — OPEN.** → §4.2, §17
