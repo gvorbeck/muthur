@@ -74,6 +74,84 @@ struct DiscMaterialTests {
         #expect(table.discID == DiscMaterialTests.setting("MUTHUR_TEST_DISCID"))
     }
 
+    /// libdiscid's own `toc` line, which is `tocString`'s format exactly:
+    /// first track, last track, lead-out, then this disc's offsets. Already in
+    /// TOC form — track one is 150, not 0 — so no pre-gap goes on here.
+    static func libdiscidTable() -> TableOfContents? {
+        guard let line = setting("MUTHUR_TEST_DISCID_TOC") else { return nil }
+        let n = line.split(whereSeparator: \.isWhitespace).compactMap { Int($0) }
+        guard n.count >= 4 else { return nil }
+        return TableOfContents(
+            firstTrack: n[0], lastTrack: n[1], leadOut: n[2], offsets: Array(n[3...])
+        )
+    }
+
+    /// **D15 against the reference implementation, by the route that works.**
+    ///
+    /// The `cdrecord` half of this comparison cannot run on this machine at all
+    /// — `diskarbitrationd` holds the mounted disc and cdrtools cannot get the
+    /// exclusive open it insists on (D44). libdiscid can, so the oracle supplies
+    /// both halves: it reads the table off the drive, and it says what ID that
+    /// table has. What is being checked is our arithmetic over the same numbers.
+    @Test(
+        "The fingerprint off a real disc is the one libdiscid gets — via libdiscid",
+        .enabled(if: DiscMaterialTests.libdiscidTable() != nil
+            && DiscMaterialTests.setting("MUTHUR_TEST_DISCID") != nil)
+    )
+    func realDiscIDViaLibdiscid() throws {
+        let table = try #require(DiscMaterialTests.libdiscidTable())
+        #expect(table.discID == DiscMaterialTests.setting("MUTHUR_TEST_DISCID"))
+        // The table round-trips into the form the submission URL wants, which is
+        // the form it arrived in.
+        #expect(table.tocString == DiscMaterialTests.setting("MUTHUR_TEST_DISCID_TOC"))
+    }
+
+    /// **D44's condition, and the comparison D42 was held open on.**
+    ///
+    /// §18.18 asked which reader survives into the app, and this is the one that
+    /// does: macOS's own `.TOC.plist`, off the mount. What has to be true for
+    /// that to be safe is that it agrees with the reference implementation field
+    /// for field on a real disc — the same table, and therefore the same
+    /// fingerprint. A disagreement here is not a failing test; it is D44 taken
+    /// on an assumption that turned out to be false, and §18.18 comes back open.
+    @Test(
+        "The volume's own table is the table libdiscid reads off the device",
+        .enabled(if: DiscMaterialTests.volume != nil
+            && DiscMaterialTests.libdiscidTable() != nil)
+    )
+    func volumeTableMatchesLibdiscid() async throws {
+        let volume = DiscMaterialTests.volume!
+        let table = try #require(
+            await VolumeTableOfContents(volume: volume).tableOfContents(),
+            "no readable .TOC.plist on \(volume.path) — is this a mounted audio CD?"
+        )
+        let oracle = try #require(DiscMaterialTests.libdiscidTable())
+        #expect(table.firstTrack == oracle.firstTrack)
+        #expect(table.lastTrack == oracle.lastTrack)
+        #expect(table.leadOut == oracle.leadOut)
+        #expect(table.offsets == oracle.offsets)
+        // The one that matters, stated separately so a failure says so outright.
+        #expect(table.discID == DiscMaterialTests.setting("MUTHUR_TEST_DISCID"))
+    }
+
+    /// The mount and the drive have to be talking about the same disc: the
+    /// volume §3 scanned should have as many rows as the table has tracks.
+    @Test(
+        "The volume's table agrees with the volume's own track list",
+        .enabled(if: DiscMaterialTests.volume != nil)
+    )
+    func volumeTableMatchesScan() async throws {
+        let volume = DiscMaterialTests.volume!
+        let table = try #require(await VolumeTableOfContents(volume: volume).tableOfContents())
+        let record = try await Record.read(
+            directory: volume,
+            sourceLabel: volume.lastPathComponent,
+            numbersFromFilenames: true
+        )
+        #expect(table.trackCount == record.tracks.count)
+        #expect(record.running.map(\.number) == Array(table.firstTrack...table.lastTrack))
+    }
+
     // MARK: - The CD-Text this machine's tools print
 
     @Test(
@@ -120,12 +198,22 @@ struct DiscMaterialTests {
         // learns lands on the wrong one — which is the whole reason that rescue
         // is CD-only rather than general (§3, `player:1454`).
         #expect(record.unnumberedCount == 0)
-        #expect(record.tracks.map(\.number) == Array(1...record.tracks.count))
+
+        // **Scan order is not track order, and this is the disc that proves it.**
+        // `tracks` is the byte-order scan (§3), and macOS numbers a CDDA mount
+        // without padding — so a disc with ten or more tracks lists
+        // `1, 10, 11, 12, 13, 2, …` and always has. This assertion used to read
+        // `record.tracks.map(\.number) == Array(1...count)`, which is only true
+        // of a disc with nine tracks or fewer; it had never run, because it
+        // needed a disc. What the rescue actually promises is that every row
+        // got its own number, and §3.1 is what puts them in order.
+        #expect(record.tracks.map(\.number).sorted() == Array(1...record.tracks.count))
+        #expect(record.running.map(\.number) == Array(1...record.tracks.count))
         #expect(record.tracks.allSatisfy { $0.duration > 0 })
     }
 
     @Test(
-        "§4.1 leaves a tidy list on a disc nothing can name",
+        "§4.1 leaves a tidy list wherever nothing could name the track",
         .enabled(if: DiscMaterialTests.volume != nil)
     )
     func tidyDefaults() async throws {
@@ -135,11 +223,26 @@ struct DiscMaterialTests {
             sourceLabel: volume.lastPathComponent,
             numbersFromFilenames: true
         )
+        // Which rows the rule is even about has to be read off the disc before
+        // the rule runs, because afterwards they are indistinguishable from rows
+        // that were always named.
+        let nameless = Set(
+            record.tracks.filter { $0.title.contains("Audio Track") }.map(\.number)
+        )
         DiscTitles.applyDefaults(to: &record, volumeName: volume.lastPathComponent)
-        // macOS writes `1 Audio Track.aiff`, so this is the real input to the
-        // rule rather than a filename invented to match it.
-        #expect(record.running.first?.title == "Track 01")
+
+        // **Which disc this is, is not something §19 gets to choose.** macOS
+        // resolves the track names on plenty of discs — CD-Text in the lead-in,
+        // or its own lookup — and hands them over as `1 In The Blood.aiff`
+        // rather than `1 Audio Track.aiff`. On such a disc §4.1 is *supposed* to
+        // do nothing, so asserting `Track 01` outright tested the material and
+        // not the rule. This asserts the rule on exactly the rows it governs,
+        // and holds on either kind of disc.
+        for track in record.running where nameless.contains(track.number) {
+            #expect(track.title == String(format: "Track %02d", track.number))
+        }
         #expect(record.running.allSatisfy { !$0.title.contains("Audio Track") })
+        #expect(record.running.allSatisfy { !$0.title.isEmpty })
         #expect(!record.album.isEmpty)
     }
 }

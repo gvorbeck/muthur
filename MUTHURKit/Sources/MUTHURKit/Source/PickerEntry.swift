@@ -39,9 +39,14 @@ public struct PickerEntry: Sendable, Identifiable {
         "\(formatSize(bytes)) · zip"
     }
 
-    /// The detail string for a disc: `N tracks · disc`.
+    /// The detail string for a disc: `N tracks · in the drive` (`player:1019`).
+    ///
+    /// Not `· disc`. The other two rows name the *thing* — a zip, a folder — and
+    /// this one names where it is, because that is the fact you are choosing on:
+    /// there is only ever one drive, and what is in it is almost certainly what
+    /// you came to play.
     public static func discDetail(trackCount: Int) -> String {
-        "\(trackCount) \(trackCount == 1 ? "track" : "tracks") · disc"
+        "\(trackCount) \(trackCount == 1 ? "track" : "tracks") · in the drive"
     }
 
     /// `du -h` format: powers of 1024, single-letter suffix, no space.

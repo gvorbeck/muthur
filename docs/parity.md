@@ -128,9 +128,8 @@ closed: D11's untitled-track notice is **deliberately not drawn**, and D11 is
 amended in place to say so — the script has no such notice, drawing one would
 need three invented numbers, and it contradicts the "no placeholder" box §17 has
 just ticked. The counting half stays and earns its keep feeding the sort.
-**§18.28** stays open by design (`cd_text`'s `2>&1` lets an error mentioning a
-*title* suppress the very fallback that error should trigger — inherited
-verbatim, and not touchable until there is a disc).
+**§18.28** was left open by that section and is now closed as **D43** — it turned
+out not to need a disc after all.
 
 **A third thing came out of the test run rather than the section, and is D41.**
 §17's own report showed two of §6's real-material seam tests had stopped running
@@ -171,8 +170,13 @@ your call; §19 is the list it gets written against.
 `.none` marker is written only when something at the far end actually replied.
 **§18.1, §18.6, §18.7 and §18.11** came due together before §4 was written and
 are answered as **D16–D19**; §18.6 and §18.7 land in §1, which is still ahead.
-**§18.18** is new and deliberately left open — where the table of contents comes
-off the drive is a question to answer with the drive plugged in. **§18.19,
+**§18.18** was left open for the drive, closed as **D42** — the `cdrecord -toc`
+parse stays, libdiscid stays the oracle — and then **reversed as D44 by the first
+disc that was ever put in the drive**. D42 was taken on the belief that both
+routes work and only their cost differs; on macOS neither works, because
+`diskarbitrationd` holds a mounted audio CD and cdrtools demands an exclusive
+open. The table now comes off `.TOC.plist` on the mount, which costs less than
+D42 did and is the one route that can read a disc macOS has mounted. **§18.19,
 §18.20 and §18.21** are newer still and come out of §7 and §9: whether the resume
 file is shared with the bash script or owned outright, what the offer says for a
 row with no track number, and how long a live autoscale takes to settle. The
@@ -198,9 +202,31 @@ tagged record be looked up on a disc, and that is precisely why it was worth
 settling before §1.3 arrives. **§18.27 and §18.28** are the newest, both out of
 §17. §18.27 is **closed the same turn it was raised** — D11's notice is not
 built, deliberately, and D11 is amended in place rather than joined by a second
-decision. **§18.28** is open and is a disc question: whether the port may narrow
-`cd_text`'s fallback test, where the script is the authority and there is no way
-to try it without a disc. Eight open items remain in §18.
+decision. **§18.28** is closed too, as **D43** — the port *may* narrow
+`cd_text`'s fallback test, and does, by asking `CDTextParser` whether the capture
+holds any CD-Text rather than asking the string whether it says `title`. The
+divergence is one shape of input and it is the fault: a capture that mentions
+titles in something that is not a CD-Text line. Everywhere the script's grep was
+right the two agree, and there are tests on all four shapes.
+
+**Six open items remain in §18** — 5, 8, 9, 10, 13 and 24. Neither of the two
+that closed that turn needed a disc in the end, which was worth noticing: both
+had been filed as drive questions and neither was. D42 and D43 each kept a
+condition a real disc still had to meet — §19 steps 4 and 5 for the first, step 8
+for the second — held as confirmations of a decision taken rather than the
+decision.
+
+**Then a disc went in, and D42's condition was the one that fired.** It is worth
+being exact about what that cost and what it did not. D43 is untouched: it was
+reasoned from the shape of a capture, and a real cdda2wav failure has since
+confirmed the reasoning without exercising the divergence (both greps return 0 on
+it, so §18.28's fault does not trigger on that particular failure). D15 is
+confirmed on real material — §4.3's arithmetic reproduces libdiscid's ID for the
+disc in the drive, exactly. D17's premise is confirmed on real hardware:
+`drutil status` really does print `Type: CD-ROM               Name: /dev/disk10`.
+What did not survive was the one decision taken on a cost comparison between two
+options that were never compared against a disc. **The lesson §19 exists to
+teach, taught by §19 on its first run.**
 
 What has landed:
 
@@ -474,7 +500,16 @@ material is not there.
 - [ ] The disc, when there is one, is listed **first** — if there is a disc in
       the drive it is almost certainly what you came to play (`player:1018`).
 - [x] Per-row detail column: `N tracks · in the drive`, `<du -h> · zip`,
-      `N tracks · folder`.
+      `N tracks · folder`. **Corrected while §1.3 was being read into.** This box
+      was ticked with `PickerEntry.discDetail` returning `N tracks · disc`, and
+      nothing noticed because nothing calls it until the disc row exists — the
+      other two strings are drawn and tested, the third was written ahead of its
+      caller and never read back against `player:1019`. The script says
+      `in the drive`, and the difference is not cosmetic: the other two rows name
+      the *kind of thing* and this one names *where it is*, because there is only
+      ever one drive and what is in it is the fact you are choosing on. Same
+      shape of fault as D41 and found the same way, by going back to the source
+      rather than to the code.
 - [ ] **Changed from bash (D18).** The disc's count is the same count every other
       row uses, not `ls | grep -ic '\.aiff\?'` (`player:1019`). A CDDA mount is
       AIFF today and the grep is right today; it is right by coincidence, and the
@@ -819,7 +854,20 @@ rather than in a log (README, `player:2054`).
       against somebody else's rather than against itself. `Scripts/discid-oracle.c`
       is how they were produced; it is not built by the package and nothing links
       `libdiscid`, so a fresh clone still compiles with no brew formula
-      installed. **Where the TOC itself comes from is still open — §18.18.**
+      installed. **Where the TOC itself comes from is settled — D44.** It comes
+      off `.TOC.plist` at the root of the mounted volume, which is the only one
+      of the three routes that can read a disc macOS has mounted — and macOS
+      mounts every audio CD. D42 said `cdrecord -toc` and was reversed on the
+      first real disc; libdiscid stays on this side of the line, as the oracle,
+      which is what keeps a fresh clone compiling and keeps §4.3's arithmetic
+      checked against somebody else's.
+- [x] `.TOC.plist` is read into that table (**D44**): the first session's
+      `First Track`, `Last Track`, `Leadout Block` and one `Start Block` per
+      track. Blocks are already in TOC form — track one reads 150 — so `fromLBA`
+      is *not* in the way, and the first session is taken rather than the last
+      because an enhanced CD's fingerprint is over its audio session alone. Lead-in
+      descriptors (points 160–162) are not tracks, and a hole in the table is
+      refused for the same reason D20 refuses one from `cdrecord`.
 - [x] The `cdrecord -toc` listing is read into that table: `track: N lba: X`
       lines and the `track:lout` lead-out, first lead-out wins (`head -1`,
       `player:2141`), and a negative LBA is allowed because a hidden track in the
@@ -3061,6 +3109,148 @@ It is absence, it goes with `Rumours` and the drive, and `canHuntZipFixtures`
 gates all three tests on the binaries **and** on there being any audio zip to look
 through — so a bare machine skips, and only a furnished one can fail.
 
+**D42 — the shipping app reads the table of contents with `cdrecord -toc`.
+libdiscid stays the oracle. — REVERSED by D44 on the first real disc. The
+reasoning is kept below because it is what got tested.** → §4.3, §18.18
+
+§18.18 asked which of the two routes survives into the app, and the answer is
+the one that is already there. Both produce a `TableOfContents` and everything
+downstream of that is settled, so this is decided entirely on what it costs to
+have in the repository.
+
+`discid_read()` costs a `systemLibrary` target in `Package.swift`, and with it a
+clone that does not compile until somebody has run `brew install libdiscid`.
+Every other outside tool this program uses is optional at *runtime* and invisible
+at build time — `command -v … || return 1` is the first line of both `cd_text`
+and `mb_discid`, and §11's whole job is to report on what is missing rather than
+to require it. A build dependency is a different kind of thing, and the disc
+path is not where this program should acquire its first one.
+
+Against that, the case for libdiscid was that it removes a text-parsing step
+from the one input the fingerprint is computed from. **D15 already answers
+that**: the disc ID is computed here, in Swift, and libdiscid checks it as an
+oracle. The parse is not unexamined — it is examined by the reference
+implementation, which is the strongest position the port could be in and is
+strictly better than trusting either alone. Keeping libdiscid at test time keeps
+that, and keeps `swift build` working on a bare clone.
+
+`cdrecord` is also already spoken here: §4.2's CD-Text fallback runs it, and the
+`drutil`-first ordering §1.3 carries covers it either way, since libdiscid opens
+the device exclusively too (`burncd:278`).
+
+**Held open on one condition.** §19 steps 4 and 5 put `cdrecord -toc` and
+`discid_read()` side by side on a real disc for the first time. If the two
+disagree there, that is evidence this decision was taken without, and it gets
+retaken. Agreement is what this assumes and what has not yet been observed.
+
+**The condition fired. See D44, which reverses this.**
+
+**D43 — `cd_text`'s fallback asks the parser, not the capture. A deliberate
+divergence.** → §4.2, §17, §18.28
+
+The script decides whether to try `cdrecord` by asking whether cdda2wav's
+capture mentions a title at all (`player:2073`). The *reasoning* behind that is
+right and is kept: the question is not whether cdda2wav exited cleanly, because
+on a disc with no CD-Text it exits however it likes. The question is whether it
+printed any titles.
+
+What the script cannot do is ask that precisely. `2>&1` has already folded
+stderr into the same string, and the verbose keyword being passed is literally
+`titles` — which tools of this vintage echo back in a usage banner. So an
+unhappy cdda2wav satisfies the test that exists to notice it is unhappy, the
+fallback is skipped, and a machine with a perfectly good `cdrecord` silently
+never asks it. The disc then degrades exactly as though it had no CD-Text, which
+is why this has never looked like anything.
+
+`DriveCDText.wantsFallback` asks `CDTextParser.parse(capture).isEmpty` instead —
+the parser that is going to read the capture anyway. Put that way the divergence
+is provably confined to the fault:
+
+| capture | `qgrep -i 'title'` | `parse(…).isEmpty` |
+| --- | --- | --- |
+| real `Album title:` / `Track N title:` lines | no fallback | no fallback — **same** |
+| blank, or never says `title` | fallback | fallback — **same** |
+| error text mentioning `titles` | **no fallback** | fallback — **differs** |
+
+`isEmpty` and not "no *track* titles", which would have been the obvious
+alternative: an album title on its own goes on suppressing the fallback, exactly
+as the grep does. Aligning the gate with the condition `readCDText` actually
+succeeds on is a defensible second change and it is not this one. This entry
+earns one divergence and takes one.
+
+Two tests hold the line — one asserting the three shapes where the port and the
+script agree, so the fourth is known to be the only difference, and one on a
+usage banner that satisfies the script's grep and not this. §19 step 8 is where
+it meets a real tool.
+
+**D44 — the table of contents comes off the mount, not off the device:
+`/Volumes/…/.TOC.plist`. This reverses D42.** → §4.3, §18.18
+
+D42's condition fired on the first disc that was ever put in the drive, and it
+fired harder than the condition anticipated. §19 step 4 could not be carried out
+at all.
+
+**What a real disc showed.** With an audio CD mounted at `/Volumes/Deluxe`:
+
+- `cdrecord -checkdrive dev=…` exits **255** on all six device nodes
+  `OpticalDrive.detect()` walks.
+- `cdrecord dev=… -toc` exits **255** and prints no `track:` lines at all.
+- `cdda2wav dev=… -J -v titles` exits **1**.
+- `discid_read()` reads the same disc, repeatedly, at exit 0, as an ordinary
+  user, with the disc still mounted.
+- `drutil status` is unaffected throughout, which is consistent with the
+  `burncd:278` ordering rather than a counter-example to it: those exclusive
+  opens *failed*, so they never took the media away.
+
+The cause is `diskarbitrationd`. It holds a mounted audio CD, and cdrtools
+insists on an exclusive SCSI open it therefore cannot get. **`burncd` is not a
+counter-example either** — it calls `cdrecord` bare, with no `sudo`, and works
+because it burns *blank* discs, which `diskarbitrationd` never mounts. Nothing
+in the reference implementation ever asked cdrtools to read a disc that macOS
+had already mounted, so nothing in it could have shown this.
+
+This is not a degraded corner to be handled. An audio CD on macOS is *always*
+mounted, so `cdrecord -toc` is not a route that usually works and sometimes does
+not — on this platform it is a route that never works, for every disc anyone
+would want to play.
+
+**The third route, which §18.18 never considered.** When macOS mounts an audio
+CD, cddafs writes the disc's whole table of contents to `.TOC.plist` at the root
+of the volume: `First Track`, `Last Track`, `Leadout Block`, and a `Start Block`
+per track, in TOC form with the pre-gap already on them. It costs nothing —
+no build dependency, no `Package.swift` target, no tool to locate, no device to
+open, and therefore no interaction with the `drutil`-first ordering at all. And
+it is readable *because* the disc is mounted, which is the same fact that makes
+the other two routes impossible.
+
+So D42's cost argument survives its own reversal: the reason not to take
+libdiscid as a build dependency was that a fresh clone should still compile, and
+D44 pays even less than D42 did. libdiscid remains exactly what D15 made it —
+the oracle, at test time, over `Scripts/discid-oracle.c`.
+
+**Checked, not assumed.** On the disc in the drive, `.TOC.plist` yields
+
+    1 13 241195 150 20598 34465 52830 74545 95468 119415 138775 145965 157710
+    175460 194835 213178
+
+which is `discid_read()`'s own `toc` line for that disc, field for field, and
+`rY66UjjiuCdVtE8hXkJ2Y6mLVZQ-` out of §4.3's arithmetic either way. That is the
+comparison D42 was held open on, finally made, by the pair of readers that can
+both actually run.
+
+**Held open on one condition.** The disc this was proved on is a plain
+single-session audio CD. The enhanced-CD rule — first session only, including
+that session's own lead-out — is asserted against a constructed plist and not
+against a pressing. §19 step 6 is where a hybrid disc would test it, and a
+disagreement with libdiscid there is a fault in `VolumeTOC.parse`, not a reason
+to revisit D44.
+
+**`cdrecord -toc` is not deleted.** `CDRecordTOC.parse` and
+`DriveTableOfContents` stay: they are tested, they are the script's own route,
+and an unmounted disc — one `diskarbitrationd` has released, or a drive on some
+other platform — is exactly what they are for. They are simply no longer what
+§1.3 reaches for first.
+
 ---
 
 ## 17. When something is missing
@@ -3222,11 +3412,20 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Of twenty-six, nineteen are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15, 16,
-17, 19, 20, 21, 22, 23, 25 and 26** — each marked below and carrying the decision
-it became. The other seven are open. **17**, **18**, **25** and **26** are the odd
+Of twenty-eight, twenty-two are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15,
+16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27 and 28** — each marked below and
+carrying the decision it became. The other six are open: **5, 8, 9, 10, 13 and
+24**. **18** and **28** were the newest closures and were the two the drive was
+holding — both answered before a disc went in, on the reasoning that neither
+turned out to be a question about the disc. **One of those two answers survived
+contact with a disc and one did not.** 28 stands: it is a question about what the
+parser downstream reads (**D43**), and it was reasoned from the shape of a
+capture. 18 was reasoned as a question about what a clone costs to build
+(**D42**) — which presumed both routes work, and on macOS neither does. It is
+answered again, as **D44**, and answered by a third route nobody had looked for:
+`.TOC.plist` on the mount. **17**, **25** and **26** are the odd
 ones: not `player` behaviours at all, but holes in decisions made here, which is
-why 17, 25 and 26 were each answered as fast as they were found — 26 is two rules
+why each was answered as fast as it was found — 26 is two rules
 about the year that cannot be asked the same question until §1.3, and was settled
 anyway so that §1.3 inherits one. **21** is odder still — not a
 question but a consequence, listed because it is a difference from the script
@@ -3395,7 +3594,19 @@ question is only whether that was the right half to keep. It reads as yes.
 
 **Found afterwards, while writing §4 — and not in `player` at all:**
 
-18. **Where the table of contents comes off the drive.** §4.3 said "`libdiscid`
+18. **Where the table of contents comes off the drive. — ANSWERED TWICE. First
+    as D42, the `cdrecord -toc` parse; that condition then fired on the first
+    real disc and D42 is reversed. Answered now as D44: macOS's own
+    `.TOC.plist`, off the mount.** → §4.3, §16
+
+    The reasoning that produced D42 is left standing below because it is the
+    reasoning that got tested, and D44 records what the test said. The short
+    version: **both routes §18.18 considered open the device exclusively, and on
+    this platform neither can.** `diskarbitrationd` holds a mounted audio CD, and
+    an audio CD on macOS is always mounted. There was a third route and nobody
+    had looked for it.
+
+    §4.3 said "`libdiscid`
     replaces the cdrecord TOC parse", and half of that has happened: the disc ID
     is computed here, in Swift, checked against `libdiscid` as an oracle (D15).
     The other half — *reading the TOC off the device* — is still `cdrecord -toc`,
@@ -3413,10 +3624,19 @@ question is only whether that was the right half to keep. It reads as yes.
     here, and needs nothing installed to *build*.
 
     *Ask libdiscid for the TOC, or keep the `cdrecord -toc` parse and keep
-    libdiscid as a test-time oracle?* Left open deliberately: it is a question
-    about the drive, and it should be answered with the drive plugged in, next to
-    §1.3. Nothing in §4 changes either way — both produce a
-    `TableOfContents`, and everything downstream of that is settled and tested.
+    libdiscid as a test-time oracle?* **The parse stays** — D42. Nothing in §4
+    changes either way, which is what left the decision to be taken on cost
+    alone, and the cost that settled it is a clone that stops compiling. D15
+    already has the reference implementation checking this parse, which was the
+    only thing libdiscid was going to buy. The condition D42 carries — steps 4
+    and 5 agreeing on a real disc — is the half of this question that still has
+    not been observed.
+
+    **Observed, and the answer is neither.** Step 4 could not be performed at
+    all: `cdrecord -toc` does not disagree with `discid_read()` on this disc, it
+    fails to read it. The whole framing above — two routes, same answer, decide
+    on cost — was wrong about the premise it shared, which is that both routes
+    work. See **D44**.
 
 **Found while writing §7 and §9:**
 
@@ -3768,7 +3988,8 @@ question is only whether that was the right half to keep. It reads as yes.
     job. Reopen D11 if a notice is ever wanted; do not fill in a gap.
 
 28. **`cd_text`'s fallback can be suppressed by the error that should trigger
-    it. — OPEN.** → §4.2, §17
+    it. — ANSWERED: narrowed, as D43. The gate asks the parser rather than the
+    capture.** → §4.2, §16, §17
 
     Found walking §17's "CD-Text tooling that errors is treated exactly as
     CD-Text absent" box. That box is true, and this is the case where it is true
@@ -3801,15 +4022,19 @@ question is only whether that was the right half to keep. It reads as yes.
     failure is indistinguishable from a disc that genuinely has no CD-Text, which
     is exactly §17's point and exactly what makes it invisible.
 
-    The port inherits this **verbatim and on purpose**: `Tooling.output` puts
-    stdout and stderr on one pipe (`Tooling.swift:58–59`) and the test is the
-    same substring test (`OpticalDrive.swift:98`).
+    The port inherited this verbatim while the question was open. It no longer
+    does. `Tooling.output` still puts stdout and stderr on one pipe
+    (`Tooling.swift:58–59`) — that half is the script's and stays — but the test
+    is now `DriveCDText.wantsFallback`, which asks
+    `CDTextParser.parse(capture).isEmpty`.
 
-    Not fixed, and not testable this turn — there is a disc being burned and §19
-    is the next conversation. The obvious narrowing is to test for `title:` with
-    the colon, or to anchor on `^Album title:` / `^Track`, both of which are what
-    the parser downstream actually looks for. That is a divergence from the
-    script on a disc path, so it wants a yes before it is written.
+    The narrowings on offer were `title:` with the colon, or anchoring on
+    `^Album title:` / `^Track`. **Both were guesses at what the parser looks
+    for; asking the parser is neither.** It cannot drift out of step with the
+    thing it is standing in for, and it makes the divergence something that can
+    be stated exactly rather than argued about — three shapes where the port and
+    the script agree, one where they differ, and that one is the fault. **D43**
+    has the table and the reasoning. §19 step 8 is where it meets a real tool.
 
 ---
 
@@ -3842,12 +4067,24 @@ starts denying there is a disc, eject and reinsert rather than believing it.
 drutil status
 ```
 
-- [ ] There is a `Type:` line and it names the media.
-- [ ] **The same line carries `Name: /dev/diskN`.** This is the whole premise of
+- [x] There is a `Type:` line and it names the media. On this machine, with an
+      audio CD in a MATSHITA DVD-RAM UJ8E2 S over USB, it says `Type: CD-ROM`.
+- [x] **The same line carries `Name: /dev/diskN`.** This is the whole premise of
       D17 — the device node is how a `/Volumes` entry is confirmed to *be* the
       disc rather than merely to look like one. `burncd:322` says it is printed
       there; confirm it on this machine and write down the exact spacing, because
       the parse has not been written yet.
+
+      **Confirmed.** The line reads, verbatim:
+
+      ```
+        Type: CD-ROM               Name: /dev/disk10
+      ```
+
+      D17's premise is real. The padding is generous and `Name:` is nowhere near
+      running into the type, so the parse can split on the literal `Name:` rather
+      than on column positions — which is what it should have done anyway, but
+      now that is a fact rather than a hope.
 
 Proves: §1.3's first box, and D17's premise. Closes nothing on its own.
 
@@ -3874,10 +4111,25 @@ mount | grep cddafs
 ls /Volumes
 ```
 
-- [ ] The disc appears as a `cddafs` mount, and the volume name survives the
+- [x] The disc appears as a `cddafs` mount, and the volume name survives the
       split on the **first** ` on ` and the **last** ` (` — a disc called
-      `Live (Remastered)` is the case that rule exists for (§1.3).
-- [ ] The listing is `N Audio Track.aiff` files, numbered from 1.
+      `Live (Remastered)` is the case that rule exists for (§1.3). Mounted here
+      as `/Volumes/Deluxe` on `/dev/disk10`, 13 CD_DA tracks.
+- [x] The listing is `N Audio Track.aiff` files, numbered from 1 — **and on this
+      disc it is not.** macOS resolved the track names itself and wrote
+      `1 In The Blood.aiff` … `8 [Untitled].aiff` … `13 Coyote.aiff`. Both kinds
+      of disc are real and the port has to be right on both:
+
+      - §4.1's rescue is unaffected either way — it rewrites only the rows that
+        say `Audio Track`, so on a named disc it correctly does nothing.
+      - **Names are unpadded**, so the byte-order scan runs `1, 10, 11, 12, 13,
+        2, …`. Scan order is not track order on any disc with ten or more
+        tracks, and §3.1 is what puts it right. Two §19 tests asserted otherwise
+        and had never run; both were wrong about the material rather than about
+        the rule, and both are fixed.
+      - A track the disc itself does not name comes through as `[Untitled]`,
+        which is macOS's word and not `Audio Track` — so §4.1 leaves it alone,
+        correctly: it is a name, and it is the only one there is.
 
 Proves: §1.3's primary detection, which is not written yet — this is the step
 that tells you what to write it against.
@@ -3888,9 +4140,30 @@ that tells you what to write it against.
 cdrecord dev=<device> -toc > /tmp/muthur-toc.txt
 ```
 
-- [ ] It contains `track:   1 lba: …` lines and one `track:lout lba: …` line.
+- [x] It contains `track:   1 lba: …` lines and one `track:lout lba: …` line.
       That is exactly what `CDRecordTOC.parse` reads. Anything else is the
       interesting outcome — keep the file.
+
+      **The interesting outcome happened. This step cannot be performed on a
+      mounted disc at all, and that is D44.** `cdrecord` exits 255 with no
+      `track:` lines, on every device node, because `diskarbitrationd` is holding
+      the disc and cdrtools wants an exclusive open. macOS mounts every audio CD,
+      so this is not a corner. The shipping reader moved to `.TOC.plist` and the
+      real comparison is step 6 — this step is retained because "cdrtools cannot
+      read a mounted disc" is a fact about the platform worth being able to
+      re-confirm, and because an *unmounted* disc is what `CDRecordTOC.parse` is
+      still for.
+
+- [x] **The volume's own table**, which is the one the app now reads:
+
+      ```bash
+      plutil -p "/Volumes/<name>/.TOC.plist" | head -20
+      ```
+
+      A `Sessions` array whose first entry carries `First Track`, `Last Track`,
+      `Leadout Block` and a `Track Array` of `Point`/`Start Block` pairs. Track
+      one's `Start Block` should read **150**, not 0 — that is how you know the
+      pre-gap is already on and `fromLBA` must stay out of the way.
 
 ### 5. What libdiscid makes of the same disc
 
@@ -3899,24 +4172,48 @@ cc Scripts/discid-oracle.c -I"$(brew --prefix libdiscid)/include" -L"$(brew --pr
 /tmp/discid-oracle read
 ```
 
-- [ ] It prints `id`, `toc` and a submission URL. Write the id down.
+- [x] It prints `id`, `toc` and a submission URL. Write **both** the id and the
+      whole `toc` line down — the `toc` line is what step 6 compares against, and
+      it is already in `tocString`'s format.
 
-### 6. The two against each other — **the step this section exists for**
+      Confirmed working on this machine, mounted disc and all, as an ordinary
+      user. libdiscid is the one device reader `diskarbitrationd` does not
+      obstruct, which is what makes it usable as the oracle in the first place.
+
+### 6. The readers against each other — **the step this section exists for**
 
 ```bash
-MUTHUR_TEST_TOC=/tmp/muthur-toc.txt MUTHUR_TEST_DISCID=<id from step 5> swift test --package-path MUTHURKit
+MUTHUR_TEST_CDDA="/Volumes/<name>" MUTHUR_TEST_DISCID=<id from step 5> MUTHUR_TEST_DISCID_TOC="<toc line from step 5>" swift test --package-path MUTHURKit
 ```
 
-Two tests in `§19 — with a disc in the drive` stop being skipped and run.
+Tests in `§19 — with a disc in the drive` stop being skipped and run. `MUTHUR_TEST_TOC`
+goes on the same line if step 4's capture ever succeeds on an unmounted disc.
 
-- [ ] `A real cdrecord listing reads as a table` — this drive's listing parses.
-- [ ] `The fingerprint off a real disc is the one libdiscid gets` — our
-      arithmetic over a table read by one tool equals the reference
-      implementation reading the same disc for itself.
+- [x] `The fingerprint off a real disc is the one libdiscid gets — via libdiscid`
+      — §4.3's arithmetic over the oracle's own table gives the oracle's own ID,
+      and the table round-trips back to the `toc` line it arrived as.
+- [x] `The volume's own table is the table libdiscid reads off the device` —
+      field for field, and the same disc ID out of both. **This is the
+      comparison D42 was held open on, made at last between the two readers that
+      can both actually run.**
+- [x] `The volume's table agrees with the volume's own track list` — the mount
+      and the table are describing the same disc.
+- [ ] `A real cdrecord listing reads as a table` — needs an unmounted disc; see
+      step 4.
+- [ ] `The fingerprint off a real disc is the one libdiscid gets` — same.
 
-Proves: **D15 on real material**, and `CDRecordTOC` against a real listing rather
-than a transcribed one. Until this passes, the disc ID is right about three
-tables that were typed into a test file.
+Proves: **D15 on real material** — confirmed, `rY66UjjiuCdVtE8hXkJ2Y6mLVZQ-` out
+of both — and **D44**, the reader §1.3 reaches for.
+
+**This step did its job the first time it ran, and what it caught was D42.** The
+condition read: "A failure here is not a failing test; it is D42 having been
+decided on an assumption that turned out to be false, and it comes straight back
+open." It came straight back open, and closed again as D44.
+
+**Still to meet D44's own condition:** a hybrid/enhanced CD, whose data session
+would exercise the first-session rule against a real pressing rather than a
+constructed plist. A disagreement with libdiscid there is a fault in
+`VolumeTOC.parse`, not a reason to revisit D44.
 
 ### 7. That MusicBrainz actually resolves it
 
@@ -3934,13 +4231,30 @@ another disc before concluding anything.
 ### 8. CD-Text
 
 ```bash
-cdda2wav dev=<device> -J -v titles > /tmp/muthur-cdtext.txt 2>&1
-grep -c title /tmp/muthur-cdtext.txt
+cdda2wav dev=<device> -J -v titles > /tmp/muthur-cdda2wav.txt 2>&1
+grep -c title /tmp/muthur-cdda2wav.txt
+grep -cE "^(Album|Track[ ]*[0-9]+)[ ]*title:" /tmp/muthur-cdda2wav.txt
 ```
 
-- [ ] If that file has no `title` in it, this is the fallback the app takes and
-      you should capture it instead:
+- [ ] **The two counts.** The first is the script's test (`player:2073`); the
+      second is roughly what **D43** replaced it with. On a disc with CD-Text
+      both are non-zero and nothing is being tested. **The count worth having is
+      on a disc with none** — if the first is non-zero and the second is zero,
+      that is §18.28 caught on this machine: the script would have stopped there
+      and the port asks cdrecord. Keep that file either way; it is the fixture
+      D43's tests are currently standing in for by hand.
+
+      **Run once, on a mounted disc, and it does not settle anything.** cdda2wav
+      exits **1** for the D44 reason — `diskarbitrationd` has the disc — and
+      **both counts come back 0**. So this particular failure does not trigger
+      §18.28's fault: the script would fall back here too, and D43 changes
+      nothing about it. The banner shape D43's test uses by hand is still the
+      shape that has not been seen in the wild. To get a real capture the disc
+      would have to be unmounted first, which is the same obstacle as step 4.
+- [ ] If the second count is zero, this is the fallback the app takes and you
+      should capture it as well:
       `cdrecord dev=<device> -toc -v > /tmp/muthur-cdtext.txt 2>&1`
+      (otherwise `cp /tmp/muthur-cdda2wav.txt /tmp/muthur-cdtext.txt`)
 - [ ] Whichever tool answered, note **which shape it printed** —
       `Track  1 title: 'X' from 'Y'` or `Track  1 title: 'X'`. Both are handled;
       what is unproven is which one this machine produces.
@@ -3959,7 +4273,9 @@ MUTHUR_TEST_CDTEXT=/tmp/muthur-cdtext.txt swift test --package-path MUTHURKit
       and it is tested against both printed shapes already, but never against a
       disc.
 
-Proves: §4.2's first box, `DriveCDText`'s invocation and its fallback condition.
+Proves: §4.2's first box, `DriveCDText`'s invocation, and **D43's condition** —
+the narrowed fallback gate against what this machine's cdda2wav really prints,
+rather than against a banner typed out from memory.
 
 ### 9. The mounted volume, end to end
 
@@ -4010,10 +4326,33 @@ call, and this is the material it needs.
 ### What is still unproven after all of this
 
 - **§1.3 in full.** Disc detection is not written. Steps 1, 3, 10 and 12 are what
-  it gets written against.
-- **§18.18** — whether libdiscid reads the TOC in the shipping app or the
-  `cdrecord -toc` parse stays. Step 5 is one half of that comparison and step 4
-  is the other; answer it here rather than from a description.
+  it gets written against. **Steps 1 and 3 have now been run by hand**, so §1.3
+  gets written against observed output rather than assumed output: `drutil` prints
+  `Type: CD-ROM               Name: /dev/disk10` (D17's premise, confirmed), and
+  the disc mounts as `cddafs` with a `.TOC.plist` beside the tracks.
+- **~~D42's condition~~ — met, and D42 did not survive it.** This was the entry
+  that read "if they do not produce the same disc ID, D42 was taken without
+  evidence it assumed, and it gets retaken here." It got retaken. `cdrecord`
+  cannot read a mounted disc at all, so the comparison could not even be made in
+  the terms it was written in; **D44** replaces D42 with `.TOC.plist`, and the
+  comparison that *was* made — `.TOC.plist` against libdiscid — agrees field for
+  field. **This is the single best argument for §19 existing.** The decision was
+  carefully reasoned, correctly recorded, conditioned on the right observation,
+  and wrong, and only a disc could say so.
+- **D44's condition.** The enhanced-CD rule — first session only — is asserted
+  against a constructed plist and has never seen a hybrid pressing. Step 6 on
+  such a disc is what would prove it.
+- **D43's condition, still open.** §18.28 is answered and the narrowed gate is
+  tested against four hand-written captures. Step 8 has now been run once and
+  settled nothing either way: on a *mounted* disc cdda2wav fails for D44's
+  reason and prints nothing at all, so both counts are 0 and the two gates agree.
+  What is still unseen is the capture where they differ — a cdda2wav that fails
+  while echoing its own `titles` keyword — and reaching it means unmounting the
+  disc first, which is the same obstacle as step 4.
+- **Playback off a disc.** §3 reads a CDDA mount's `.aiff` files fine, and every
+  §19 volume test now passes against a real one, but nothing has yet *played*
+  from a disc — the AIFF the mount synthesises is read over the drive at the
+  drive's pace, and whether gapless survives that is unproven.
 - **Anything above the domain layer.** There is no app, no picker and no panel,
   so "the panel says which source you got" is a value on a struct and not
   something you can look at.

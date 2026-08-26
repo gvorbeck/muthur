@@ -193,4 +193,48 @@ struct CDTextTests {
         #expect(CDTextParser.parse("").isEmpty)
         #expect(CDTextParser.parse("cdrecord: No disk / Wrong disk!").isEmpty)
     }
+
+    // MARK: - §18.28, the fallback condition — D43
+
+    /// The three shapes the script and the port agree on, asserted so the
+    /// divergence below is known to be the only one.
+    @Test("The fallback agrees with the script wherever the script was right")
+    func fallbackAgrees() {
+        // A capture with real CD-Text in it: neither asks cdrecord.
+        let real = "Album title: 'Nonagon Infinity'\nTrack  1 title: 'Robot Stop'"
+        #expect(real.lowercased().contains("title"))
+        #expect(!DriveCDText.wantsFallback(real))
+
+        // A blank capture — cdda2wav absent, or a disc with nothing to say.
+        #expect(DriveCDText.wantsFallback(""))
+
+        // A capture that never says the word at all.
+        let quiet = "cdda2wav: No disk / Wrong disk!"
+        #expect(!quiet.lowercased().contains("title"))
+        #expect(DriveCDText.wantsFallback(quiet))
+
+        // An album title and no tracks still suppresses it, exactly as the grep
+        // does. This is the case the narrowing deliberately does *not* widen.
+        let albumOnly = "Album title: 'Nonagon Infinity'"
+        #expect(!DriveCDText.wantsFallback(albumOnly))
+    }
+
+    /// The fault itself. `cdda2wav … -v titles 2>&1` folds stderr in, and the
+    /// keyword being passed is the word the grep looks for — so a tool that
+    /// failed satisfies the test that exists to notice it failed
+    /// (`player:2073`). The script then never asks a working cdrecord, and the
+    /// disc degrades exactly as though it had no CD-Text.
+    @Test("An error that echoes the keyword no longer suppresses cdrecord")
+    func fallbackNarrowed() {
+        let banner = """
+            cdda2wav: Usage: cdda2wav [options] [-v verbose-level]
+            verbose levels: disable, all, toc, summary, titles, sectors
+            cdda2wav: Cannot open SCSI driver.
+            """
+        // The script's test is satisfied, which is the bug.
+        #expect(banner.lowercased().contains("title"))
+        // Ours is not: nothing in it parses as a CD-Text line, so cdrecord —
+        // which may well be working — gets asked after all.
+        #expect(DriveCDText.wantsFallback(banner))
+    }
 }

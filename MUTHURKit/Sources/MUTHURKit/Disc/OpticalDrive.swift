@@ -92,25 +92,63 @@ public struct DriveCDText: CDTextSource {
         if let cdda2wav = Tooling.locate("cdda2wav", environment: environment) {
             out = Tooling.output(cdda2wav, ["dev=\(drive.device)", "-J", "-v", "titles"]) ?? ""
         }
-        // `qgrep -i 'title'` — not "did it exit cleanly". cdda2wav on a disc
-        // with no CD-Text exits however it likes and the question is only
-        // whether it printed any.
-        if !out.lowercased().contains("title"),
+        if Self.wantsFallback(out),
             let cdrecord = Tooling.locate("cdrecord", environment: environment)
         {
             out = Tooling.output(cdrecord, ["dev=\(drive.device)", "-toc", "-v"]) ?? ""
         }
         return out.isEmpty ? nil : out
     }
+
+    /// Whether what cdda2wav printed is worth asking cdrecord about. **D43,
+    /// narrowing §18.28 — a deliberate divergence from `player:2073`.**
+    ///
+    /// The script asks `qgrep -i 'title'` over the capture, and the reasoning
+    /// behind *that* is right and is kept: the question is not "did cdda2wav
+    /// exit cleanly", because cdda2wav on a disc with no CD-Text exits however
+    /// it likes. The question is whether it printed any titles.
+    ///
+    /// What the script cannot do is ask that question precisely, because `2>&1`
+    /// has already folded stderr into the same string — and the verbose keyword
+    /// being passed is literally `titles`, which tools of this vintage echo back
+    /// in a usage banner. An unhappy cdda2wav therefore satisfies the grep, the
+    /// fallback is skipped, and a machine with a perfectly good cdrecord
+    /// silently never asks it. The disc then degrades exactly as though it had
+    /// no CD-Text, which is why nobody ever saw this.
+    ///
+    /// So the test is put to the parser that reads the capture anyway. It
+    /// diverges from the script on **one** shape of input — a capture that says
+    /// the word `title` in something that is not a CD-Text line — and that shape
+    /// is the fault and nothing else:
+    ///
+    /// - real `Album title:` / `Track N title:` lines: grep matches, parse is
+    ///   non-empty, neither asks cdrecord. Same.
+    /// - a blank capture, or one that never says `title`: both fall back. Same.
+    /// - a page of error text mentioning `titles`: the grep is satisfied and the
+    ///   script stops. Here it falls back, which is what the error should have
+    ///   triggered.
+    ///
+    /// `isEmpty` rather than "no *track* titles": an album title on its own
+    /// still suppresses the fallback, exactly as the grep does. Widening it to
+    /// the condition `readCDText` succeeds on would be a second divergence and
+    /// this entry only earns the one.
+    static func wantsFallback(_ capture: String) -> Bool {
+        CDTextParser.parse(capture).isEmpty
+    }
 }
 
-/// The table of contents, off the drive. §4.3.
+/// The table of contents, off the drive with `cdrecord -toc`. §4.3 — the
+/// script's own route, and **no longer the one §1.3 reaches for. See D44.**
 ///
-/// `libdiscid` is the intended reader here and §1.3 is where it lands — it talks
-/// to the device directly and needs no cdrtools at all. This is the cdrecord
-/// parse the script uses, kept because it is what can be written and reasoned
-/// about now, and because the two must agree: the disc ID either implementation
-/// computes for the same disc has to be the same string.
+/// This cannot read a disc macOS has mounted, which on macOS means it cannot
+/// read an audio CD: `diskarbitrationd` holds the media and cdrtools insists on
+/// an exclusive open, so every device node exits 255 and no `track:` line is
+/// ever printed. `VolumeTableOfContents` is what the app uses instead, off the
+/// `.TOC.plist` cddafs leaves on the mount.
+///
+/// Kept, not deleted. It is tested, it is what the script does, and an
+/// *unmounted* disc — one `diskarbitrationd` has let go of — is exactly what it
+/// is still good for.
 public struct DriveTableOfContents: TableOfContentsSource {
     let drive: OpticalDrive
     let environment: [String: String]
