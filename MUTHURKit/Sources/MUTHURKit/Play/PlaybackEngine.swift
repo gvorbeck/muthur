@@ -217,6 +217,11 @@ public actor PlaybackEngine {
         listener?.tap(player)
     }
 
+    /// The app's exit path. Stops the graph, closes the feeder, and resets
+    /// state — the same thing `load` does before putting a new record on, done
+    /// here because the process is leaving and nobody is loading anything next.
+    public func shutdown() { teardown() }
+
     private func teardown() {
         if running {
             listener?.untap(player)

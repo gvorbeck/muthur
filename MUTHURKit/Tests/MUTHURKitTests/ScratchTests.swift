@@ -240,6 +240,30 @@ struct ScratchTests {
         #expect(FileManager.default.fileExists(atPath: valuable.path))
     }
 
+    // MARK: - Startup sweep
+
+    @Test("sweepAbandoned runs the sweep without opening a session")
+    func sweepAbandonedCleansDebris() throws {
+        let base = TempDirectory()
+        let dead = try session(in: base.url, pid: "4242")
+        Scratch.sweepAbandoned(
+            environment: ["MUTHUR_WORK": base.url.path],
+            isAlive: { _ in false }
+        )
+        #expect(!FileManager.default.fileExists(atPath: dead.path))
+    }
+
+    @Test("sweepAbandoned leaves a live session alone")
+    func sweepAbandonedSparesLive() throws {
+        let base = TempDirectory()
+        let live = try session(in: base.url, pid: "4242")
+        Scratch.sweepAbandoned(
+            environment: ["MUTHUR_WORK": base.url.path],
+            isAlive: { _ in true }
+        )
+        #expect(FileManager.default.fileExists(atPath: live.path))
+    }
+
     // MARK: -
 
     /// A session directory as some other process would have left it.

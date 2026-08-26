@@ -37,13 +37,13 @@ part worth porting.
 
 ## Status
 
-**211 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**214 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
 those are the same box in different clothes — the command that runs a tool
-against a drive there is no drive for. §2, §2.1 and §2.2 are done bar five: three
-that need an exit path to hang off, and two that need the source layer. §3 and
+against a drive there is no drive for. §2, §2.1 and §2.2 are done bar two: both of
+those need the source layer. §3 and
 §3.1 are done whole, the CD-only filename rescue included. **§6 and all six of
 its subsections are now done whole** — §10 closed the eleven boxes that were
 waiting on a panel to exist: the cursor against the playhead, browsing, the key
@@ -80,7 +80,7 @@ deleted, and everything that was waiting on the source layer to carry
 `SourceKind` and `TitleSource` is unblocked. The two §2.2 boxes (zip provenance
 reaching `Record.read`, D12 switched on for real zips) are ticked. `TitleSource`
 is stamped `.tags` on every folder and zip by `SourceOpener.open`. What remains
-of §1 is the three §2 teardown boxes (which need the app's exit path), **§1.3**
+of §1 is **§1.3**
 (disc detection and playback — the drive has to be present), and the five §1.1
 flags (`--cd`, `--dry-run`, `--check`, `--no-mb`, `--help`).
 
@@ -354,13 +354,12 @@ material is not there.
 - [x] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
 - [x] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
 - [x] A folder is offered only if it contains audio (`player:1039`).
-- [x] **Changed from bash (D7).** The count that decides this looks as deep as
-      playback does, not one level. In bash they disagreed — the picker counted
-      at `maxdepth 1` while playback reads at any depth (`player:1050` vs.
-      `player:1422`) — so an album whose tracks live in `CD1/` showed up as
-      having none and was dropped from the list, while playing fine if you named
-      it on the command line. The depth limit was a fork-cost dodge, not a
-      guard; a single directory enumeration is cheap here.
+- [x] **Changed from bash (D7).** The count that decides this looks two levels
+      deep, not one. In bash the picker counted at `maxdepth 1` while playback
+      reads at any depth (`player:1050` vs. `player:1422`) — so an album whose
+      tracks live in `CD1/` showed up as having none and was dropped. Depth 2
+      rescues multi-disc albums without making a library root like
+      `~/Music/Music` (audio at depth 5) present as a record.
 - [x] One source and no argument is not a choice, it is the answer — skip the
       picker entirely (`player:1117`).
 - [x] Nothing to play at all → die with the directories it looked in
@@ -449,19 +448,21 @@ The single most load-bearing piece of hard-won reasoning in the program.
   - a directory containing `keep` is never swept — somebody asked for it.
   - Two decks at once is allowed, and the second must not delete the first
     one's album out from under it.
-- [ ] Teardown on **every** exit path — clean quit, `die()`, Ctrl-C, SIGTERM
-      (`player:285`, `player:324`). `Scratch.tearDown()` exists and is tested;
-      what is missing is anything that *calls* it, which is the app's exit path
-      and has no app yet.
-- [ ] Teardown order: screen first (so a message below lands on a terminal that
+- [x] Teardown on **every** exit path — clean quit, `die()`, Ctrl-C, SIGTERM
+      (`player:285`, `player:324`). `AppDelegate.applicationShouldTerminate`
+      calls `model.cleanup()` on every exit AppKit delivers — Cmd-Q, Dock quit,
+      system shutdown, SIGTERM. `die()` shows the message on screen and does not
+      exit; no terminal to restore.
+- [x] Teardown order: screen first (so a message below lands on a terminal that
       can show it), then the player process, then any background analysis, then
       the directory. Nothing in the handler may be skipped because something
-      earlier in it failed (`player:293`). Waits on the same exit path — three
-      of the four things it orders do not exist yet.
-- [ ] `MUTHUR_KEEP` set (or `PLAYER_KEEP` — D13) → the directory survives, is
+      earlier in it failed (`player:293`). `cleanup()` cancels the ticker and
+      sleeve, then `engine.shutdown()`, then `tearDownScratch()`. Screen restore
+      does not apply — GUI app.
+- [x] `MUTHUR_KEEP` set (or `PLAYER_KEEP` — D13) → the directory survives, is
       marked with a `keep` file so the next session's sweep spares it, and its
-      path is printed to stderr (`player:313`). The survival and the mark
-      landed; the line to stderr belongs to the exit path above.
+      path is printed to stderr (`player:313`). `tearDownScratch()` reads the
+      environment, calls `scratch.tearDown(keep:)`, prints the path to stderr.
 - [x] The **whole** zip is unpacked, not just the audio, so the cover art comes
       along (`player:1181`).
 
@@ -1856,10 +1857,13 @@ the one failure this feature cannot show on the panel. Read-only, always. → §
 **D6 — the year. On the panel.** After the artist, as `(1979)`. One year, from
 tags → MusicBrainz → collection; `SHELF` stops repeating it. → §10
 
-**D7 — picker depth. Unified.** The count now looks as deep as playback reads.
-The `maxdepth 1` was avoiding forks, not guarding anything, and it hid any album
-whose tracks live in `CD1/`. The *scan* for candidate folders stays one level
-deep — that part is the guard. → §1.2
+**D7 — picker depth. Depth 2.** The script's `maxdepth 1` was avoiding forks,
+not guarding anything, and it hid any album whose tracks live in `CD1/`. The
+port counts to depth 2: deep enough for a multi-disc album (`Album/CD1/track`)
+but not so deep that a library root like `~/Music/Music` — whose audio is at
+depth 5 via `Media.localized/Music/Artist/Album/track` — presents as a
+66-track record. The *scan* for candidate folders stays one level deep — that
+part is the guard. Playback still reads at any depth. → §1.2
 
 **D8 — MU/TH/UR as an interaction conceit. Confined to diagnostics.**
 

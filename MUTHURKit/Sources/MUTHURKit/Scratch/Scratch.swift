@@ -259,6 +259,19 @@ public struct Scratch: Sendable {
         nonEmpty(environment["MUTHUR_KEEP"]) != nil || nonEmpty(environment["PLAYER_KEEP"]) != nil
     }
 
+    /// Run the sweep without opening a session — what the script does at the
+    /// top of every startup, before it knows whether it will need a scratch
+    /// directory this time (`player:247`).
+    public static func sweepAbandoned(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: URL = URL(fileURLWithPath: NSHomeDirectory()),
+        isAlive: @escaping (Int32) -> Bool = Scratch.processIsAlive,
+        now: Date = Date()
+    ) {
+        let (base, _) = workBase(environment: environment, home: home)
+        sweep(base, now: now, isAlive: isAlive)
+    }
+
     private static func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value

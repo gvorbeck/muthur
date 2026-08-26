@@ -507,4 +507,33 @@ final class PanelModel {
         guard row == state.row, state.mode != .stopped else { return .none }
         return state.mode == .paused ? .held : .playing
     }
+
+    // MARK: - The exit path (§2)
+
+    /// Torn down however the app ends (`player:285`). Order matches the script:
+    /// stop the player, then the analyser (which is a tap on the player's node),
+    /// then delete the scratch directory. Nothing here may be skipped because
+    /// something earlier failed — `set +e` in the script.
+    func cleanup() async {
+        ticker?.cancel()
+        ticker = nil
+        sleeveWork?.cancel()
+        pendingSleeve?.cancel()
+        await engine.shutdown()
+        tearDownScratch()
+    }
+
+    /// The promise this program makes about your disk (`player:312`).
+    private func tearDownScratch() {
+        guard let scratch else { return }
+        let keep = Scratch.keepRequested(
+            environment: ProcessInfo.processInfo.environment
+        )
+        if let kept = try? scratch.tearDown(keep: keep) {
+            FileHandle.standardError.write(
+                Data("muthur: scratch kept at \(kept.path)\n".utf8)
+            )
+        }
+        self.scratch = nil
+    }
 }

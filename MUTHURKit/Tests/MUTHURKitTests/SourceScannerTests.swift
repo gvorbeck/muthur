@@ -107,6 +107,39 @@ struct SourceScannerTests {
         #expect(entries[0].detail.contains("2 tracks"))
     }
 
+    @Test func rootDirectoryExcluded() throws {
+        let tmp = TempDirectory("scanner-root")
+        FileManager.default.createFile(
+            atPath: tmp.url.appending(path: "01.flac").path, contents: Data()
+        )
+        let child = tmp.directory("Child")
+        FileManager.default.createFile(
+            atPath: child.appending(path: "01.flac").path, contents: Data()
+        )
+
+        let entries = SourceScanner.scan(directories: [tmp.url])
+        #expect(entries.count == 1)
+        #expect(entries[0].label == "Child")
+    }
+
+    @Test func perRootOrdering() throws {
+        let root1 = TempDirectory("scanner-root1")
+        let root2 = TempDirectory("scanner-root2")
+        let zulu1 = root1.directory("Zulu")
+        FileManager.default.createFile(
+            atPath: zulu1.appending(path: "01.flac").path, contents: Data()
+        )
+        let alpha2 = root2.directory("Alpha")
+        FileManager.default.createFile(
+            atPath: alpha2.appending(path: "01.flac").path, contents: Data()
+        )
+
+        let entries = SourceScanner.scan(directories: [root1.url, root2.url])
+        #expect(entries.count == 2)
+        #expect(entries[0].label == "Zulu")
+        #expect(entries[1].label == "Alpha")
+    }
+
     @Test func nonAudioDirectoriesExcluded() throws {
         let tmp = TempDirectory("scanner-noaudio")
         let docs = tmp.directory("Documents")

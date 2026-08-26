@@ -99,9 +99,11 @@ struct SourceOpenerTests {
     }
 
     @Test func zipDetail() {
-        let detail = PickerEntry.zipDetail(bytes: 4_200_000)
-        #expect(detail.contains("MB"))
-        #expect(detail.contains("zip"))
+        #expect(PickerEntry.zipDetail(bytes: 4_200_000) == "4.0M · zip")
+        #expect(PickerEntry.zipDetail(bytes: 479_300_000) == "457M · zip")
+        #expect(PickerEntry.zipDetail(bytes: 973_100_000) == "928M · zip")
+        #expect(PickerEntry.zipDetail(bytes: 1_700_000) == "1.6M · zip")
+        #expect(PickerEntry.zipDetail(bytes: 500) == "500B · zip")
     }
 
     @Test func marks() {

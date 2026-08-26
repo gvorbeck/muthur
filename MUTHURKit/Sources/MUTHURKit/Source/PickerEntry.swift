@@ -34,7 +34,7 @@ public struct PickerEntry: Sendable, Identifiable {
         "\(trackCount) \(trackCount == 1 ? "track" : "tracks") · folder"
     }
 
-    /// The detail string for a zip: `4.2 MB · zip`.
+    /// The detail string for a zip: `457M · zip` (`du -h` format).
     public static func zipDetail(bytes: UInt64) -> String {
         "\(formatSize(bytes)) · zip"
     }
@@ -44,16 +44,20 @@ public struct PickerEntry: Sendable, Identifiable {
         "\(trackCount) \(trackCount == 1 ? "track" : "tracks") · disc"
     }
 
-    private static func formatSize(_ bytes: UInt64) -> String {
-        let units = ["B", "KB", "MB", "GB"]
+    /// `du -h` format: powers of 1024, single-letter suffix, no space.
+    /// One decimal when < 10, no decimal otherwise.
+    static func formatSize(_ bytes: UInt64) -> String {
+        let units: [Character] = ["K", "M", "G", "T"]
         var value = Double(bytes)
-        var index = 0
-        while value >= 1000, index < units.count - 1 {
-            value /= 1000
+        var index = -1
+        while value >= 1024, index < units.count - 1 {
+            value /= 1024
             index += 1
         }
-        return index == 0
-            ? "\(UInt64(value)) \(units[index])"
-            : String(format: "%.1f %@", value, units[index])
+        if index < 0 { return "\(bytes)B" }
+        if value < 10 {
+            return String(format: "%.1f%c", value, units[index].asciiValue!)
+        }
+        return "\(Int(value.rounded()))\(units[index])"
     }
 }

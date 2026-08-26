@@ -27,7 +27,12 @@ public enum AudioFiles {
     /// (`player:1422`). The sort is byte order, not locale order, so the scan
     /// is the same on any machine — which is the only reason a scan index is
     /// safe to hand around.
-    public static func scan(_ directory: URL) -> [URL] {
+    ///
+    /// `maxDepth` limits how many directory levels below `directory` are
+    /// entered. 1 = immediate files only; 2 = one subdirectory deep (the
+    /// shape of a multi-disc album). The default (`.max`) scans everything,
+    /// which is what `Record.read` wants.
+    public static func scan(_ directory: URL, maxDepth: Int = .max) -> [URL] {
         let fm = FileManager.default
         guard
             let walk = fm.enumerator(
@@ -37,8 +42,17 @@ public enum AudioFiles {
             )
         else { return [] }
 
+        let basePath = directory.standardizedFileURL.path
         var found: [URL] = []
         for case let url as URL in walk {
+            if maxDepth < .max {
+                let rel = url.standardizedFileURL.path.dropFirst(basePath.count)
+                let depth = rel.filter { $0 == "/" }.count
+                if depth > maxDepth {
+                    walk.skipDescendants()
+                    continue
+                }
+            }
             guard isAudio(url) else { continue }
             let regular = (try? url.resourceValues(forKeys: [.isRegularFileKey]))?
                 .isRegularFile

@@ -39,7 +39,9 @@ struct PanelView: View {
                 Bloom {
                     panel(rows: rows)
                         .background(alignment: .topLeading) {
-                            BurnIn(marks: burn(rows: rows))
+                            if !model.isPicking {
+                                BurnIn(marks: burn(rows: rows))
+                            }
                         }
                 }
 

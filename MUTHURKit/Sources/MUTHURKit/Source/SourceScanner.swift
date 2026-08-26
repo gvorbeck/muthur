@@ -63,7 +63,7 @@ public enum SourceScanner {
                 if values?.isRegularFile == true, ext == "zip" {
                     zips.append((child, child.lastPathComponent))
                 } else if values?.isDirectory == true {
-                    let count = AudioFiles.scan(child).count
+                    let count = AudioFiles.scan(child, maxDepth: 2).count
                     if count > 0 {
                         folders.append((child, child.lastPathComponent, count))
                     }
