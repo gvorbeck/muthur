@@ -43,6 +43,17 @@ enum Fixtures {
         return home.appending(path: "Downloads")
     }
 
+    /// §8's catalogue, on this machine. The live CSV in `cd-collection`, which
+    /// is **read-only, always** (`CLAUDE.md`) — nothing in this suite writes to
+    /// it, and every test that reads it is `.enabled(if:)` on it being there so
+    /// a clone without that repository beside this one is green.
+    static var collection: URL {
+        if let override = ProcessInfo.processInfo.environment["MUTHUR_TEST_COLLECTION"] {
+            return URL(fileURLWithPath: override)
+        }
+        return home.appending(path: "Sites/cd-collection/data/collection.csv")
+    }
+
     static let home = URL(fileURLWithPath: NSHomeDirectory())
 
     static func exists(_ url: URL) -> Bool {

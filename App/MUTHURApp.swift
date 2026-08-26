@@ -1,6 +1,7 @@
 import AppKit
 import MUTHURKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 @main
 struct MUTHURApp: App {
@@ -28,6 +29,31 @@ struct MUTHURApp: App {
                 }
         }
         .windowResizability(.contentMinSize)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("Collection…") { chooseCollection() }
+            }
+        }
+    }
+
+    /// D5's file picker. There is no Settings screen yet — §11 and §13 are
+    /// where one arrives — so the setting is a menu item until there is
+    /// somewhere for it to live. What matters about it is not where it is
+    /// drawn: it is that the choice leaves a **security-scoped bookmark**
+    /// behind rather than a string, so it goes on working the day this is
+    /// sandboxed and survives the file being moved.
+    @MainActor
+    private func chooseCollection() {
+        let panel = NSOpenPanel()
+        panel.message = "The catalogue this player reads the shelf out of."
+        panel.prompt = "Read"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.directoryURL = CatalogueFile.locate().url.deletingLastPathComponent()
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        CatalogueFile.remember(url)
+        model.catalogueChanged()
     }
 }
 

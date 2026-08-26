@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All twenty-four are settled; §16
+  the reasoning and the decision it came from. All thirty-five are settled; §16
   lists them together so a difference from `player` is never later mistaken for
   a porting mistake.
 
@@ -37,7 +37,7 @@ part worth porting.
 
 ## Status
 
-**214 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**229 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
@@ -54,11 +54,28 @@ the two about a folder of mixed formats, which is the same requirement §6 opens
 with and the album it would be audible on.
 
 §10 itself is **most of the way and deliberately not finished**. The layout, the
-arithmetic, the behaviour, the amber and the type are done and on screen. **Four
-of its boxes stay open and not one of them is §10's**: the faceplate cannot be
-shown true on *every* stage while there is only one stage, `SHELF`/`NOTE` need
-§8, the year cannot come from three sources while only tags exist, and the
-loading stage's per-file album meter needs §1 to have a file to load.
+arithmetic, the behaviour, the amber and the type are done and on screen. **Two
+of its boxes stay open and neither is §10's**: the faceplate cannot be shown true
+on *every* stage while there is only one stage, and the loading stage's per-file
+album meter needs §1 to have a file to load. The other two were §8's and §8 has
+closed them — `SHELF`/`NOTE` are drawn, and the year now has all three of its
+sources.
+
+**§8 is the new one, and it is done whole** — thirteen boxes, the file picker and
+D5's bookmark included. `Shelf/` is three files: a CSV walk, the catalogue and
+the lookup, and the one place that opens a file. It reads
+`~/Sites/cd-collection/data/collection.csv` and **nothing anywhere in it writes,
+creates or moves anything under that repository** — there is exactly one
+filesystem call in the section and it is a read. The panel change is one
+argument: `HeaderBlock` had carried the `Shelf` seam since §10, `HeaderView`
+already drew an annotated row in amber, and `PanelView` already budgeted the
+track list against the header's own height — so `COLL_ROWS` (`player:2443`) and
+the mouse row offset (`player:3221`) both arrive without a line of arithmetic.
+Two decisions came out of it, **D34** (a duplicate row: the last one still wins,
+which closes §18.3) and **D35** (the file is walked as one stream, which is what
+made a CRLF catalogue readable at all), and one open question, **§18.26** — D6
+and the script disagree about whether tags or MusicBrainz wins the year, and they
+cannot differ until §1.3.
 
 **§7 and §9 are the new ones, and both are done whole** — twenty boxes, and
 §6.2's resume entry with them, which had been waiting for §7 to have one to
@@ -109,7 +126,12 @@ places the port measures a character wider than `cwidth` does stay as they are
 (**D32**). **§18.24** is open: the script scales a cover to the sleeve box
 exactly and stretches a cover that is not square; the port keeps the aspect
 instead. **§18.25** was newest and is now closed unguarded — D30 made `QUIT` a
-switch, and §7 is why that is safe. Eight open items remain in §18.
+switch, and §7 is why that is safe. **§18.3** came due with §8 and is closed as
+**D34** — two rows for the same record, and the last one still wins. **§18.26**
+is new and open: D6 has the tag year beating MusicBrainz and the script
+(`player:2215`) has MusicBrainz overwriting the tag year, and they cannot
+disagree until §1.3 lets a tagged record be looked up on a disc. Eight open items
+remain in §18.
 
 What has landed:
 
@@ -196,12 +218,30 @@ What has landed:
 
   **The amber, the glyphs and the type are not this pass.** Everything about how
   it looks is in `Theme` and nowhere else, so tuning any of it is one file.
-- 431 tests, `swift test --package-path MUTHURKit`. Five of them skip themselves
-  on a machine with nothing in the drive — that is §19, and it is the list of
-  what is still unproven rather than untested. Five more skip without `ffmpeg`
-  (the cross-decoder seam, and §9's three against the script's own chain), and
-  two without a record on the machine that has continuous audio across a track
-  boundary.
+- **§8 — the shelf.** `MUTHURKit/Sources/MUTHURKit/Shelf/`. `CSV` is the walk —
+  quoted fields, doubled quotes, and the whole file as one stream rather than a
+  line at a time (**D35**); `Catalogue` is the header read by name, the
+  normalisation, and the lookup with its artist gate and its exactly-one rule;
+  `CatalogueFile` is where the file lives (**D5**) and is the only thing in the
+  section that touches a disk. **That one call is a read.** `cd-collection` is
+  not ours to write to, and nothing here writes to it, creates anything in it or
+  assumes its layout will change. The panel side is one argument on
+  `HeaderBlock(record:shelf:)` and a `Collection…` menu item that leaves a
+  security-scoped bookmark behind — there is no Settings screen for it to live in
+  until §11 and §13, and what matters about it is the bookmark rather than where
+  the control is drawn.
+- **531 tests in 40 suites**, `swift test --package-path MUTHURKit`. Two tiers,
+  and the distinction is the whole value of the number: the **rules** tier runs
+  anywhere, and the **material** tier reads files already on the machine and
+  skips itself when they are absent. On the machine this was last run,
+  **five skipped and every other material test ran** — the five are §4's, and
+  they need a disc in the drive, which is what §19 is for. The others gate on
+  `ffmpeg` (the cross-decoder seam and §9's three against the script's own filter
+  chain), on a record with continuous audio across a track boundary, on a music
+  library, and on §8's catalogue being beside this repository. Each is
+  overridable by environment variable — `MUTHUR_TEST_MUSIC`, `MUTHUR_TEST_ZIPS`,
+  `MUTHUR_TEST_TOC`, `MUTHUR_TEST_COLLECTION` — and nothing in either tier copies
+  material into the tree.
 - Not in it: the three §2 boxes that are about *when* teardown runs rather than
   what it does — those need the app's exit path, and there is no app yet.
 
@@ -220,8 +260,9 @@ What is still the empty frame:
 
 - `MUTHURKit/` — the headless package, one folder per section here: `Record/`
   §3, `Disc/` §1.3 and §4, `Scratch/` §2, `Sleeve/` §5, `Play/` §6, `Resume/` §7,
-  `Analyser/` §9, `Shelf/` §8. All but `Shelf/` have the above in them —
-  `Disc/` holds §4 but not §1.3. It is a package
+  `Analyser/` §9, `Shelf/` §8. Every one of them now has the above in it —
+  `Shelf/` was the last empty frame and §8 filled it — with the one gap being
+  that `Disc/` holds §4 but not §1.3. It is a package
   and not a folder inside the app target so that these suites run without
   standing up an app, and so that nothing in here can import SwiftUI by
   accident — the moment it can, parity stops being testable in isolation. §6
@@ -232,9 +273,15 @@ What is still the empty frame:
 
   `App/OpenRecord.swift` is deleted — §1's source layer has landed. The app
   now opens sources through `SourceOpener` (folders and zips), shows the picker
-  via `SourceScanner` when launched with no argument, and handles
-  `MUTHUR_RECORD` and Cmd-O directly in `MUTHURApp.swift`. §1.3 (disc) is
-  stubbed at the boundary.
+  via `SourceScanner` when launched with no argument, and takes a path as
+  `argv[1]` in `MUTHURApp.swift`. §1.3 (disc) is stubbed at the boundary.
+
+  *Corrected while writing §8: this said the app handles `MUTHUR_RECORD` and
+  Cmd-O, and it handles neither — there is no such variable anywhere in the
+  target and no `keyboardShortcut` on anything. The empty panel still advertises
+  `NO RECORD ON THE DECK — ⌘O` (`PanelView.swift:433`), so **the keystroke is
+  promised on screen and does nothing**, which belongs to §1 rather than here and
+  is not fixed by this pass.*
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
   language mode on both halves.
 
@@ -1319,52 +1366,58 @@ it — so a resume written last week still names the same track today.
 
 Not in `spec.md`. It is in the program (`player:1609`).
 
-- [ ] Looks the playing album up in a catalogue CSV (`PLAYER_COLLECTION`, else
+- [x] Looks the playing album up in a catalogue CSV (`PLAYER_COLLECTION`, else
       the CSV two directories up from the script) and prints two extra faceplate
-      lines: `SHELF` (year · parent genre · tags) and `NOTE`, the note in amber.
-- [ ] **This is the one thing a general-purpose player cannot do.** MusicBrainz
+      lines: `SHELF` (parent genre · tags) and `NOTE`, the note in amber.
+      *The script's `SHELF` opens with the catalogue's year (`player:1725`);
+      **D6 took the year off this line** and put it beside the artist, from one
+      precedence, so it is one year on the panel rather than two.*
+- [x] **This is the one thing a general-purpose player cannot do.** MusicBrainz
       knows what a disc is; only the shelf it came off knows that you bought it
       used at Amoeba and that it skips on track seven — and track seven skipping
       is precisely the moment you want to be told you already knew.
-- [ ] **Nothing here is allowed to matter.** No file, a renamed header, an album
+- [x] **Nothing here is allowed to matter.** No file, a renamed header, an album
       not in the collection — the panel is exactly what it would have been. A
       missing note is not a reason to interrupt a record (`player:1618`).
-- [ ] Columns found **by name, not by number** — the two CSVs in that repository
+- [x] Columns found **by name, not by number** — the two CSVs in that repository
       do not agree on column order, and a lookup that silently reads the wrong
       column is worse than one that finds nothing (`player:1645`).
-- [ ] Real CSV field parsing, quoted fields included: `"riot grrrl, compilation,
+- [x] Real CSV field parsing, quoted fields included: `"riot grrrl, compilation,
       punk rock"` is one field with two commas in it.
-- [ ] Matching is normalised — lowercased, leading `the ` dropped,
+- [x] Matching is normalised — lowercased, leading `the ` dropped,
       non-alphanumerics stripped — so `The Beatles` finds `Beatles` and
       punctuation never decides it (`player:1679`).
-- [ ] Artist must agree when there is one. With no album artist at all, a title
+- [x] Artist must agree when there is one. With no album artist at all, a title
       match is accepted **only if exactly one** record answers to it — two would
       be a coin toss (`player:1698`).
-- [ ] Assembled once per session, not per frame.
+- [x] Assembled once per session, not per frame. *The file is opened on the
+      first record that asks and kept for the session (`player:1723` assembles
+      `COLL_SHELF` once "rather than on every frame"); choosing a different one
+      through the picker drops it and rebuilds the header.*
 
 **Where the file lives (D5, decided).** Bash resolves it relative to `$0`,
 following symlinks, to `../../data/collection.csv` (`player:1631`) — a `.app` has
 no such relative path.
 
-- [ ] A **path in Settings**, defaulting to
+- [x] A **path in Settings**, defaulting to
       `~/Sites/cd-collection/data/collection.csv`, overridable through a file
       picker so the choice is a security-scoped bookmark rather than a string
       that stops working the day the app is sandboxed. `PLAYER_COLLECTION`
       becomes that setting.
-- [ ] **The live file, read fresh at launch. Not a copy imported into the app.**
+- [x] **The live file, read fresh each session. Not a copy imported into the app.**
       That CSV is maintained — it is the data behind the collection site in the
       same repository — and a copy would go stale silently. A stale note is worse
       than no note: the entire value of this feature is that it remembers what
       you do not, so a note that is merely out of date is the one failure mode
       that cannot be spotted from the panel.
-- [ ] **Read only, ever.** `cd-collection` is not ours to write to (`CLAUDE.md`),
+- [x] **Read only, ever.** `cd-collection` is not ours to write to (`CLAUDE.md`),
       and nothing here needs to.
-- [ ] Header as it stands today:
+- [x] Header as it stands today:
       `Number,Book,Artist,Title,Year,Parent Genre,Tags,Art URL,Notes,Barcode` —
       recorded as a fact about the file, not as an assumption. Columns are still
       found by name, and a renamed or missing one still means the panel is
       exactly what it would have been.
-- [ ] No file, no setting, no match — nothing happens, silently. Not a
+- [x] No file, no setting, no match — nothing happens, silently. Not a
       diagnostic, not an error. Unconfigured is the normal state for anyone who
       is not the author.
 
@@ -1517,21 +1570,25 @@ drop the constraint where it only ever existed because of the terminal.
       §11, and "every screen" cannot be shown true against a single screen.*
 - [x] Faceplate meta on the now-playing panel: `PLAYING · 9 TRACKS · tags`
       (`player:2320`). Mode labels: `PLAYING`, `PAUSED`, `STOPPED`, `FINISHED`.
-- [ ] Header block: `ALBUM`, `ARTIST`, `SOURCE`, then `SHELF`/`NOTE` when the
+- [x] Header block: `ALBUM`, `ARTIST`, `SOURCE`, then `SHELF`/`NOTE` when the
       record is in the collection. **The metadata source is not repeated here** —
       the faceplate says it, and saying it twice on one screen reads like two
       different facts (`player:2325`).
-      *The three that always show, and the rule about not repeating the source,
-      are done and drawn. `SHELF`/`NOTE` need §8's collection lookup to have
-      anything to say.*
+      *Closed by §8. Both extra lines are drawn, each only when it has something
+      on it, and the track list gives up exactly the rows they took — which is
+      the script's `COLL_ROWS` (`player:2443`) arriving for free, because
+      `PanelView` has always budgeted the tracks against the header's own
+      height rather than against a count.*
 - [x] **Changed from bash (D6). The year is on the panel**, set after the artist
       as `(1979)`, the same shape `-n` prints. In bash it appeared only in `-n`
       (`player:3542`) while the panel's `SHELF` line carried the *collection's*
       year (`player:2333`) — so a record not in the collection showed no year
       anywhere, and one that was in it showed a year that had not come from the
       record.
-- [ ] One year, from the first source that has one: tags, then the MusicBrainz
-      release date, then the collection. `SHELF` stops carrying it and keeps
+- [x] One year, from the first source that has one: tags, then the MusicBrainz
+      release date, then the collection. *§8 supplied the third and last of the
+      three. Where this order and the script's disagree is now §18.26, which is
+      open — it cannot bite until §1.3, because a mounted CD has no tags.* `SHELF` stops carrying it and keeps
       genre and tags, by the same rule as the source label above — where the two
       disagree, that disagreement is not worth two lines on a faceplate.
 - [x] **Amber is the chrome — rules, labels, the badge — and never the data, so
@@ -1812,7 +1869,7 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-twenty-four are settled. Recorded here with the answer so that a departure from
+thirty-five are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -1826,7 +1883,12 @@ place, after D15, where the port does better than the script rather than
 differently. **D22–D24** came out of writing §7 and §9: two of them are about
 *method* rather than behaviour, which is what §9 explicitly asks for — the look
 survives, the mechanism cannot — and the third is the shape that keeps §7 from
-ever moving the needle.
+ever moving the needle. **D25–D33** came out of the panel — §7's offer, §10's
+keycaps and widths and scroll window, and §9's autoscale, which is the one that
+had to be measured before it could be decided. **D34 and D35** came out of §8:
+the first answers §18.3 and is a decision *not* to improve the script, the second
+is a divergence the script's own comment invites and turned out to be the
+difference between reading the real catalogue and reading nothing at all.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1855,7 +1917,32 @@ maintained, and a stale note is worse than no note, because being out of date is
 the one failure this feature cannot show on the panel. Read-only, always. → §8
 
 **D6 — the year. On the panel.** After the artist, as `(1979)`. One year, from
-tags → MusicBrainz → collection; `SHELF` stops repeating it. → §10
+MusicBrainz → tags → collection; `SHELF` stops repeating it. → §10, §18.26
+
+*Amended once, and the amendment is the precedence.* This first read tags →
+MusicBrainz → collection, first source wins. **The script does the opposite**:
+`[ -n "$t" ] && YEAR="${t%%-*}"` (`player:2215`) overwrites whatever the tags put
+in `YEAR` with the MusicBrainz date, so MusicBrainz is last-writer and wins
+wherever it spoke. `CLAUDE.md` settles which of the two is authoritative, and it
+is not this document. So: **MusicBrainz wins where it answered, tags fill in
+where it did not, and the collection is still last.** Amended in place rather
+than written twice, because there is only ever one rule about the year.
+
+What is *not* changed: the collection's position at the back, and everything §10
+draws. `SHELF` still carries genre and tags without the year, which is the part
+of D6 that was ever a departure from the script — the script put the catalogue's
+year on that line and nowhere else (`player:1725`), so a record not on the shelf
+showed no year at all and one that was showed a year that had not come from the
+record.
+
+**None of this is observable yet, and that is the point of settling it now.**
+MusicBrainz is asked on the CD path and a mounted audio CD carries no tags
+whatsoever, so the two sources are never both present and no test can tell the
+orders apart. **§1.3 is where they first can be** — a tagged rip whose disc gets
+looked up, or a tagged folder that grows a disc ID. Deciding it here means §1.3
+inherits a rule instead of stopping to ask for one. Nobody should read the
+amended order as having been tested; it has been *chosen*, against the script,
+and §1.3 is where it becomes checkable.
 
 **D7 — picker depth. Depth 2.** The script's `maxdepth 1` was avoiding forks,
 not guarding anything, and it hid any album whose tracks live in `CD1/`. The
@@ -2567,6 +2654,60 @@ The *arithmetic* — the two anchors, the 0.60, the 6 dB minimum span — is
 unchanged, and the tests that hold it down still ask it of an unseeded scale,
 because the sum is the script's and only the starting point moved.
 
+**D34 — two rows for the same record: the last one still wins.** → §18.3, §8
+
+`collection_lookup` accepts more than one hit whenever an album artist is present
+(`player:1706`) while the awk body overwrites its captured fields on every match
+(`player:1703`), so the later row is the one you get and nothing says there were
+two. §18.3 asked whether to prefer the first or refuse the ambiguity the way the
+no-artist path already does. **Ported as it stands.**
+
+Refusing is the tempting one and it is wrong here, because the two ambiguities
+are not the same ambiguity. The no-artist path refuses because it has *nothing
+left to go on* — two records called `Greatest Hits` and no artist is a coin toss,
+and a coin toss that annotates the wrong record is worse than no annotation.
+Duplicate artist+title rows are a different thing: the catalogue has the same
+record in it twice, which is a data entry mistake in a file this port does not
+own and is not allowed to write to. Refusing would make §8 go silent on a record
+that *is* on the shelf, which is the one failure mode the section is built to
+avoid — and it would go silent for a reason the panel cannot show you, since
+"nothing happens" is also what not being in the catalogue looks like.
+
+Preferring the first is the same amount of arbitrary as preferring the last and
+costs a divergence to get it. So: last wins, and it is a **test rather than an
+accident** —
+`twoRowsMatchingBothTitleAndArtistTakeTheLast`. Arbitrary in a way you can
+predict is worth more here than arbitrary twice, and a rule that read the same
+catalogue on two machines and answered differently would be worse than either.
+
+**D35 — the catalogue is read as one stream, not a line at a time.** → §8
+
+`csvsplit` is handed a single line by awk, and `player:1651` says outright that
+a quoted field containing a newline would defeat it and that none of the ways
+this catalogue is produced can make one — an acknowledged gap rather than a
+judgement. The port walks the whole file instead. The flag that decides whether a
+comma is a separator is the same flag that decides whether a newline ends the
+record, so reading it as a stream **costs nothing and is the shorter thing to
+write in Swift anyway**. On every file the script parses correctly the two agree
+field for field; the only file they disagree about is one the script's own
+comment says it cannot read.
+
+Two consequences, both wanted. A newline that arrives inside a field is
+**flattened to a space** along with the tab the script already flattens
+(`player:1712`) — the panel draws these on a grid it works to keep square, so
+this is the same reason the tab goes, applied to a character the script could
+never have received. And line endings: **LF, CRLF and a bare CR all end a
+record.** The real catalogue is a CRLF file — it is written by a spreadsheet —
+and awk splits on `\n` alone, so the script leaves a `\r` on the end of every
+record's last field, which is `Barcode`, a column it never reads. It gets away
+with it by accident. The port cannot: `"\r\n"` is a **single `Character`** in
+Swift rather than two, so a walk watching only for `"\n"` reads all 248 rows as
+one record and the catalogue silently matches nothing. That is exactly what it
+did until `crlfEndsARecordWithoutLeavingACarriageReturn` was written, and it is
+why the material tier of §8 reads the real file rather than a fixture: every
+rules-tier test passed on LF strings while the live catalogue found nothing at
+all.
+
 ---
 
 ## 17. When something is missing
@@ -2680,11 +2821,12 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Of twenty-five, seventeen are answered — **1, 2, 4, 6, 7, 11, 12, 14, 15, 16,
+Of twenty-six, eighteen are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15, 16,
 17, 19, 20, 21, 22, 23 and 25** — each marked below and carrying the decision it
-became. The other eight are open. **17**, **18** and **25** are the odd ones: not
-`player` behaviours at all, but holes in decisions made here, which is why 17 and
-25 were both answered as fast as they were found. **21** is odder still — not a
+became. The other eight are open. **17**, **18**, **25** and **26** are the odd ones:
+not `player` behaviours at all, but holes in decisions made here, which is why 17
+and 25 were both answered as fast as they were found. **26** cannot be — it is
+two rules about the year that have never yet been asked the same question. **21** is odder still — not a
 question but a consequence, listed because it is a difference from the script
 that nobody chose. It was **watched on a real record and measured**, the
 measurement found something worse than the entry assumed *and pointing in a
@@ -2700,7 +2842,11 @@ Most of the open ones describe code that has not been written yet. **4** was
 the exception until §5 landed around it and forced the question; it is now D14.
 **1**, **6**, **7** and **11** came due together when §4 was about to be written
 and were answered before a line of it existed — 1 and 11 in the code that landed,
-6 and 7 in §1, which is still ahead.
+6 and 7 in §1, which is still ahead. **3** is the newest closure and came due the
+same way: §8 could not be written without the loop either keeping the last
+duplicate row or not, and it keeps it (**D34**). **26** is new, and it is the
+same shape as 17, 18 and 25 — not a `player` behaviour but two decisions taken
+here that disagree with each other, found by writing the second one.
 
 **5** is the other exception, and it needs an answer it has not been asked for:
 §2's port has one unpacker rather than `unzip` and `tar`, and it already prints
@@ -2723,12 +2869,22 @@ question is only whether that was the right half to keep. It reads as yes.
    track order. It is wrong for anything else, and the name hides that. *Port the
    confusion, or port the intent?* — **Resolved: the intent. → D9.**
 
-3. **`collection_lookup`: the last duplicate row silently wins.** The END rule
+3. **`collection_lookup`: the last duplicate row silently wins. — ANSWERED:
+   ported as it stands, as D34.** → §8, §16 The END rule
    accepts multiple hits whenever an album artist is present
    (`if hits==1 || (hits>1 && want_a!="")`, `player:1706`) while the awk body
    overwrites its variables on every match — so two rows for the same
    artist+title give you the later one, with no indication there were two.
    *Prefer the first? Refuse ambiguity the way the no-artist path already does?*
+
+   Came due when §8 was written and had to be answered rather than deferred,
+   because the loop either keeps the last hit or it does not. **Neither.** The
+   two ambiguities are not the same ambiguity: the no-artist path refuses because
+   it has nothing left to go on, while duplicate artist+title rows mean the same
+   record is in the catalogue twice — a mistake in a file this port may not
+   write to, and refusing would make §8 go silent on a record that *is* on the
+   shelf, for a reason the panel cannot show. Kept, and held down by a test
+   rather than left as an accident. **D34.**
 
 4. **`art_fetch` caches "no cover" after a purely offline attempt**
    (`player:1921`). Fourteen days of no sleeve because the wifi was off once.
@@ -3128,6 +3284,49 @@ question is only whether that was the right half to keep. It reads as yes.
     would guard against a cost that is not there, at the price of making the cap
     a different switch from the key it depicts, which is the whole claim D30
     makes.
+
+26. **Two decisions here disagree about the year. — ANSWERED: follow the
+    script, and D6 is amended in place.** → §4, §8, §10, D6
+
+    **D6 says first source wins:** "one year, from the first source that has one:
+    tags, then the MusicBrainz release date, then the collection", and
+    `HeaderBlock.year` does exactly that — the tag year beats MusicBrainz.
+    **The script says last source wins:** `[ -n "$t" ] && YEAR="${t%%-*}"`
+    (`player:2215`) overwrites whatever the tags put in `YEAR` with the
+    MusicBrainz date, and `DiscTitles.swift` follows the script.
+
+    They do not differ today, and that is the only reason this has not shown up.
+    MusicBrainz is asked on the CD path (§4) and a mounted audio CD carries no
+    tags at all, so the tag year is always empty exactly when the MusicBrainz one
+    is present. **§1.3 is where they meet** — the moment a tagged folder can also
+    be looked up, or a disc's titles get written back over a tagged rip, one of
+    these two rules starts producing a year the other would not.
+
+    Which one is right is a real question and not a formality. *Tags first* says
+    the record in front of you knows more about itself than a database does,
+    which is the rule the rest of §3 is built on. *MusicBrainz last* says a
+    release date off a catalogue beats whatever a ripper stamped on the file, and
+    it is what the script actually does — and per `CLAUDE.md` the script is the
+    authority where a description conflicts with it.
+
+    Flagged rather than settled, because the two answers put the year in
+    different places on real records and neither is a tidy-up. **Nothing was
+    blocked on it** — §8 shipped with D6's original order because that is what
+    §10 already drew.
+
+    **Closed as the script's: MusicBrainz wins where it spoke, tags fill in where
+    it did not, the collection last.** `CLAUDE.md` decides which of the two is
+    authoritative where a description conflicts with the source, and it is not
+    this document. D6 is **amended in place** rather than joined by a second
+    decision about the same question — there is one rule about the year and it
+    now reads `MusicBrainz → tags → collection`. D6's collection-last position is
+    untouched and §10 keeps drawing exactly what it drew.
+
+    **Still unobservable, and recorded as such.** A mounted audio CD has no tags,
+    so the only path that asks MusicBrainz is the only path where the tag year is
+    always empty — no test on this machine can tell the two orders apart, and
+    none pretends to. It is settled now so that **§1.3 inherits a rule instead of
+    stopping to ask for one**, which is the whole value of answering it early.
 
 ---
 

@@ -118,6 +118,48 @@ final class PanelModel {
 
     private func arrived(_ found: Sleeve) { sleeve = found }
 
+    // MARK: - The shelf (§8)
+
+    /// The catalogue, parsed once and kept for as long as the app runs. The
+    /// script assembles its lookup once before the engine starts and never
+    /// again, because the panel rebuilds itself many times a second for as long
+    /// as the record lasts and this string never changes (`player:1723`).
+    ///
+    /// **Read only, ever** — `cd-collection` is not ours to write to
+    /// (`CLAUDE.md`, D5). Read synchronously and on the path that opens a
+    /// record, which is what `player:3558` does: it is one small file, and a
+    /// header that arrives a frame late would be a header that changes height
+    /// while you are looking at it.
+    private var catalogue: Catalogue?
+    private var catalogueRead = false
+
+    /// What the shelf says about this record, or nothing at all. Every failure
+    /// in here — no setting, no file, a renamed header, a record that is simply
+    /// not in the catalogue — comes back `nil`, and a `nil` is a panel exactly
+    /// as it would have been (`player:1618`).
+    private func shelf(for record: Record) -> HeaderBlock.Shelf? {
+        if !catalogueRead {
+            catalogueRead = true
+            catalogue = CatalogueFile.load()
+        }
+        guard
+            let entry = catalogue?.look(
+                album: record.album, albumArtist: record.albumArtist
+            ), !entry.isEmpty
+        else { return nil }
+        return HeaderBlock.Shelf(entry)
+    }
+
+    /// A different catalogue was picked. Re-read it and rebuild the header, so
+    /// the record on the deck picks up its own note rather than waiting for the
+    /// next one.
+    func catalogueChanged() {
+        catalogueRead = false
+        catalogue = nil
+        guard let record else { return }
+        header = HeaderBlock(record: record, shelf: shelf(for: record))
+    }
+
     // MARK: - Resume
 
     private var resume: ResumeWatch?
@@ -270,7 +312,10 @@ final class PanelModel {
         // are let go of: a record on the deck knows nothing about the last one.
         analyser.newRecord()
         columns = TrackColumns.decide(for: read)
-        header = HeaderBlock(record: read)
+        // §8 and §7 both here, and both after everything that names the album,
+        // because each is looked up by what the record turned out to be rather
+        // than by where it came from (`player:3555`).
+        header = HeaderBlock(record: read, shelf: shelf(for: read))
         sourceKind = source
         self.titleSource = titleSource
         cursor = Cursor()
