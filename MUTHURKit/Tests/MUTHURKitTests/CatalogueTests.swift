@@ -341,9 +341,11 @@ struct CatalogueTests {
 
     /// **§10's third open box.** The year now has three sources and the
     /// collection is the last of them, which is the whole of what §8 unblocks
-    /// here (D6).
+    /// here (D6). The first two swapped when D6 was amended to the script's
+    /// order (`player:2215`); the collection's position never moved.
     @Test func theCollectionIsTheLastPlaceTheYearComesFrom() {
-        #expect(HeaderBlock.year(tags: "1977", musicBrainz: "1979", collection: "1998") == "1977")
+        #expect(HeaderBlock.year(tags: "1977", musicBrainz: "1979", collection: "1998") == "1979")
+        #expect(HeaderBlock.year(tags: "1977", musicBrainz: "", collection: "1998") == "1977")
         #expect(HeaderBlock.year(tags: "", musicBrainz: "1979", collection: "1998") == "1979")
         #expect(HeaderBlock.year(tags: "", musicBrainz: "", collection: "1998") == "1998")
         #expect(HeaderBlock.year(tags: "", musicBrainz: "", collection: "") == "")

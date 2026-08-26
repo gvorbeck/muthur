@@ -36,6 +36,29 @@ final class PanelModel {
 
     var isPicking: Bool { pickerEntries != nil && record == nil }
 
+    // MARK: - The health check (§11)
+
+    /// The check that is on screen. `--check` in bash prints and the program
+    /// ends (`player:345`, `player:531`); a window cannot end, so here it is a
+    /// screen that goes over whatever was showing and comes off again. The
+    /// record underneath is untouched — the check reports on the machine, not
+    /// on what is playing, and stopping the music to ask about the machine
+    /// would be its own small failure.
+    private(set) var report: Diagnostics.Report?
+
+    var isChecking: Bool { report != nil }
+
+    /// Off the main actor: it launches `drutil`, walks `PLAYER_DIRS` and stats
+    /// the scratch directory, and a drive that has to spin up takes seconds
+    /// (`player:395`). None of that belongs on the thread doing the drawing.
+    func check() {
+        Task {
+            report = await Task.detached { Diagnostics.run() }.value
+        }
+    }
+
+    func closeCheck() { report = nil }
+
     // MARK: - The deck
 
     let engine = PlaybackEngine()
@@ -409,6 +432,9 @@ final class PanelModel {
     /// nothing of its own to say. A record you have not started yet is exactly
     /// when the offer is worth reading.
     var statusLine: String? {
+        // The check has its own legend and its rows are the message; a status
+        // line under it would be the deck talking over the diagnosis.
+        if isChecking { return nil }
         if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
         if let offer { return offer.text }

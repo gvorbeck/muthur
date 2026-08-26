@@ -47,7 +47,22 @@ enum AudioSourceOpener {
 
     /// What AVFoundation will not take. Asking it anyway costs an exception and
     /// a line of console noise per track, and the answer is never yes.
-    static let fallbackExtensions: Set<String> = ["opus", "ogg", "ape", "wma"]
+    ///
+    /// An array and not a set because §11 reads it out to a person, and a set
+    /// would name the same four formats in a different order every launch.
+    static let fallbackOrder = ["opus", "ogg", "ape", "wma"]
+    static let fallbackExtensions = Set(fallbackOrder)
+
+    /// **Both**, and this is the whole of D40: `ffprobe` to find out what is in
+    /// the file and `ffmpeg` to decode it. `open` below refuses on either.
+    static let fallbackTools = ["ffmpeg", "ffprobe"]
+
+    /// The same four formats in a sentence, for the one row that has to say
+    /// what their absence costs (§11, §17).
+    static var fallbackFormats: String {
+        let names = fallbackOrder.map { $0 == "wma" || $0 == "ape" ? $0.uppercased() : $0.capitalized }
+        return names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
+    }
 
     static func open(_ url: URL) throws -> any AudioSource {
         var lastReason = "NO DECODER"

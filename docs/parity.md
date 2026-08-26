@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All thirty-five are settled; §16
+  the reasoning and the decision it came from. All thirty-nine are settled; §16
   lists them together so a difference from `player` is never later mistaken for
   a porting mistake.
 
@@ -37,7 +37,7 @@ part worth porting.
 
 ## Status
 
-**229 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**253 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
@@ -73,9 +73,11 @@ track list against the header's own height — so `COLL_ROWS` (`player:2443`) an
 the mouse row offset (`player:3221`) both arrive without a line of arithmetic.
 Two decisions came out of it, **D34** (a duplicate row: the last one still wins,
 which closes §18.3) and **D35** (the file is walked as one stream, which is what
-made a CRLF catalogue readable at all), and one open question, **§18.26** — D6
-and the script disagree about whether tags or MusicBrainz wins the year, and they
-cannot differ until §1.3.
+made a CRLF catalogue readable at all), and one question, **§18.26** — D6 and the
+script disagreed about whether tags or MusicBrainz wins the year — which is now
+answered by following the script, with D6 amended in place rather than written
+twice. Nothing observes the swap until §1.3; it was settled early so §1.3 does
+not have to stop and ask.
 
 **§7 and §9 are the new ones, and both are done whole** — twenty boxes, and
 §6.2's resume entry with them, which had been waiting for §7 to have one to
@@ -83,8 +85,53 @@ clear. Neither needed a line changed in `Play/`: §7 watches the deck's publishe
 state and never speaks to it (D24), and §9 taps whatever node it is handed, which
 is a question §10 answers. §9 is the numbers only — the bands, the levels, the
 scales and the column state, all of it measured in `swift test` with no window
-open. Nothing is drawn. Every other entry in this document should be read as
-outstanding.
+open. Nothing is drawn.
+
+**§11 is the newest, and it is done whole** — seven boxes, and `--check` out of
+§1.1 and MusicBrainz out of §17 with them, nine in all. It is the right thing to
+have written now precisely because §1 and §8 exist for it to report on: eight of
+its twelve rows would have had nothing to say a week ago. `Diagnostics.run()`
+returns the twelve rows and derives the verdict; `Report.plainText` lays them out
+the way `ck` does (`panel.sh:587`) and `App/main.swift` answers the flag before
+`NSApplication` starts, so `--check` prints and exits the way `player:531` does
+rather than opening a window first. `CheckView` draws the same report on the
+panel, reachable from the menu. **D8's boundary holds on both**: the MU/TH/UR
+voice is the verdict line and nothing above it, which is a test and not a
+convention. Three decisions came out of it — **D37** (`drutil`'s `Type:` line is
+read `burncd`'s way, not `player:396`'s), **D38** (the three marks climb the
+panel's own amber instead of the terminal's three hues, and the detail turns over
+rather than being cut), and **D39** (the check does not go to the network, which
+declines the improvement §17 asked for) — and no new questions. Every other entry
+in this document should be read as outstanding.
+
+**§17 is the newest, and it is the first section that stops at a seam rather than
+finishing.** Fifteen of its eighteen boxes are closed; three are not, and they
+are three halves of §1.3 rather than three failures — `find_cd` returning nothing
+(`player:965`), the picker having no disc row (`player:1018`), and media that is
+present but never mounts (`player:1000`). The `--check` halves of the first two
+already exist and are tested; a box with one half standing is still an open box,
+and it stays open. **Nothing in §17 went near the drive**, by your call — every
+degraded path in it is reachable with stubs, which is most of why it was the
+right block to take with a burn running.
+
+The section is mostly assertions that a message does *not* exist, which is not
+something a feature test ever accidentally covers: the panel has no vocabulary
+for an outage, no row can say "pattern", and nothing about the drive can change
+`--check`'s exit code or the first four words of its verdict. One real hole
+turned up and is closed — **D40**: bash asked after `ffmpeg` on its `analyser`
+row (`player:367`), §9 made that row a live tap rather than a shell-out, and the
+question
+went with it, leaving `--check` reporting `ok` on a machine that could not play
+an Opus. It now lives on `playback`, asks after both `ffmpeg` and `ffprobe`, and
+names whichever is missing. Two questions came out of it, **§18.27** (D11's
+untitled-track notice was decided and never drawn, and building it needs wording
+and a threshold that exist nowhere in the script) and **§18.28** (`cd_text`'s
+`2>&1` lets an error mentioning a *title* suppress the very fallback that error
+should trigger — inherited verbatim, and not touchable until there is a disc).
+Two corrections: the mixed-format box said thirteen extensions and there are
+twelve (`player:1046–1048`), and the untagged-sleeve box read as though the
+script declined to ask MusicBrainz without an artist. It asks (`player:1825`);
+it is the quoted phrase that misses.
 
 **Where a fresh session picks up.** Two things are ahead and neither blocks the
 other. **The UI** — gate 4's second half — is what §6's eleven open
@@ -98,8 +145,9 @@ deleted, and everything that was waiting on the source layer to carry
 reaching `Record.read`, D12 switched on for real zips) are ticked. `TitleSource`
 is stamped `.tags` on every folder and zip by `SourceOpener.open`. What remains
 of §1 is **§1.3**
-(disc detection and playback — the drive has to be present), and the five §1.1
-flags (`--cd`, `--dry-run`, `--check`, `--no-mb`, `--help`).
+(disc detection and playback — the drive has to be present), and four of the five
+§1.1 flags (`--cd`, `--dry-run`, `--no-mb`, `--help`); `--check` is ticked with
+§11.
 
 **§1.3 is deliberately not written.** Disc detection wants the drive present, by
 your call; §19 is the list it gets written against.
@@ -128,10 +176,15 @@ exactly and stretches a cover that is not square; the port keeps the aspect
 instead. **§18.25** was newest and is now closed unguarded — D30 made `QUIT` a
 switch, and §7 is why that is safe. **§18.3** came due with §8 and is closed as
 **D34** — two rows for the same record, and the last one still wins. **§18.26**
-is new and open: D6 has the tag year beating MusicBrainz and the script
-(`player:2215`) has MusicBrainz overwriting the tag year, and they cannot
-disagree until §1.3 lets a tagged record be looked up on a disc. Eight open items
-remain in §18.
+was new with §8 and is already closed: D6 had the tag year beating MusicBrainz
+and the script (`player:2215`) has MusicBrainz overwriting the tag year, so D6
+was amended in place to the script's order. It is unobservable until §1.3 lets a
+tagged record be looked up on a disc, and that is precisely why it was worth
+settling before §1.3 arrives. **§18.27 and §18.28** are the newest, both out of
+§17 and both needing an answer rather than an implementation — the wording,
+placement and threshold of D11's undrawn notice, and whether the port may narrow
+`cd_text`'s fallback test on a disc path where the script is the authority. Nine
+open items remain in §18.
 
 What has landed:
 
@@ -277,11 +330,22 @@ What is still the empty frame:
   `argv[1]` in `MUTHURApp.swift`. §1.3 (disc) is stubbed at the boundary.
 
   *Corrected while writing §8: this said the app handles `MUTHUR_RECORD` and
-  Cmd-O, and it handles neither — there is no such variable anywhere in the
-  target and no `keyboardShortcut` on anything. The empty panel still advertises
-  `NO RECORD ON THE DECK — ⌘O` (`PanelView.swift:433`), so **the keystroke is
-  promised on screen and does nothing**, which belongs to §1 rather than here and
-  is not fixed by this pass.*
+  Cmd-O, and it handled neither. `MUTHUR_RECORD` does not exist and is not
+  coming back — a path as `argv[1]` is what the script takes. The **⌘O was
+  worse: promised on the faceplate (`NO RECORD ON THE DECK — ⌘O`) and bound to
+  nothing**, a lie on screen that this port introduced when the source layer
+  landed. Now fixed: `File ▸ Open Record…` is bound to ⌘O in `MUTHURApp.swift`
+  and opens a folder or a zip through `SourceOpener.resolve`, with a refusal
+  going to `model.die` in the panel's own voice, as `player:3524` prints it.*
+
+  *Binding it was the right half of that choice rather than rewording the line,
+  because **the script has no empty-panel state to compare against**:
+  `pick_source` dies where it stands with nothing to scan (`player:1114`), exits
+  0 if the user walks away from it (`player:3532`), and `open_source` runs
+  before the first frame (`player:3535`). A terminal program may say one line
+  and stop; a window may not. `EmptyPanelView` is therefore a **port invention**,
+  now labelled as one in its own comment, and a state this port invented is a
+  state this port owes a way out of.*
 - Toolchain: Xcode 26.3, Swift 6.2.4, deployment target macOS 15, Swift 6
   language mode on both halves.
 
@@ -375,8 +439,12 @@ material is not there.
 - [ ] `--cd` → the disc, or die `no audio CD in the drive` (`player:3527`).
 - [ ] `-n` / `--dry-run` → read it, print the album, play nothing
       (`player:331`, `player:3540`).
-- [ ] `--check` → diagnostics, exit non-zero on hard failure (`player:332`,
-      `player:531`).
+- [x] `--check` → diagnostics, exit non-zero on hard failure (`player:332`,
+      `player:531`). **Answered before `NSApplication` starts**, in `App/main.swift`
+      rather than by `@main` on `MUTHURApp`: the flag's whole value is that it
+      prints, sets a code and *ends*, and an answer that arrives after a Dock
+      icon has bounced and a window has opened is not that flag. Printed in
+      `ck`'s own layout without the colour (`Report.plainText`, `panel.sh:588`).
 - [ ] `--no-mb` → never ask MusicBrainz (`player:334`, `player:81`).
 - [ ] `-h` / `--help` → the header comment, reprinted (`panel.sh:269`).
 
@@ -409,8 +477,12 @@ material is not there.
       `~/Music/Music` (audio at depth 5) present as a record.
 - [x] One source and no argument is not a choice, it is the answer — skip the
       picker entirely (`player:1117`).
-- [x] Nothing to play at all → die with the directories it looked in
-      (`player:1114`).
+- [x] Nothing to play at all → say so, naming the directories it looked in
+      (`player:1114`). **Changed from bash (D36).** The script *dies* here; a
+      window cannot. The port says the same thing on the empty panel instead and
+      stays up, which is the state `EmptyPanelView` exists for and the reason
+      **⌘O is bound** — `File ▸ Open Record…` — so the panel it invented is not
+      also a dead end.
 - [x] Keys: `↑↓`/`kj` move, `PgUp`/`PgDn` a screenful, `⏎` open, `r` rescan
       (status `▪ RESCANNED`), `q` walk away with exit 0 (`player:1134`).
 
@@ -1585,10 +1657,13 @@ drop the constraint where it only ever existed because of the terminal.
       year (`player:2333`) — so a record not in the collection showed no year
       anywhere, and one that was in it showed a year that had not come from the
       record.
-- [x] One year, from the first source that has one: tags, then the MusicBrainz
-      release date, then the collection. *§8 supplied the third and last of the
-      three. Where this order and the script's disagree is now §18.26, which is
-      open — it cannot bite until §1.3, because a mounted CD has no tags.* `SHELF` stops carrying it and keeps
+- [x] One year: the MusicBrainz release date where it answered, the tags where
+      it did not, the collection last. *§8 supplied the third and last of the
+      three. The first two were in the other order until §18.26 was answered by
+      following the script (`player:2215`) and D6 was amended in place; nothing
+      can observe the swap until §1.3, because a mounted CD has no tags.*
+      `HeaderBlock.year` and `DiscTitles.swift:178` now agree on it from both
+      ends. `SHELF` stops carrying it and keeps
       genre and tags, by the same rule as the source label above — where the two
       disagree, that disagreement is not worth two lines on a faceplate.
 - [x] **Amber is the chrome — rules, labels, the badge — and never the data, so
@@ -1751,20 +1826,44 @@ the panel stops being a layout and starts being an object:
 that "why is mine not working" has an answer. It is also the **only** screen that
 speaks in MU/TH/UR's voice (D8, §16).
 
-- [ ] Per-item pass / warn / fail with a fix, and a verdict. Non-zero exit on a
+- [x] Per-item pass / warn / fail with a fix, and a verdict. Non-zero exit on a
       hard failure only; a warning is worth saying out loud but is not a reason
-      to refuse (`panel.sh:595`, `panel.sh:598`, `player:531`).
-- [ ] Items to carry across, re-pointed at the native stack: decoder
+      to refuse (`panel.sh:595`, `panel.sh:598`, `player:531`). `Check` is the
+      mark, the label and the detail; `Diagnostics.Report` derives `CHECK_FAIL`
+      and `CHECK_WARN` rather than accumulating them, because the script only
+      keeps two globals for them since `ck` is a printf with nowhere to put a
+      return value (`panel.sh:578`).
+- [x] Items to carry across, re-pointed at the native stack: decoder
       availability, the ffmpeg fallback path (Opus/Ogg), zip handling, optical
       drive and media, CD-Text tooling, MusicBrainz reachability (and whether it
       is disabled), **scratch space — free bytes, writability, and whether the
-      `$TMPDIR` fallback is in force**, and audio output route.
-- [ ] **What the cover will look like, and whether it can be shown at all.** This
+      `$TMPDIR` fallback is in force**, and audio output route. All present, and
+      one of them diverges: **reachability is not probed (D39)** — the row says
+      what the lookup *will* try, because a diagnostic that hangs on a captive
+      portal is worse than one that admits it has not asked.
+- [x] **What the cover will look like, and whether it can be shown at all.** This
       is the question the check is really there for: a sleeve that is silently
       absent looks exactly like a sleeve that failed to download, and the two
-      have nothing to do with each other (`player:454`).
-- [ ] Warnings are usually fine — "no disc, or no drive" just means the drive is
-      empty (README).
+      have nothing to do with each other (`player:454`). The `sleeve` row keeps
+      the question and none of bash's answers, which were all about columns and
+      iTerm2 — a window has pixels.
+- [x] Warnings are usually fine — "no disc, or no drive" just means the drive is
+      empty (README). Said in the verdict's middle case, which is the one most
+      machines land on.
+
+**Two more rows than bash has, and both are §8's and §1's doing.** `the shelf`
+and `records` exist because those two subsections gave the port something that
+can be silently absent: a `SHELF` line that is simply not drawn looks identical
+whether the record is not in the catalogue or the catalogue was never found, and
+`nothing to play in …` used to be a `die` at the moment it mattered (`player:1114`)
+and now has to be a calm line on a screen instead (D36). `audio output` is the
+third addition and is §14's — a terminal hands its sound to mpv and neither is
+in a position to say where it went.
+
+**The screen and the flag are the same report.** `Diagnostics.run` is headless
+and returns `[Check]`; `CheckView` draws it on the panel's grid and
+`Report.plainText` prints it to a terminal. Nothing about the check knows which
+one it is in.
 
 **(terminal)** mpv, `nc -U`, `archive://`, UTF-8 locale, window size.
 
@@ -1791,19 +1890,58 @@ and no terminal.
 | 11 | `terminal` | `player:438` | **ok** `UTF-8 (<locale>), <cols>x<lines>` · **warn** `not UTF-8 — the meters will render as mojibake` | Drops |
 | 12 | `window size` | `player:444` | **warn** `need <N> rows x <M> cols for the panel` · **ok** `room for the panel` | Drops |
 | 13 | `cover` | `player:454` | **ok** `off (PLAYER_ART=0)` · **warn** `window is <N> cols — need <X> for a sleeve, <Y> for a full-size one` · **ok** `iTerm2 inline images, at the resolution the screen has` · **ok** `half blocks — a real picture needs iTerm2, outside tmux` | Keep the *question*, not the answers: can a sleeve be shown, and at what size |
-| 14 | — | — | verdict: `Ready to play.` / `Not ready to play.` | Keep, and this is where D8's voice belongs |
+| 14 | — | `player:466` | verdict, **three of them**: `Not ready to play.` `Fix the ✗ items above.` · `Mostly ready.` `Warnings above are usually fine.` · `Ready to play.` (`panel.sh:598`–`panel.sh:604`) | Keep all three, and this is where D8's voice belongs |
 | — | audio output | — | not in bash | **New** — the route, per §14 |
 
-- [ ] **`fail` is the only thing that changes the exit code**; `warn` is printed
+- [x] **`fail` is the only thing that changes the exit code**; `warn` is printed
       and counted and does not (`panel.sh:577`, `panel.sh:598`). Ten of the
       fourteen can only ever warn — the check exists to explain, not to gate.
-- [ ] The gate is separate from the check and comes after it: `--check` exits on
+      `Report.exitCode` is `failed ? 1 : 0` and nothing else feeds it.
+- [x] The gate is separate from the check and comes after it: `--check` exits on
       its own verdict (`player:531`), and a normal run dies independently if mpv,
       ffprobe or `nc` are missing (`player:538`). Natively the second gate is
       almost empty, and that is the point — most of what could go wrong is a
-      degraded picture, not a refusal.
-- [ ] Every check is `ok`/`warn`/`fail` **plus a fix**, never a bare status. The
-      fix is the reason the screen exists.
+      degraded picture, not a refusal. **Here it is empty outright**: none of the
+      three binaries the script gates on is needed, so there is no second gate to
+      write.
+- [x] Every check is `ok`/`warn`/`fail` **plus a fix**, never a bare status. The
+      fix is the reason the screen exists — and on a 69-column panel a fix that
+      does not fit **turns over** rather than being cut (`Columns.wrap`), because
+      the half of the line that gets cut is the half that tells you what to do.
+
+### 11.1a What this port prints, row by row
+
+The list above is bash's. This is the screen as it stands, walked against it:
+twelve rows where bash has fourteen, and **nothing goes silent** — a subsystem
+the port cannot yet report on says so in its own row rather than being left off.
+
+| Port row | Was | Marks and details, verbatim |
+| --- | --- | --- |
+| `playback` | `mpv` (`player:349`) | **ok** `AVFoundation — the engine is part of the system`. Cannot fail; kept because "where did the mpv check go" is a question this screen exists to answer |
+| `metadata` | `ffprobe` (`player:361`) | **ok** `AVFoundation, with ffprobe at <path>` · **warn** `AVFoundation only — no ffprobe, so Opus and Ogg may not read. brew install ffmpeg`. **A fail becomes a warn**: bash needed ffprobe for every tag, this needs it only for what AVFoundation will not take |
+| `analyser` | `analyser` (`player:371`) | **ok** `an AVAudioEngine tap — the columns are the audio itself`. §9's FFT is the audio, so the pattern fallback has nothing left to fall back from |
+| `zips` | `mpv archives` + `zips` (`player:355`, `player:379`) | **ok** `read where they lie — no tar, no unzip, no charset to get wrong`. Two rows collapse into one and bash's hard fail disappears with them (§2.2, `player:256`) |
+| `optical drive` | `optical drive` (`player:395`) | **warn** `drutil not found — CDs cannot be detected` · **warn** `no disc, or no drive` · **warn** `media: <type> — the disc source is not built yet, so it cannot be played` |
+| `CD-Text` | `CD-Text` (`player:402`) | **ok** `cdda2wav present` / `cdrecord present` · **warn** `no cdrtools — discs fall back to MusicBrainz or numbers`. Presence only — **nothing here opens the drive** |
+| `MusicBrainz` | `MusicBrainz` (`player:410`) | **ok** `URLSession — no curl, no jq. Reached when a disc needs naming, never before` · **warn** `disabled with MUTHUR_NO_MB — untitled discs stay untitled` |
+| `scratch space` | `scratch space` (`player:423`) | **ok** `<N> free in <dir>` · **warn** `<N> free in <dir> — cache dir unwritable, so long albums may be reclaimed mid-play` · **fail** `cannot write to <dir> — zips cannot be opened`. All three, and it is the only row that can fail |
+| `sleeve` | `cover` (`player:454`) | **ok** `beside the record, then the tags, then the archive — at the size the window has` · **ok** `off — no picture is looked for` |
+| `audio output` | — | **warn** `<device> — the route is read once, and changing it mid-record is not handled yet` · **warn** `CoreAudio named no default output device`. **New** (§14) |
+| `the shelf` | — | **ok** `<N> records in <path>` · **warn** `no catalogue at <path> — records play, they just arrive unannotated` · **warn** `<path> has no title column — nothing can be looked up in it`. **New** (§8) |
+| `records` | — | **ok** `<N> in <dirs>` · **warn** `nothing to play in <dirs>`. **New** (§1, and the calm form of `player:1114`) |
+
+**`optical drive` does not go quiet because §1.3 is deferred.** It is asked
+first, with `drutil` and nothing that opens the device (`burncd:278`), and when
+there *is* a disc it says so and then says it cannot play it — `media: CD-ROM —
+the disc source is not built yet, so it cannot be played`. Printing `media:
+CD-ROM` alone would read as a promise; omitting the row would be worse than
+either.
+
+**Five bash rows are gone and each one is gone for a reason**, not by omission:
+`mpv` and `unix sockets` (there is no mpv to drive), `mpv archives` (zips are
+read where they lie), `terminal` and `window size` (there is no terminal, and
+the window's own arithmetic is §10's, checked every frame rather than once at
+startup).
 
 ---
 
@@ -1869,7 +2007,7 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-thirty-five are settled. Recorded here with the answer so that a departure from
+thirty-nine are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -1888,7 +2026,13 @@ keycaps and widths and scroll window, and §9's autoscale, which is the one that
 had to be measured before it could be decided. **D34 and D35** came out of §8:
 the first answers §18.3 and is a decision *not* to improve the script, the second
 is a divergence the script's own comment invites and turned out to be the
-difference between reading the real catalogue and reading nothing at all.
+difference between reading the real catalogue and reading nothing at all. **D36**
+came out of binding ⌘O, and **D37–D39** out of §11: the third place after D15 and
+D21 where the port takes the better of two readings — and it is the *author's own*
+better reading, in `burncd` rather than in `player` — plus one about drawing the
+check in the panel's single colour, and one that declines an improvement §17 had
+asked for, on the grounds that the screen you run when nothing works is the last
+screen that should be allowed to hang.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1997,7 +2141,7 @@ done and reaches 100 exactly once. Making it count only the readable files means
 a denominator you cannot know until you have finished, which is a meter that
 jumps. Left alone deliberately, not inherited by accident.
 
-**D11 — `UNTAGGED`. Finished, as derived data.** → §18.15, §15, §10
+**D11 — `UNTAGGED`. Finished, as derived data.** → §18.15, §18.27, §15, §10
 
 The flag looks like the start of a notice that was never built, so build the
 notice. But not as a flag: `Record.unnumberedCount` is computed from the rows
@@ -2708,6 +2852,121 @@ why the material tier of §8 reads the real file rather than a fixture: every
 rules-tier test passed on LF strings while the live catalogue found nothing at
 all.
 
+**D36 — the empty panel is a port invention, and ⌘O is its way out.** → §1.2, §10
+
+The script never has a panel with no record in it. `pick_source` **dies where it
+stands** when the scan found nothing — `die "nothing to play. Put an album in
+${PLAYER_DIRS:-~/Music or ~/Downloads}, or a CD in the drive"` (`player:1114`) —
+and **exits 0** when the user walks away from the picker (`screen_off; exit 0`,
+`player:3532`). `open_source` runs before a frame is drawn (`player:3535`). It
+either picks or it dies; there is no third state and therefore nothing for a
+third state to say.
+
+**A window cannot die on the user like that.** Launched from the Dock with an
+empty `~/Music`, this app has to stay on screen and account for itself, so
+`EmptyPanelView` exists here and nowhere in the original. It is marked as an
+invention in its own comment rather than left looking like parity.
+
+Having invented the state, the port owes it an exit — which is why this is
+settled by **binding the key rather than rewording the line**. `File ▸ Open
+Record…` carries ⌘O and opens a folder or a zip through `SourceOpener.resolve`;
+anything else is refused into `model.die` in the panel's own voice, the same
+words `player:3524` uses. Rewording would have made the faceplate honest and the
+panel a dead end, which is the worse of the two, and the keystroke the empty
+panel already named is the one a Mac user would have reached for regardless.
+
+**D37 — `drutil`'s `Type:` line is read `burncd`'s way, not `player`'s.** → §11,
+§1.3
+
+`player:396` takes the media type with `awk -F: '/Type:/ { print $2; exit }'`.
+On a colon split, `$2` is everything between the first colon and the *second* —
+and `drutil` packs two columns onto that line, so on a drive with a disc in it
+the field is `CD-ROM       Name` and the script prints `media: CD-ROM Name`. The
+empty-bay test has the same shape of hole: `[ -n "$v" ]` (`player:397`) cannot
+catch `No Media Inserted`, because that is a perfectly good non-empty string.
+
+**This is not the port second-guessing the author.** `burncd` is the same author
+reading the same command's output and getting it right, with the trap written
+down beside the fix: *"drutil packs two columns onto the Type line … so take the
+first word after the label and leave the rest of the row"* (`burncd:322`), then
+`sed -n 's/.*Type:[[:space:]]*\([^[:space:]]*\).*/\1/p'` (`burncd:324`), and a
+case-insensitive `no media` test on the whole status (`burncd:319`). Where two
+implementations by one author disagree, the later one wins — particularly the
+one that carries its own reasoning. `Diagnostics.mediaType` is `burncd`'s.
+
+Found by a test that expected the type and got `DVD-R\t  Name: /dev/disk4`. §1.3
+inherits this when it arrives; nothing in `cd-collection` is touched.
+
+**D38 — the check screen is drawn in one colour.** → §11, §10
+
+`ck` marks its rows in three hues — `✓` green, `!` yellow, `✗` red
+(`panel.sh:588`–`panel.sh:591`). This panel is an amber phosphor and §10's rule
+is already settled: *"one colour throughout, running brighter toward white in the
+core — a brighter character is the same phosphor harder."* Three hues would be
+the one place the whole screen breaks its own rule, and it would break it on the
+screen that exists to be trusted.
+
+So the marks climb the panel's own ramp instead of crossing it: `✓` sits back in
+the chassis (`amber(.deep)`), `!` is lit (`amber(.amber)`), `✗` is lit hard
+(`amber(.lit)`). Monotone, and it runs the same direction the trouble does —
+which is what the hues were doing in the terminal anyway. The detail beside an
+`ok` row is `Theme.dim` and beside a `warn` or `fail` row is `Theme.text`, so the
+lines you have to read are the bright ones. The verdict is the single amber line,
+which is D8's boundary and not a fourth mark.
+
+One consequence: **the detail wraps rather than truncating.** The panel is 69
+columns whatever the window does, which leaves 44 after the margin, the mark and
+the twenty-column label — and `no cdrtools — discs fall back to MusicBrainz or
+numbers` is fifty-four. §11 requires every check to carry a fix, so a line too
+wide turns over onto a second row indented to the detail column (`Columns.wrap`).
+`--check` on a terminal wraps nothing, because a terminal is as wide as it is.
+
+**D39 — the check does not go to the network.** → §11, §17, §4.1
+
+§17 asks for MusicBrainz *reachability* rather than bash's test for `curl` and
+`jq` (`player:410`), on the fair argument that the native stack could actually
+ask. It does not, and this settles it in the negative.
+
+`--check` is the thing you run when nothing works, and *when nothing works* very
+often means a captive portal, a VPN half up, or DNS that will take thirty seconds
+to admit defeat. A diagnostic that hangs is worse than one that is candid about
+what it has not tried. The row reports what the lookup will do and when —
+`URLSession — no curl, no jq. Reached when a disc needs naming, never before` —
+and reports the one thing that is both knowable and locally true, which is
+whether the lookup has been switched off. §4.1's own failure paths already say
+what an unreachable MusicBrainz costs, at the moment it costs it.
+
+**D40 — the ffmpeg question lives on the `playback` row, and asks after both
+binaries.** → §11, §17
+
+Bash asked about `ffmpeg` on its `analyser` row and was explicit about why:
+"ffmpeg itself, not ffprobe: the analyser measures a track's spectrum ahead of
+playing it" (`player:367`), warning `no ffmpeg — the columns fall back to a
+pattern` (`player:374`). §9 taps the engine instead, so that row lost its
+subject — and **the binary went with it**. Nothing in `--check` asked after
+`ffmpeg` any more, while `AudioSourceOpener` still refused to open an Opus
+without it. A machine with `ffprobe` and no `ffmpeg` reported `ok` on every row
+and then would not play four formats.
+
+The question goes to `playback` because that is the row whose subject is what
+plays the audio — the row bash's hard-failing `mpv` check (`player:349`) became.
+The engine itself cannot fail there, since it ships with the machine, but half
+of what plays the audio is still a binary.
+
+It asks after **both** `ffmpeg` and `ffprobe`, and names whichever is missing.
+The fallback needs both — `ffprobe` to find out what is in the file, `ffmpeg` to
+decode it — and `open` refuses on either (`AudioSource.swift:78`). A row that
+only asked after `ffmpeg` would be the same hole one binary along.
+
+Rejected: leaving it on `analyser`. The row would have been asking after a
+binary it no longer uses to explain a consequence it no longer has, and the
+sentence it printed would have been false in both halves. The `analyser` row
+now depends on nothing, and there is a test that says so.
+
+The four formats are named in one place — `AudioSourceOpener.fallbackOrder`, an
+array rather than a set precisely because §11 reads them out to a person and a
+set would name them in a different order every launch.
+
 ---
 
 ## 17. When something is missing
@@ -2719,52 +2978,84 @@ record.** Everything else quietly becomes a worse panel.
 
 ### No network
 
-- [ ] Every MusicBrainz and Cover Art Archive failure is silent and
+- [x] Every MusicBrainz and Cover Art Archive failure is silent and
       indistinguishable from every other one. No error, no retry prompt, no
-      "offline" indicator anywhere on the panel (`player:2171`).
-- [ ] A disc with no CD-Text and no network plays as `Track 01…Track NN`, source
+      "offline" indicator anywhere on the panel (`player:2171`). Asserted as the
+      **absence of a vocabulary** — every string the panel can draw is gathered
+      and none of them contains `OFFLINE`, `NETWORK`, `CONNECTION`, `RETRY`,
+      `UNAVAILABLE` or `LOOKUP FAILED`. Not `MUSICBRAINZ`, which the faceplate
+      says out loud and should: it is the title *source*, and it appears only
+      when the lookup answered.
+- [x] A disc with no CD-Text and no network plays as `Track 01…Track NN`, source
       `track numbers`, and the panel says so (`player:2237`, `player:2254`).
-- [ ] A folder plays entirely normally: tags are local, and the only thing lost
+      Resolved with no CD-Text and a dead transport: nine tracks, faceplate
+      `PLAYING · 9 TRACKS · track numbers`, and all three stages of the chain
+      tried in order before it settled there.
+- [x] A folder plays entirely normally: tags are local, and the only thing lost
       is a cover that was not already beside the record or in the file.
 - [x] **The script's one durable consequence — a purely offline art fetch still
       writes a `.none` marker** (`player:1921`), so an album whose cover was
       looked for during an outage has no cover for the next **14 days**. Raised
       as §18.4 and answered: we do not carry it (D14). An outage now costs
       nothing beyond the play it happened on.
-- [ ] `--check` reports MusicBrainz as reachable tooling, not as reachability
-      (`player:410`). Natively it should actually ask.
+- [x] `--check` reports MusicBrainz as reachable tooling, not as reachability
+      (`player:410`). Natively it should actually ask — **and answered: it does
+      not (D39)**. The row says what the lookup will try and when, which is a
+      true statement that costs nothing; a probe would make the one screen you
+      run when nothing works the one screen that hangs.
 
 ### No CD drive, or no disc in it
 
+**This is where §17 splits.** Each of the first two boxes is one sentence with
+two halves — a `--check` half, which exists, and a detection half, which is
+§1.3 and does not. The `--check` halves are done and tested; the boxes stay open
+because half a box is not a box.
+
 - [ ] `drutil` absent → `--check` warns `drutil not found — CDs cannot be
-      detected` (`player:399`) and `find_cd` returns nothing (`player:965`).
+      detected` (`player:399`) — **done** — and `find_cd` returns nothing
+      (`player:965`) — **§1.3**.
 - [ ] `drutil` present, tray empty → `--check` warns `no disc, or no drive`
-      (`player:397`); the picker simply has no disc row (`player:1018`); `--cd`
-      dies with `no audio CD in the drive` (`player:3528`).
-- [ ] **Not having a drive is not a warning worth escalating.** Most Macs have
+      (`player:397`) — **done**; the picker simply has no disc row
+      (`player:1018`) and `--cd` dies with `no audio CD in the drive`
+      (`player:3528`) — **§1.3**.
+- [x] **Not having a drive is not a warning worth escalating.** Most Macs have
       not had one for a decade, and the check says so in one line and moves on.
+      Held against all three drutil outcomes crossed with a machine that has the
+      fallback tooling and one that does not: `warn` every time, exit code 0
+      every time, and the verdict still opens `I CAN PLAY A RECORD`. Nothing
+      about the drive can gate the program.
 
 ### A disc that will not read
 
 - [ ] `drutil` says media is present but nothing mounts → detection falls through
       to the `/Volumes` scan and finds nothing; the disc is invisible
       (`player:1000`). There is no "the disc is unreadable" message and there
-      never was one.
-- [ ] A disc that mounts and then stops responding is §6.3: the first failed
+      never was one. **§1.3** — the third box at the seam, and the only one with
+      no half already standing.
+- [x] A disc that mounts and then stops responding is §6.3: the first failed
       track stops the record, mode `STOPPED`, whole-record stat, and the message
       distinguishes files missing from files unreadable (`player:3285`,
-      `player:3315`).
-- [ ] CD-Text tooling that errors is treated exactly as CD-Text absent
-      (`player:2064`) — down to MusicBrainz, then to track numbers.
-- [ ] A partially readable disc plays what it can: `read_metadata` skips files
+      `player:3315`). The two sentences are held apart by assertion, not by
+      inspection: `9 OF 9 TRACKS ARE NO LONGER ON DISK — STOPPED HERE` and the
+      unreadable line share no wording.
+- [x] CD-Text tooling that errors is treated exactly as CD-Text absent
+      (`player:2064`) — down to MusicBrainz, then to track numbers. Three
+      different error strings through the reader, `track numbers` each time.
+- [x] A partially readable disc plays what it can: `read_metadata` skips files
       ffprobe cannot open (`player:1445`), and only zero readable files is fatal
-      (`player:1494`).
+      (`player:1494`). Nine files with the fourth unreadable gives an eight-track
+      record numbered 1,2,3,5,6,7,8,9 — **the counter still advances over the
+      skipped file**, which is why the numbers have a hole in them and the
+      progress percentages are ninths, not eighths. Both fatal cases throw: no
+      readable audio, and no audio at all.
 
 ### A folder with mixed formats
 
-- [ ] Thirteen extensions, case-insensitive, in one album with no special case
+- [x] **Twelve** extensions, case-insensitive, in one album with no special case
       anywhere (`player:1046`). A folder of FLACs with one MP3 bonus track is one
-      album.
+      album. This box said *thirteen* until it was counted against
+      `player:1046–1048`: aif, aiff, flac, mp3, ogg, opus, wav, m4a, wma, ape,
+      alac, mp4 — twelve `-iname` terms, and the port carries the same twelve.
 - [x] **Gapless must bridge a format, rate or layout change**, which is the
       §6 requirement restated: this is exactly the album where the seam would
       show (`player:2481`). Measured both ways round, and honestly: see §6.
@@ -2779,19 +3070,29 @@ record.** Everything else quietly becomes a worse panel.
 
 ### A folder with no metadata at all
 
-- [ ] Every track sorts on key 9999 and is ordered by natural filename
+- [x] Every track sorts on key 9999 and is ordered by natural filename
       (`player:1451`, `player:1511`) — which for `01 … 12` is the right answer
       by accident, and for `Track A/Track B` is the only answer available.
-- [ ] Every title is the file's basename (`player:1481`).
-- [ ] Album is the folder's own name, or the zip's minus `.zip`
+- [x] Every title is the file's basename (`player:1481`) — **with the
+      extension**, because that is what `basename "$f"` gives and the script
+      never strips it.
+- [x] Album is the folder's own name, or the zip's minus `.zip`
       (`player:1497`). Artist and year stay empty and the panel simply has less
-      on it — no placeholder, no "Unknown Artist".
-- [ ] Source stays `tags` even when there were none, because for a folder there
+      on it — no placeholder, no "Unknown Artist". Asserted as a header block of
+      exactly `ALBUM`, `ARTIST`, `SOURCE` whose artist value is `—` and which
+      contains none of "Unknown", "Various", "N/A" or "Untitled". See §18.27:
+      D11's untitled-track notice is the one thing in this section that is not
+      yet drawn, and it is in tension with this box.
+- [x] Source stays `tags` even when there were none, because for a folder there
       is nothing else it could be. Only a CD gets a fallback chain (§4).
-- [ ] The sleeve is still looked for beside the record (§5.1), which for an
+- [x] The sleeve is still looked for beside the record (§5.1), which for an
       untagged folder is usually the only thing that finds one — the name-based
-      MusicBrainz search (§5.3) has an album name and no artist and returns
-      nothing, on purpose (`player:1803`).
+      MusicBrainz search (§5.3) has an album name and no artist and **still
+      asks**, and returns nothing on purpose. The box used to read as though the
+      script skipped the query; it does not. `mb_query` at `player:1825` drops
+      only the `artist:` clause and sends `release:"Some Rip"` anyway
+      (`player:1803–1807`) — the miss comes from the **quoted phrase**, which
+      has to match the release title exactly, not from declining to ask.
 
 ### The album disappears mid-play
 
@@ -2803,14 +3104,19 @@ record.** Everything else quietly becomes a worse panel.
 
 ### No ffmpeg
 
-- [ ] Bash: `--check` warns `no ffmpeg — the columns fall back to a pattern`
+- [x] Bash: `--check` warns `no ffmpeg — the columns fall back to a pattern`
       (`player:367`, `player:374`); `SPEC_OK` goes to 0 (`player:253`) and the
       analyser draws
       two travelling waves that never settle into a loop (`player:928`).
-- [ ] Native: ffmpeg is the *fallback decoder* only (`CLAUDE.md`), so its absence
+      Recorded, not carried: no row in the port can say "pattern" or
+      "travelling", and nothing is left to fall back from.
+- [x] Native: ffmpeg is the *fallback decoder* only (`CLAUDE.md`), so its absence
       means Opus and Ogg will not play — a different and larger consequence than
       the script's. The analyser is a live tap and does not depend on it at all.
-      `--check` has to say the new thing, not the old one.
+      `--check` has to say the new thing, not the old one. **It now does — D40.**
+      The question moved onto the `playback` row, which is where the script's
+      `mpv` row went and the only row whose subject is what plays the audio. The
+      row asks after **both** binaries, and names whichever is missing.
 
 ---
 
@@ -2821,12 +3127,13 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Of twenty-six, eighteen are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15, 16,
-17, 19, 20, 21, 22, 23 and 25** — each marked below and carrying the decision it
-became. The other eight are open. **17**, **18**, **25** and **26** are the odd ones:
-not `player` behaviours at all, but holes in decisions made here, which is why 17
-and 25 were both answered as fast as they were found. **26** cannot be — it is
-two rules about the year that have never yet been asked the same question. **21** is odder still — not a
+Of twenty-six, nineteen are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15, 16,
+17, 19, 20, 21, 22, 23, 25 and 26** — each marked below and carrying the decision
+it became. The other seven are open. **17**, **18**, **25** and **26** are the odd
+ones: not `player` behaviours at all, but holes in decisions made here, which is
+why 17, 25 and 26 were each answered as fast as they were found — 26 is two rules
+about the year that cannot be asked the same question until §1.3, and was settled
+anyway so that §1.3 inherits one. **21** is odder still — not a
 question but a consequence, listed because it is a difference from the script
 that nobody chose. It was **watched on a real record and measured**, the
 measurement found something worse than the entry assumed *and pointing in a
@@ -3327,6 +3634,81 @@ question is only whether that was the right half to keep. It reads as yes.
     always empty — no test on this machine can tell the two orders apart, and
     none pretends to. It is settled now so that **§1.3 inherits a rule instead of
     stopping to ask for one**, which is the whole value of answering it early.
+
+27. **D11's untitled-track notice was decided and never drawn. — OPEN, and it
+    needs a sentence I would have to invent.** → §17, §10, §16
+
+    D11 reads that the untagged flag "looks like the start of a notice that was
+    never built, so build the notice", and draws the distinction sharply: "*3 of
+    12 tracks are untitled* is a different sentence from *this album has no
+    tags*, and the panel can tell which it is looking at." The counting half is
+    done — `Record` carries `unnumberedCount` and `unreadableCount`, both
+    correct, both tested — and **nothing draws them**. §17 walked straight into
+    the gap: the notice would appear on exactly the records §17's "no metadata at
+    all" boxes are about.
+
+    Three things would have to be invented to build it, and none is derivable
+    from the script, because **the script has no such notice**. `UNTAGGED=1`
+    (`player:1451`) is set and then only ever read to pick a sort key. So:
+
+    - **Where it goes.** The header block is `ALBUM / ARTIST / SOURCE` and §17
+      has just fixed that as exactly three rows with no placeholders. A fourth
+      row is a new row on every record that has one, which the box above
+      explicitly does not want.
+    - **What it says.** D11 gives two example sentences, not the wording, and the
+      script has no vocabulary to match against — this would be the first line in
+      the program with no ancestor.
+    - **When it says it.** A record with one untitled track and a record with
+      twelve are the same flag in bash. D11 implies a threshold. There is no
+      number in the script to take one from.
+
+    It is in tension with §17's "no placeholder, no 'Unknown Artist'" box, which
+    is now ticked: both cannot be maximally true. The counts stay measured and
+    undrawn until this is answered.
+
+28. **`cd_text`'s fallback can be suppressed by the error that should trigger
+    it. — OPEN.** → §4.2, §17
+
+    Found walking §17's "CD-Text tooling that errors is treated exactly as
+    CD-Text absent" box. That box is true, and this is the case where it is true
+    in a way that costs something.
+
+    `cd_text` runs `cdda2wav dev="$DEV" -J -v titles 2>&1` (`player:2071`) and
+    then decides whether to try `cdrecord` by asking whether the capture
+    mentions a title at all:
+
+    ```
+    if ! printf '%s' "$out" | qgrep -i 'title'; then
+      command -v cdrecord >/dev/null && out=$(...cdrecord... 2>&1) || true
+    fi
+    ```
+
+    (`player:2073–2074`.) The test is deliberately not "did it exit cleanly" —
+    the comment on the port's copy says why, and it is right: cdda2wav on a disc
+    with no CD-Text exits however it likes, so the only useful question is
+    whether it printed any titles. **But `2>&1` has already folded stderr into
+    the same string.** Any diagnostic containing the substring `title` — and the
+    verbose keyword being passed is literally `titles`, which tools of this
+    vintage echo back in usage and error banners — satisfies the grep. The
+    fallback is then skipped, `$out` is a page of error text, no `^Track N
+    title:` line matches, and `[ "$titles" -gt 0 ] || return 1` (`player:2111`)
+    returns failure.
+
+    Net effect: **a machine with a broken or unhappy `cdda2wav` and a perfectly
+    good `cdrecord` silently never asks `cdrecord`.** It degrades to MusicBrainz
+    and then to track numbers, which is why nothing ever looked wrong — the
+    failure is indistinguishable from a disc that genuinely has no CD-Text, which
+    is exactly §17's point and exactly what makes it invisible.
+
+    The port inherits this **verbatim and on purpose**: `Tooling.output` puts
+    stdout and stderr on one pipe (`Tooling.swift:58–59`) and the test is the
+    same substring test (`OpticalDrive.swift:98`).
+
+    Not fixed, and not testable this turn — there is a disc being burned and §19
+    is the next conversation. The obvious narrowing is to test for `title:` with
+    the colon, or to anchor on `^Album title:` / `^Track`, both of which are what
+    the parser downstream actually looks for. That is a divergence from the
+    script on a disc path, so it wants a yes before it is written.
 
 ---
 

@@ -37,8 +37,8 @@ public struct HeaderBlock: Sendable, Equatable {
     /// print (`player:2325`).
     static func orDash(_ text: String) -> String { text.isEmpty ? "—" : text }
 
-    /// **D6 — the year is on the panel.** One year, from the first source that
-    /// has one: tags, then the MusicBrainz release date, then the collection.
+    /// **D6 — the year is on the panel.** One year: MusicBrainz where it
+    /// answered, the tags where it did not, the collection last.
     ///
     /// In bash the year appeared only in `-n` (`player:3542`), while the
     /// panel's `SHELF` line carried the *collection's* year (`player:2333`) —
@@ -47,10 +47,18 @@ public struct HeaderBlock: Sendable, Equatable {
     /// set after the artist as `(1979)`, the same shape `-n` prints, and
     /// `SHELF` stops carrying it: where the two disagree, that disagreement is
     /// not worth two lines on a faceplate.
+    ///
+    /// **MusicBrainz ahead of the tags is the script's order, not a
+    /// preference.** `[ -n "$t" ] && YEAR="${t%%-*}"` (`player:2215`)
+    /// overwrites whatever the tags put in `YEAR` with the release date, so
+    /// the lookup is the last writer and wins wherever it spoke. Nothing
+    /// observes the difference until §1.3 hands a release date in — a mounted
+    /// disc carries no tags, so today only one of the three is ever non-empty
+    /// at a time — and the order is settled here so §1.3 inherits it.
     public static func year(tags: String, musicBrainz: String? = nil, collection: String? = nil)
         -> String
     {
-        for candidate in [tags, musicBrainz ?? "", collection ?? ""] where !candidate.isEmpty {
+        for candidate in [musicBrainz ?? "", tags, collection ?? ""] where !candidate.isEmpty {
             return candidate
         }
         return ""

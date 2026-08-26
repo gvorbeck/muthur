@@ -43,6 +43,7 @@ public enum Readout {
     /// (`panel.sh:384`).
     public static func more(_ count: Int) -> String { "▾ \(count) MORE" }
 
+
     // MARK: - The marks in the gutter
 
     /// Two different things are marked on the track list and they are not the
@@ -97,6 +98,10 @@ public enum Readout {
         case next, previous
         case shuffle, repeatMode
         case rescan
+        /// Off the check screen and back to the panel (§11). New — `--check`
+        /// leaves by ending the program (`player:531`), which a window cannot
+        /// do.
+        case close
         case quit
     }
 
@@ -146,6 +151,17 @@ public enum Readout {
             Cap("↑↓", "SELECT", .selectUp, .selectDown),
             Cap("⏎", "OPEN", .jump),
             Cap("R", "RESCAN", .rescan),
+            Cap("Q", "QUIT", .quit),
+        ],
+    ]
+
+    /// The check screen's row (§11). Two things can be done to a health check —
+    /// leave it, or ask it again after fixing something — and `R` is already
+    /// the key that means *go and look again* in the picker.
+    public static let checkLegend: [[Cap]] = [
+        [
+            Cap("⏎", "RETURN", .close),
+            Cap("R", "RECHECK", .rescan),
             Cap("Q", "QUIT", .quit),
         ],
     ]

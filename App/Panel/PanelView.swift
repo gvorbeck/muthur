@@ -39,7 +39,7 @@ struct PanelView: View {
                 Bloom {
                     panel(rows: rows)
                         .background(alignment: .topLeading) {
-                            if !model.isPicking {
+                            if !model.isPicking && !model.isChecking {
                                 BurnIn(marks: burn(rows: rows))
                             }
                         }
@@ -77,7 +77,12 @@ struct PanelView: View {
                 FaceplateView(meta: model.faceplateMeta)
                 PanelBlank()
 
-                if model.isPicking, let entries = model.pickerEntries {
+                // No fixed height, unlike the picker: how tall this screen is
+                // depends on how much the machine had to say, and a check that
+                // is clipped at the bottom loses its verdict.
+                if let report = model.report {
+                    CheckView(report: report)
+                } else if model.isPicking, let entries = model.pickerEntries {
                     PickerView(
                         entries: entries,
                         cursor: model.pickerCursor,
@@ -100,7 +105,7 @@ struct PanelView: View {
                         .frame(height: Grid.rows(rows + 4))
                 }
 
-                if !model.isPicking {
+                if !model.isPicking && !model.isChecking {
                     PanelBlank()
                     MeterView(
                         label: Readout.trackLabel(row: model.state.row, of: trackCount),
@@ -130,7 +135,7 @@ struct PanelView: View {
 
                 PanelBlank()
                 KeycapsView(
-                    legend: model.isPicking ? Readout.pickerLegend : Readout.legend,
+                    legend: legend,
                     press: tapped
                 )
 
@@ -142,6 +147,13 @@ struct PanelView: View {
                 Spacer(minLength: 0)
             }
             .frame(width: Theme.panelWidth, alignment: .leading)
+    }
+
+    /// The row of caps belongs to whatever screen is up. A legend naming keys
+    /// the current screen does not answer is the same lie the dead ⌘O was.
+    private var legend: [[Readout.Cap]] {
+        if model.isChecking { return Readout.checkLegend }
+        return model.isPicking ? Readout.pickerLegend : Readout.legend
     }
 
     // MARK: - How big the sleeve may be (§5)
@@ -277,6 +289,10 @@ struct PanelView: View {
     /// thirty seconds a shift-arrow does. The cap is the key, including the parts
     /// of the key that are not printed on it.
     private func perform(_ press: Readout.Press, shift: Bool = false) {
+        if model.isChecking {
+            performCheck(press)
+            return
+        }
         if model.isPicking {
             performPicker(press)
             return
@@ -293,7 +309,19 @@ struct PanelView: View {
         case .shuffle: model.toggleShuffle()
         case .repeatMode: model.cycleRepeat()
         case .rescan: break
+        case .close: break
         case .quit: NSApplication.shared.terminate(nil)
+        }
+    }
+
+    /// Everything on the check screen either leaves it or runs it again. A cap
+    /// that is not one of those two is not silently ignored — the screen comes
+    /// off, which is what the person pressing `␣` under a diagnosis wants.
+    private func performCheck(_ press: Readout.Press) {
+        switch press {
+        case .rescan: model.check()
+        case .quit: NSApplication.shared.terminate(nil)
+        default: model.closeCheck()
         }
     }
 
@@ -315,6 +343,7 @@ struct PanelView: View {
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        if model.isChecking { return handleCheck(press) }
         if model.isPicking { return handlePicker(press) }
         let shift = press.modifiers.contains(.shift)
         switch press.key {
@@ -336,6 +365,15 @@ struct PanelView: View {
             perform(.jump)
         default:
             return letter(press)
+        }
+        return .handled
+    }
+
+    private func handleCheck(_ press: KeyPress) -> KeyPress.Result {
+        switch press.characters.lowercased() {
+        case "r": model.check()
+        case "q": NSApplication.shared.terminate(nil)
+        default: model.closeCheck()
         }
         return .handled
     }
@@ -423,6 +461,16 @@ struct PanelView: View {
 /// What the panel says before there is a record in it. Deliberately not a
 /// mock-up of the list: an empty instrument that looks full is the one thing a
 /// panel this literal must not do.
+///
+/// **This state is a port invention — the script has no equivalent.** There,
+/// `pick_source` either returns a record or ends the program: `die "nothing to
+/// play…"` (`player:1114`) with nothing to scan, `screen_off; exit 0`
+/// (`player:3532`) if the user walks away from the picker, and `open_source`
+/// runs before a frame is ever drawn (`player:3535`). A terminal program is
+/// allowed to say one line and stop. An app launched from the Dock is not, so
+/// the empty panel exists here and nowhere else, and ⌘O — bound in
+/// `MUTHURApp.chooseRecord` — is the way out of it that the script never had to
+/// provide.
 struct EmptyPanelView: View {
     let stage: String?
 

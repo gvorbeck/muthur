@@ -97,4 +97,62 @@ public enum Columns {
         let pad = String(repeating: " ", count: max(0, columns - width(of: cut)))
         return align == .trailing ? pad + cut : cut + pad
     }
+
+    /// Break at spaces so the whole of the text survives on a narrow panel.
+    ///
+    /// Nothing in bash does this — `ck` prints one `printf` line and the
+    /// terminal is as wide as the terminal is (`panel.sh:588`). The panel here
+    /// is 69 columns whatever the window does, and §11's last requirement is
+    /// that every check carries **a fix**: `no cdrtools — discs fall back to
+    /// MusicBrainz or numbers` is fifty-four columns and there are forty-six
+    /// left after the mark and the label. Cutting it would throw away exactly
+    /// the half of the line the screen exists to show, so it turns over
+    /// instead.
+    ///
+    /// A word too long for the measure and with no space in it is nearly always
+    /// a **path**, so it breaks after a separator instead — the tail of a path
+    /// is the half worth reading, and `…/cd-collection/…` tells you nothing
+    /// about which file was found. Anything else over-long is cut, visibly.
+    public static func wrap(_ text: String, to columns: Int) -> [String] {
+        guard columns > 0 else { return [] }
+        var lines: [String] = []
+        var line = ""
+        for unit in units(text, measure: columns) {
+            // No space where the last line ended mid-path: a path is one word
+            // that happens to have been let go of.
+            let joiner = line.isEmpty || line.hasSuffix("/") ? "" : " "
+            let candidate = line + joiner + unit
+            if width(of: candidate) <= columns {
+                line = candidate
+            } else {
+                if !line.isEmpty { lines.append(line) }
+                line = width(of: unit) > columns ? truncate(unit, to: columns) : unit
+            }
+        }
+        if !line.isEmpty { lines.append(line) }
+        return lines.isEmpty ? [""] : lines
+    }
+
+    /// The things `wrap` is allowed to break between: words, and — only where a
+    /// word would not fit on a line of its own — the segments of a path.
+    private static func units(_ text: String, measure: Int) -> [String] {
+        var out: [String] = []
+        for word in text.split(separator: " ", omittingEmptySubsequences: true) {
+            let word = String(word)
+            guard width(of: word) > measure, word.contains("/") else {
+                out.append(word)
+                continue
+            }
+            var piece = ""
+            for character in word {
+                piece.append(character)
+                if character == "/" {
+                    out.append(piece)
+                    piece = ""
+                }
+            }
+            if !piece.isEmpty { out.append(piece) }
+        }
+        return out
+    }
 }

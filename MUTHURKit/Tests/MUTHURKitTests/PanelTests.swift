@@ -681,10 +681,13 @@ struct HeaderBlockTests {
         )
     }
 
-    /// D6. One year, from the first source that has one.
-    @Test("The year comes from the first source that has one")
+    /// D6, as amended. MusicBrainz where it answered, the tags where it did
+    /// not, the collection last — the script's own order, where the lookup
+    /// overwrites the tag year (`player:2215`).
+    @Test("The year comes from MusicBrainz, then the tags, then the collection")
     func year() {
-        #expect(HeaderBlock.year(tags: "1959", musicBrainz: "1997", collection: "2001") == "1959")
+        #expect(HeaderBlock.year(tags: "1959", musicBrainz: "1997", collection: "2001") == "1997")
+        #expect(HeaderBlock.year(tags: "1959", musicBrainz: "", collection: "2001") == "1959")
         #expect(HeaderBlock.year(tags: "", musicBrainz: "1997", collection: "2001") == "1997")
         #expect(HeaderBlock.year(tags: "", musicBrainz: "", collection: "2001") == "2001")
         #expect(HeaderBlock.year(tags: "", musicBrainz: nil, collection: nil) == "")
@@ -854,7 +857,8 @@ struct KeycapTests {
     func wired() {
         let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
         let picker = Set(Readout.pickerLegend.flatMap { $0 }.flatMap(\.presses))
-        let all = playing.union(picker)
+        let check = Set(Readout.checkLegend.flatMap { $0 }.flatMap(\.presses))
+        let all = playing.union(picker).union(check)
         #expect(all == Set(Readout.Press.allCases))
     }
 }
