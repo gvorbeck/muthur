@@ -81,13 +81,18 @@ struct SourceOpenerTests {
         #expect(opened.scratch == nil)
     }
 
-    @Test func openDiscThrows() async throws {
-        await #expect(throws: SourceOpener.Failure.self) {
-            try await SourceOpener.open(
-                url: URL(fileURLWithPath: "/Volumes/disc"),
-                kind: .disc,
-                progress: nil
-            )
+    /// **This used to assert `discNotImplemented`, and §1.3 is why it no longer
+    /// can.** A `.disc` source is now read like any other directory of audio, so
+    /// a mount point with nothing playable on it fails where a folder would —
+    /// `Record.Failure`, from the read — rather than being refused at the door.
+    ///
+    /// The disc's own refusal moved to where the disc is *looked for*:
+    /// `--cd` with an empty drive is `SourceOpener.Failure.noDisc`, raised by
+    /// the caller before there is a URL to open at all (`player:3528`).
+    @Test func openingADiscPathWithNoAudioFailsLikeAnyOtherRead() async throws {
+        let tmp = TempDirectory("disc-empty")
+        await #expect(throws: Record.Failure.self) {
+            try await SourceOpener.open(url: tmp.url, kind: .disc, progress: nil)
         }
     }
 

@@ -34,12 +34,22 @@ public enum SourceScanner {
     ///
     /// Per directory: `.zip`/`.ZIP` files at maxdepth 1, then immediate
     /// subdirectories that contain audio, both sorted `LC_ALL=C`
-    /// (`player:1036`). The disc stub returns nothing — §1.3.
+    /// (`player:1036`).
+    ///
+    /// **The disc goes first, above every directory**, because `scan_sources`
+    /// appends it before it walks the search path at all (`player:1018`). Not a
+    /// ranking — it is the row you almost certainly came for, and the script
+    /// puts it where your eye already is.
     public static func scan(
         directories: [URL],
+        disc: DiscFinder.Found? = nil,
         fileManager: FileManager = .default
     ) -> [PickerEntry] {
         var entries: [PickerEntry] = []
+
+        if let disc {
+            entries.append(discEntry(disc))
+        }
 
         for directory in directories {
             guard fileManager.fileExists(atPath: directory.path) else { continue }
@@ -97,6 +107,27 @@ public enum SourceScanner {
         }
 
         return entries
+    }
+
+    /// The disc's row. `basename "$CD_VOLUME"` for the label (`player:1020`),
+    /// and the count is **D18's**: `AudioFiles`, one definition of audio
+    /// everywhere, rather than the script's `grep -ic '\.aiff\?$'`.
+    ///
+    /// One level deep, because the script counts with `ls` and not with `find`
+    /// (`player:1019`) — and because a CDDA mount is flat, so anything nested
+    /// under one is not a track.
+    ///
+    /// **The count and the detection use different definitions on purpose.**
+    /// `DiscFinder.aiffCount` asks "does this look like a disc" and stays narrow;
+    /// this asks "how many tracks does the disc have" and stays wide. D18 is
+    /// only ever about the second.
+    static func discEntry(_ disc: DiscFinder.Found) -> PickerEntry {
+        let count = AudioFiles.scan(disc.volume, maxDepth: 1).count
+        return PickerEntry(
+            kind: .disc, url: disc.volume,
+            label: disc.volume.lastPathComponent,
+            detail: PickerEntry.discDetail(trackCount: count)
+        )
     }
 
     private static func fileSize(_ url: URL, fileManager: FileManager) -> UInt64 {

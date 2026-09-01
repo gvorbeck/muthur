@@ -37,7 +37,38 @@ part worth porting.
 
 ## Status
 
-**253 of 286 boxes** (§19 is a procedure, not boxes, and is not counted). §5,
+**270 of 287 boxes** (§19 is a procedure, not boxes, and is not counted; it
+stands separately at 10 of 31).
+
+**The denominator did not move again.** §14 ticked two — real cover art at real
+resolution, and the media keys with Now Playing — and added none. It could not
+have: §14 is the one section with no `player` behind it, so its boxes were
+written from `spec.md` before any of it existed, and implementing them can only
+ever close boxes that were already there. Three of §14's six open boxes are
+blocked on hardware and material rather than on work and are listed as such at
+the section; the fourth, the Dock, is written but only a third looked at, and a
+box that is two-thirds of a box is not a box.
+
+**The denominator did not move the time before, either, and that is the point of
+recording it.** §1.3 ticked thirteen boxes — one in §1.1 (`--cd`), two in §1.2 (the
+disc row, D18's count), all seven of §1.3, and the last three of §17 — and added
+none, because everything it implements was already written down as a requirement.
+§19 grew 28 → 31 for step 13, and §19 is uncounted, so the figure below the line
+moves and the figure above it does not. That is the shape a section landing
+cleanly should have. `--no-mb` landed after it and ticks the fourteenth, again
+adding nothing: the requirement was already written, and what was missing was
+the wire from the flag to the opener.
+
+**The rule, restated so it keeps working.** The denominator moved once, 286 →
+287, when D44 added §4.3's `.TOC.plist` reader at line 864 — a requirement this
+document did not previously have, discovered by putting a disc in the drive. **A
+new requirement is the only thing that may move it.** If it moves again and no
+box was added for a behaviour newly discovered to be required, that is drift — a
+miscount, a box that got split, a box quietly reworded into two — and it should
+be found and reversed rather than absorbed. Both figures here were re-derived by
+counting the file, not carried forward from the last edit.
+
+§5,
 §5.1, §5.2 and §5.3 are done whole — nineteen boxes, none held back — and D14
 takes one of §17's with them, the only durable consequence an outage used to
 have. §4, §4.1, §4.3 and §4.4 are done bar one box, and §4.2 bar one: both of
@@ -104,15 +135,16 @@ rather than being cut), and **D39** (the check does not go to the network, which
 declines the improvement §17 asked for) — and no new questions. Every other entry
 in this document should be read as outstanding.
 
-**§17 is the newest, and it is the first section that stops at a seam rather than
-finishing.** Fifteen of its eighteen boxes are closed; three are not, and they
-are three halves of §1.3 rather than three failures — `find_cd` returning nothing
+**§17 stopped at a seam rather than finishing, and §1.3 closed it.** Fifteen of
+its eighteen boxes were closed and three were not, and those three were three
+halves of §1.3 rather than three failures — `find_cd` returning nothing
 (`player:965`), the picker having no disc row (`player:1018`), and media that is
-present but never mounts (`player:1000`). The `--check` halves of the first two
-already exist and are tested; a box with one half standing is still an open box,
-and it stays open. **Nothing in §17 went near the drive**, by your call — every
-degraded path in it is reachable with stubs, which is most of why it was the
-right block to take with a burn running.
+present but never mounts (`player:1000`). The `--check` halves already existed
+and were tested; a box with one half standing is still an open box, so they
+stayed open. **All eighteen are closed now.** Note what did *not* change to close
+them: nothing in §17 or §1.3 goes near the drive. Detection reads the mount table
+and `drutil status`, which are answers about the drive and not conversations with
+it, so the whole section is still reachable with stubs.
 
 The section is mostly assertions that a message does *not* exist, which is not
 something a feature test ever accidentally covers: the panel has no vocabulary
@@ -157,14 +189,29 @@ source layer**, now opens folders and zips and hands the result to §3 —
 deleted, and everything that was waiting on the source layer to carry
 `SourceKind` and `TitleSource` is unblocked. The two §2.2 boxes (zip provenance
 reaching `Record.read`, D12 switched on for real zips) are ticked. `TitleSource`
-is stamped `.tags` on every folder and zip by `SourceOpener.open`. What remains
-of §1 is **§1.3**
-(disc detection and playback — the drive has to be present), and four of the five
-§1.1 flags (`--cd`, `--dry-run`, `--no-mb`, `--help`); `--check` is ticked with
-§11.
+is stamped `.tags` on every folder and zip by `SourceOpener.open`. What remained
+of §1 was **§1.3** (disc detection) and four of the five §1.1 flags; `--check`
+was ticked with §11.
 
-**§1.3 is deliberately not written.** Disc detection wants the drive present, by
-your call; §19 is the list it gets written against.
+**§1.3 is written.** `DiscFinder` ports `find_cd` behind a probes seam like
+§11's — `mount`, `drutil status`, the `/Volumes` glob, a listing, `[ -d ]` and
+`command -v drutil` are six closures — so every branch is reachable with an empty
+drive, and thirty-four tests take them; `LaunchOptions` gets ten of its own. It
+parses the flag set, and `--cd` is ticked out of §1.1 with it; the picker's disc
+row and D18's count land with §1.2; §17's last three boxes close. **What it does not have is a disc**: the
+one D44 was learned on was ejected before any of this was written, so the
+disc-present half rests on output transcribed off that disc and replayed through
+the seam, and §19 step 13 is the three assertions that will settle it the next
+time one goes in. The split between what ran on hardware and what ran on stubs is
+written into §1.3's boxes one at a time rather than summarised, because they are
+different kinds of confidence and a summary blurs them.
+
+Two §1.1 flags stay open, and the reason is the same in both cases: **the parse
+is not the flag.** `--dry-run` and `--help` are recognised so they are not
+mistaken for a path, and nothing consumes them. They are named here so a done
+parse is not read as a done flag. `--no-mb` was the third of these and is now
+threaded — one merge of flag and environment, asked by §11's row and §4's disc
+path alike.
 
 **§18.4** came due while §5 was being written and is answered — **D14**: the
 `.none` marker is written only when something at the far end actually replied.
@@ -478,17 +525,45 @@ material is not there.
 - [x] Anything else that exists → `not a zip or a folder` (`player:3524`).
 - [x] A path that does not exist → `no such file or directory` (`player:3518`).
 - [x] Exactly one source argument; a second is an error (`player:337`).
-- [ ] `--cd` → the disc, or die `no audio CD in the drive` (`player:3527`).
+- [x] `--cd` → the disc, or die `no audio CD in the drive` (`player:3527`).
+      **A path beats it**, both orders, which is `player:3517`'s own precedence:
+      naming a record and asking for the disc in the same breath is not an error
+      and the record wins. `LaunchOptions` parses the whole flag set rather than
+      just this one, so `-*` dies as an unknown option instead of being opened as
+      a file — the failure mode of guessing is opening something nobody asked
+      for.
 - [ ] `-n` / `--dry-run` → read it, print the album, play nothing
-      (`player:331`, `player:3540`).
+      (`player:331`, `player:3540`). **Parsed, not acted on.** `LaunchOptions`
+      recognises it so it is not mistaken for a path; nothing consumes it yet.
 - [x] `--check` → diagnostics, exit non-zero on hard failure (`player:332`,
       `player:531`). **Answered before `NSApplication` starts**, in `App/main.swift`
       rather than by `@main` on `MUTHURApp`: the flag's whole value is that it
       prints, sets a code and *ends*, and an answer that arrives after a Dock
       icon has bounced and a window has opened is not that flag. Printed in
       `ck`'s own layout without the colour (`Report.plainText`, `panel.sh:588`).
-- [ ] `--no-mb` → never ask MusicBrainz (`player:334`, `player:81`).
+- [x] `--no-mb` → never ask MusicBrainz (`player:334`, `player:81`).
+      **Two names for one state, merged once.** The script has the same pair —
+      `USE_MB="${PLAYER_MB:-1}"` and `--no-mb) USE_MB=0` — and merges them into
+      one variable before anything reads it, which is why `run_check`
+      (`player:410`) and the lookup (`player:1839`) can never disagree.
+      `SourceOpener.musicBrainzSwitch` is that merge: §11's row and §4's disc
+      path both ask it, and neither reads the environment on its own any more.
+      Either switch alone is enough and nothing switches it back on, which is
+      what `[ "$USE_MB" = 1 ]` says. `MUTHUR_NO_MB` is inverted from
+      `PLAYER_MB` and reads like every other `NO_` variable: unset, `0` and
+      empty are on.
+      The flag rides on `SourceOpener.open` rather than on `openDisc`, and is
+      latched on `PanelModel` at launch — a disc put in later and opened off the
+      picker (`r`, §1.2) is still this session's disc, and a flag that only
+      worked when the disc was named on the command line would be a flag that
+      quietly stopped working. `--check --no-mb` warns without a variable set,
+      which is the one thing that could not be reached before.
+      **One divergence in the wording**: `player:411` names `--no-mb` whichever
+      switch did it, because the script had one message to write. The port has
+      two names in play, so the row names the one that is actually set — naming
+      the wrong one sends the reader to the wrong switch.
 - [ ] `-h` / `--help` → the header comment, reprinted (`panel.sh:269`).
+      **Parsed, not acted on**, same as `--dry-run`.
 
 ### 1.2 The picker
 
@@ -497,8 +572,10 @@ material is not there.
 - [x] `find -maxdepth 1`: loose zips, and immediate subdirectories that contain
       audio. The *scan* stays one level deep — the picker offers albums, not
       every folder on the disk (`player:1031`).
-- [ ] The disc, when there is one, is listed **first** — if there is a disc in
+- [x] The disc, when there is one, is listed **first** — if there is a disc in
       the drive it is almost certainly what you came to play (`player:1018`).
+      Above every scanned directory, not merely above the first one, because
+      `scan_sources` appends it before it walks the search path at all.
 - [x] Per-row detail column: `N tracks · in the drive`, `<du -h> · zip`,
       `N tracks · folder`. **Corrected while §1.3 was being read into.** This box
       was ticked with `PickerEntry.discDetail` returning `N tracks · disc`, and
@@ -510,13 +587,21 @@ material is not there.
       ever one drive and what is in it is the fact you are choosing on. Same
       shape of fault as D41 and found the same way, by going back to the source
       rather than to the code.
-- [ ] **Changed from bash (D18).** The disc's count is the same count every other
+- [x] **Changed from bash (D18).** The disc's count is the same count every other
       row uses, not `ls | grep -ic '\.aiff\?'` (`player:1019`). A CDDA mount is
       AIFF today and the grep is right today; it is right by coincidence, and the
       row it is wrong in is the one offering you the disc — `0 tracks · in the
       drive` beside a disc that plays perfectly reads as a broken drive. One
       counter for all three source kinds, which is also the shape D7 gave the
       other two.
+
+      **D18 does not widen the AIFF grep in §1.3, and that is not an
+      inconsistency.** The grep survives, unchanged, where `find_cd` uses it to
+      decide *whether a volume is a disc at all* — widening that would make any
+      shelf of mp3s answer to "is there a CD in the drive". D18 is about the
+      other question, *how many tracks this disc has*, and there the wide count
+      is right. Two counts, two questions; the mistake would be assuming one
+      definition because they are spelled the same way in bash.
 - [x] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
 - [x] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
 - [x] A folder is offered only if it contains audio (`player:1039`).
@@ -539,19 +624,59 @@ material is not there.
 
 ### 1.3 The disc
 
-- [ ] `drutil status` is asked **before** any `/Volumes` scan. The drive knows
+**Where the confidence in this section comes from, before the boxes.** `find_cd`
+sits behind a probes seam like §11's — `mount`, `drutil status`, the `/Volumes`
+glob, a directory listing, `[ -d ]` and `command -v drutil` are six closures, so
+every branch below is reachable from the suite with nothing in the drive.
+Thirty-four tests do that. **That is not the same confidence as a disc, and the two are
+not blurred here**: each box says which it has. Two of the tests are not stubbed
+at all — they run the real probes against whatever this machine currently is and
+assert that `mount`, `drutil` and the finder agree with *each other*, which holds
+with a disc, without one, and without a drive.
+
+At the time these boxes were ticked **the drive was empty** — `Type: No Media
+Inserted`, no `cddafs` line, `/Volumes` holding only `Macintosh HD` and
+`My Passport`. The disc that D44 was learned on had been ejected. So the
+disc-present halves rest on output transcribed off that disc while it was in
+(§19) and replayed through the seam, and on three new §19 tests that will run the
+real thing the next time one is loaded. **Nothing here has been through a
+`cddafs` mount end to end in this port.**
+
+- [x] `drutil status` is asked **before** any `/Volumes` scan. The drive knows
       about a disc that has not finished mounting, and a directory listing cannot
       tell an album from an external drive of field recordings — without the
       drive's answer that drive gets announced as "in the drive" and then has
       CD-Text and MusicBrainz answers about some entirely other disc applied to
-      it (`player:965`, `player:994`, `player:1000`).
-- [ ] Primary detection: a `cddafs` mount, parsed off `mount` output. Split on
+      it (`player:965`, `player:994`, `player:1000`). **Stubs**, and the case
+      that shows why: an external volume of AIFFs called `Field Recordings`
+      passes every shape test `find_cd` has, and only the drive's answer keeps it
+      out. Also load-bearing in the other direction — the `cddafs` route returns
+      before `drutil` is called at all, so the ordering is "drutil before the
+      listing", never "drutil before everything".
+- [x] Primary detection: a `cddafs` mount, parsed off `mount` output. Split on
       the **first** ` on ` and the **last** ` (` so a volume called
       `Live (Remastered)` keeps its name (`player:985`).
-- [ ] Fallback: a `/Volumes` entry whose listing contains `Audio Track`, or ≥ 2
+      **Both splits on stubs; the parse itself on hardware.** The real `mount`
+      table is parsed in an ungated test, and it turned out to hold two lines
+      that are not device mounts at all — `devfs on /dev` and `map auto_home on
+      /System/Volumes/Data/home`, the second with a space *before* the first
+      ` on `. Neither is a problem, for the uninteresting reason that neither is
+      `cddafs`, and the test asserts nothing tighter about the device end than
+      non-empty: a rule the kernel does not honour is worse than no rule. The
+      space-in-a-volume-name case is not hypothetical either — this machine
+      mounts `/dev/disk5s2 on /Volumes/My Passport (exfat, …)`, and it is in the
+      suite as observed.
+- [x] Fallback: a `/Volumes` entry whose listing contains `Audio Track`, or ≥ 2
       `.aif`/`.aiff` files — only once `drutil` has confirmed media
-      (`player:1002`).
-- [ ] **Changed from bash (D17).** The shape test above stays exactly as it is
+      (`player:1002`). **Stubs only, and this one may never run on this
+      platform**: macOS mounts an audio CD `cddafs`, so the kernel route answers
+      first and the fallback is dead code on a healthy Mac. It is kept because
+      the script keeps it and because it is the path a half-mounted disc takes.
+      The ungated hardware test asserts that a `.shape` answer can only happen
+      with no `cddafs` mount and the drive reporting media — so if this fallback
+      ever does fire on real hardware, the suite says so rather than quietly
+      passing.
+- [x] **Changed from bash (D17).** The shape test above stays exactly as it is
       and is **gated on the device**: `drutil status` prints the media's device
       node on the same line as its type — `Type: CD-R   Name: /dev/disk8`
       (`burncd:322`) — so a `/Volumes` entry whose backing device is not the node
@@ -562,7 +687,19 @@ material is not there.
       and MusicBrainz answers, which are about the disc, are written over its
       tracks (`player:1009`). Where drutil names no device, fall back to the
       script's ordered scan: degraded, not refused, per §17.
-- [ ] **`drutil` runs before anything opens the device.** `cdrecord -checkdrive`
+
+      **Stubs, plus one observation.** The gate goes *after* the count guard and
+      *before* the shape tests, so a volume on the wrong node is skipped and the
+      scan carries on rather than giving up. The comparison is a function and not
+      a prefix test, because `/dev/disk1` is a prefix of `/dev/disk10` and the
+      naive version would confirm an internal volume against the disc in the
+      drive; a slice has to be `s` followed by digits. What was seen on the disc
+      itself is that a CDDA mount is the **whole-disk** node —
+      `/dev/disk10 on /Volumes/Deluxe (cddafs, …)` against `drutil`'s
+      `Name: /dev/disk10` — so on a real audio CD it is the *equality* case that
+      fires and the slice case is purely for the fallback. A §19 test now asserts
+      that agreement instead of trusting the one reading.
+- [x] **`drutil` runs before anything opens the device.** `cdrecord -checkdrive`
       and `-prcap` — and any libdiscid read — open the drive *exclusively*, and
       for as long as that lasts macOS lets go of the media, so `drutil` then
       reports `No Media Inserted` about a disc that never moved, and keeps
@@ -571,13 +708,43 @@ material is not there.
       it. Not in `player` — `burncd` is where this was learned — but it is the
       same ordering the first box argues for on entirely different grounds, which
       is a good sign about both.
-- [ ] No ripping step. The mounted CDDA volume is played as it stands
-      (`player:1371`).
-- [ ] A data disc is correctly ignored: it is not a `cddafs` mount
+
+      **By construction rather than by test, and stated as such.** `find_cd`
+      opens nothing at all: it reads the mount table and asks the drive for its
+      status, both of which are answers *about* the drive. There is no ordering
+      to get wrong because there is no second thing in the sequence — which is
+      why this can run on every scan and every rescan without consequence. The
+      rule still binds §4.2, where CD-Text does open the device.
+
+      This is also the box that no longer rests on the rule alone. **Directly
+      observed on the disc** (§19): six `cdrecord -checkdrive` invocations exited
+      255 on every device node, `cdrecord -toc` exited 255 with no `track:` line,
+      `cdda2wav -J -v titles` exited 1 — and `drutil` was unaffected throughout,
+      because a *failed* exclusive open never took the media. The ordering
+      matters for the opens that succeed; what this run showed is that on a
+      mounted audio CD there are none, which is D44.
+- [x] No ripping step. The mounted CDDA volume is played as it stands
+      (`player:1371`). The volume already presents the audio as files; copying
+      them somewhere first would buy nothing and cost the time.
+- [x] A data disc is correctly ignored: it is not a `cddafs` mount
       (`player:985`), and its `/Volumes` listing carries neither `Audio Track`
       nor two AIFFs (`player:1006`). It falls out of detection rather than being
       rejected — there is no "this is a data disc" message and there should not
       be one, because from here it is simply a mounted volume like any other.
+      **Stubs.** Held as three separate refusals, because they fail at three
+      different places: no AIFFs at all never reaches the name test, one AIFF
+      with no `Audio Track` in it passes neither test, and a volume of mp3s is
+      not a disc shape however loaded the drive is.
+
+**One path in this section that no hardware has touched, said plainly.** §4.1's
+rescue — the disc macOS cannot name, whose tracks arrive as `1 Audio Track.aiff`
+— has never fired on a real disc here. The one that was in the drive came with
+real track names, so the rescue was inert on it and §19's tidy-list test had to
+be rewritten to assert the rule on the rows it governs rather than on that disc's
+material. Every branch of `find_cd` that keys on the string `Audio Track` is
+therefore **stub-only**, and stays that way until a disc that macOS cannot name
+goes in. That includes the `/Volumes` fallback's first test, which is the branch
+most likely to matter on such a disc.
 
 ### 1.4 Accepted audio
 
@@ -991,7 +1158,10 @@ Resolution order, and it is deliberate (`player:2004`, `player:2005`):
       was in there at whatever size. Only the first **three** tracks are asked: a
       record that tags its artwork tags it on track one (`player:2025`).
 - [x] **3. The Cover Art Archive**, in the background, cached (`player:1903`,
-      `player:2035`).
+      `player:2035`). **Asked at `front-1200` first and `front-500` second —
+      D45.** The script asks for one size only, `front-500` (`player:1916`),
+      because the biggest sleeve a terminal can draw is a few dozen columns
+      wide. §14's is a Retina display.
 - [x] Nothing ever waits for it. No cover, no network, no window — the panel is
       exactly the panel it would have been (`player:1892`, `player:2035`). The
       fetch is backgrounded and nothing ever joins it; the picture appears when
@@ -1016,7 +1186,8 @@ Resolution order, and it is deliberate (`player:2004`, `player:2005`):
       (`player:1952`, `player:1961`).
 - [x] Anything under **200 px** on a side is skipped as a thumbnail or a label
       logo (`player:1949`). Applies to local files and embedded art, not to the
-      archive, which only ever sends one size.
+      archive, whose sizes are named in the request (D45) and are every one of
+      them far over the floor.
 
 ### 5.2 Validation and caching
 
@@ -1987,7 +2158,7 @@ the port cannot yet report on says so in its own row rather than being left off.
 | `zips` | `mpv archives` + `zips` (`player:355`, `player:379`) | **ok** `read where they lie — no tar, no unzip, no charset to get wrong`. Two rows collapse into one and bash's hard fail disappears with them (§2.2, `player:256`) |
 | `optical drive` | `optical drive` (`player:395`) | **warn** `drutil not found — CDs cannot be detected` · **warn** `no disc, or no drive` · **warn** `media: <type> — the disc source is not built yet, so it cannot be played` |
 | `CD-Text` | `CD-Text` (`player:402`) | **ok** `cdda2wav present` / `cdrecord present` · **warn** `no cdrtools — discs fall back to MusicBrainz or numbers`. Presence only — **nothing here opens the drive** |
-| `MusicBrainz` | `MusicBrainz` (`player:410`) | **ok** `URLSession — no curl, no jq. Reached when a disc needs naming, never before` · **warn** `disabled with MUTHUR_NO_MB — untitled discs stay untitled` |
+| `MusicBrainz` | `MusicBrainz` (`player:410`) | **ok** `URLSession — no curl, no jq. Reached when a disc needs naming, never before` · **warn** `disabled with --no-mb — untitled discs stay untitled` · **warn** `disabled with MUTHUR_NO_MB — …`, the same row naming whichever switch is set |
 | `scratch space` | `scratch space` (`player:423`) | **ok** `<N> free in <dir>` · **warn** `<N> free in <dir> — cache dir unwritable, so long albums may be reclaimed mid-play` · **fail** `cannot write to <dir> — zips cannot be opened`. All three, and it is the only row that can fail |
 | `sleeve` | `cover` (`player:454`) | **ok** `beside the record, then the tags, then the archive — at the size the window has` · **ok** `off — no picture is looked for` |
 | `audio output` | — | **warn** `<device> — the route is read once, and changing it mid-record is not handled yet` · **warn** `CoreAudio named no default output device`. **New** (§14) |
@@ -2041,12 +2212,41 @@ All eight are documented in the script's own header comment (`player:47`).
 
 ## 14. Native, from `spec.md` — in scope, not stretch
 
-- [ ] Real cover art at real resolution.
-- [ ] Media keys; Now Playing in Control Center and on the lock screen.
+**Nothing in this section is a port.** `player` is a bash TUI: it has no bundle,
+no Dock tile, and no way to be told that ⏯ was pressed while another window was
+in front. Every decision below was made for the native app under `spec.md` and
+this file, and where one was arguable it is marked as such at the code. Do not
+look for a line in the script to justify any of it; there is none.
+
+- [x] Real cover art at real resolution. The sleeve is decoded at the panel's
+      `displayScale` rather than at its point size, and the Archive is asked at
+      `front-1200` before `front-500` (**D45**) so there is something at that
+      resolution to decode. Local and embedded art were always full size (§5.1).
+- [x] Media keys; Now Playing in Control Center and on the lock screen.
+      `App/NowPlaying.swift` — `MPRemoteCommandCenter` for play, pause,
+      play/pause, next, previous and the scrubber, and `MPNowPlayingInfoCenter`
+      for what the system draws. The pushes are event-driven, not ticked: see
+      the file. Verified against Control Center on two real records: the row
+      carries the right track, artist, album and cover, shows ∥ while the panel
+      says PLAYING and ▶ while it says PAUSED, advances the panel on ⏭, resumes
+      it on ⏯, and vanishes from the list on `q` rather than leaving a record
+      the app is no longer playing. The transport buttons were confirmed by
+      hand.
 - [ ] AirPlay and correct route handling — **unplugging headphones pauses, it
       does not blast**.
 - [ ] Output sample-rate switching for hi-res material.
 - [ ] Dock icon, its own Cmd-Tab identity, album art in the Dock while playing.
+      **Written, and one of the three clauses seen.** `App/MUTHUR.icns` is a
+      **placeholder** generated from `Theme` — the wordmark in phosphor amber on
+      the CRT ground, meant to be replaced — and the app does appear in the Dock
+      under it. The cover goes on `NSDockTile.contentView` rather than on
+      `applicationIconImage`, so that the Dock can show the record while ⌘⇥ goes
+      on showing the app (`App/DockSleeve.swift`); neither of those two has been
+      looked at with a Dock on screen and a record playing, and until it has,
+      this stays a box that is two-thirds of a box. Note also that *while
+      playing* is read here as **while a record is on the deck** — a paused deck
+      keeps its cover, because the alternative is a tile that flickers back to
+      the wordmark every time you press ␣.
 - [ ] ffmpeg as a *fallback* decoder only, for what AVFoundation will not take
       (notably Opus and Ogg).
 - [x] Drag-scrubbing on both meters (the terminal could not do it) — §6.4, and
@@ -2054,6 +2254,21 @@ All eight are documented in the script's own header comment (`player:47`).
 - [x] Reduce Motion and Reduce Transparency honoured — see §10. Transparency
       drops the veils; Motion has nothing to act on, because everything that
       moves on this panel is a reading and not an animation.
+
+**Three of these are blocked on hardware and material, not on work.** They are
+untouched deliberately, and each for a reason that no amount of code removes:
+
+- **AirPlay and route handling.** The whole box is the *unplug*. A route change
+  that is only ever simulated proves that the notification was subscribed to,
+  which was never the doubt — the doubt is what the engine does in the tenth of
+  a second after the jack comes out. Nothing was written for it, because
+  something written and not pulled would be a green box over an unheard blast.
+- **Output sample-rate switching.** There is no hi-res material on this machine.
+  Every zip to hand is 44.1 kHz, so the code that switches would run once, do
+  nothing, and be indistinguishable from code that does not switch.
+- **ffmpeg for Opus and Ogg.** Same reason, one step further along: there is no
+  Opus and no Ogg here to fail on. The fallback's *shape* is settled — D40 — and
+  the row it lives on is §12's; what is missing is a file AVFoundation refuses.
 
 ---
 
@@ -2071,7 +2286,7 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-thirty-nine are settled. Recorded here with the answer so that a departure from
+forty-five are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -2096,7 +2311,11 @@ D21 where the port takes the better of two readings — and it is the *author's 
 better reading, in `burncd` rather than in `player` — plus one about drawing the
 check in the panel's single colour, and one that declines an improvement §17 had
 asked for, on the grounds that the screen you run when nothing works is the last
-screen that should be allowed to hang.
+screen that should be allowed to hang. **D40–D45** each came out of the thing it
+names: D40 out of §12, D41 out of the fixtures, D42–D44 out of the disc — the
+last of them reversing the first two on the evidence of a real pressing — and
+**D45** out of §14, which is the first section with no `player` behind it at
+all.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -3251,6 +3470,40 @@ and an unmounted disc — one `diskarbitrationd` has released, or a drive on som
 other platform — is exactly what they are for. They are simply no longer what
 §1.3 reaches for first.
 
+**D45 — the sleeve is asked for at `front-1200`, and only then at `front-500`.**
+→ §5, §5.1, §14
+
+`player:1916` asks for exactly one size:
+
+    "https://coverartarchive.org/release/$id/front-500" 2>/dev/null
+
+500 px is not a judgement about covers. It is a judgement about *terminals*:
+the script draws the sleeve in half-blocks across a column count, and D2 is the
+decision that removed that ceiling for this port. §14 then asks for "real cover
+art at real resolution" on a display that has twice the pixels the panel has
+points, and a 500 px picture blown up to a 480 pt sleeve on a Retina screen is
+visibly soft. So the request goes to `front-1200` first.
+
+**Two sizes, not one, and in that order.** The Archive has only had the 1200 px
+thumbnail since 2017, and entries older than that have `front-250`/`front-500`
+and nothing else. A single request at 1200 would silently lose the sleeve for
+every one of those releases — so a 404 there falls through to `front-500`, which
+is the size the script would have got and therefore the floor this can never
+land below.
+
+**The retry loop is unchanged, and the sizes go inside it.** `player:1913`
+tries each candidate twice because "a first failure is more often a sick archive
+node than a missing cover"; that reasoning is about the *node*, not about the
+size, so the two sizes are walked within each of the two tries rather than
+alongside them. The candidate cap stays at five (`player:1910`). The worst case
+therefore goes from 5 × 2 = 10 requests to 5 × 2 × 2 = 20, and the ordinary case
+— a release the Archive has a large thumbnail for — stays at one.
+
+**Not `/front`.** The Archive will also serve the original upload, which is
+sometimes 3000 px and sometimes a 40 MB scan of a booklet. Nothing ever waits
+for this fetch (§5), but it is still someone's connection, and the panel cannot
+draw more than the thumbnail already gives it.
+
 ---
 
 ## 17. When something is missing
@@ -3290,18 +3543,24 @@ record.** Everything else quietly becomes a worse panel.
 
 ### No CD drive, or no disc in it
 
-**This is where §17 splits.** Each of the first two boxes is one sentence with
-two halves — a `--check` half, which exists, and a detection half, which is
-§1.3 and does not. The `--check` halves are done and tested; the boxes stay open
-because half a box is not a box.
+**This is where §17 used to split.** Each of the first two boxes is one sentence
+with two halves — a `--check` half and a detection half — and for a long while
+only the first existed, so the boxes stayed open because half a box is not a box.
+**§1.3 closed the other halves.** Both are now whole.
 
-- [ ] `drutil` absent → `--check` warns `drutil not found — CDs cannot be
+- [x] `drutil` absent → `--check` warns `drutil not found — CDs cannot be
       detected` (`player:399`) — **done** — and `find_cd` returns nothing
-      (`player:965`) — **§1.3**.
-- [ ] `drutil` present, tray empty → `--check` warns `no disc, or no drive`
+      (`player:965`) — **done**. Note *where* it returns nothing: after the
+      `cddafs` route, not before it. A machine with no `drutil` and a mounted
+      audio CD still finds the disc, because the kernel answered and nothing
+      needed asking. Only the `/Volumes` fallback is switched off, which is
+      right — it is the branch that has nothing to check its guess against.
+- [x] `drutil` present, tray empty → `--check` warns `no disc, or no drive`
       (`player:397`) — **done**; the picker simply has no disc row
       (`player:1018`) and `--cd` dies with `no audio CD in the drive`
-      (`player:3528`) — **§1.3**.
+      (`player:3528`) — **done**, the script's words kept. The empty-drive half
+      is the one half of §1.3 that **was** exercised on this machine's real
+      drive, for the ordinary reason that the drive was empty.
 - [x] **Not having a drive is not a warning worth escalating.** Most Macs have
       not had one for a decade, and the check says so in one line and moves on.
       Held against all three drutil outcomes crossed with a machine that has the
@@ -3311,11 +3570,13 @@ because half a box is not a box.
 
 ### A disc that will not read
 
-- [ ] `drutil` says media is present but nothing mounts → detection falls through
+- [x] `drutil` says media is present but nothing mounts → detection falls through
       to the `/Volumes` scan and finds nothing; the disc is invisible
       (`player:1000`). There is no "the disc is unreadable" message and there
-      never was one. **§1.3** — the third box at the seam, and the only one with
-      no half already standing.
+      never was one. **Done, on stubs** — the drive reports `CD-ROM`, no `cddafs`
+      line exists, no `/Volumes` entry passes, and `find_cd` returns nothing with
+      nothing said about it. The silence is the behaviour, so what is asserted is
+      the nil and not a message.
 - [x] A disc that mounts and then stops responding is §6.3: the first failed
       track stops the record, mode `STOPPED`, whole-record stat, and the message
       distinguishes files missing from files unreadable (`player:3285`,
@@ -4302,8 +4563,12 @@ mounted:
 - [ ] Confirm the external volume is the kind of thing that would win under the
       script's rule (`player:1009`): a `/Volumes` entry with two AIFFs in it.
 
-Proves D17 is worth doing. Nothing implements it yet — §1.3 is unwritten by your
-call, and this is the material it needs.
+Proves D17 is worth doing. **§1.3 is now written and the gate is in it**, so this
+step has changed from "material §1.3 needs" to "the case that would catch §1.3
+getting it wrong". It has still never been set up: it wants AIFFs copied onto a
+second volume — `/Volumes/My Passport` is the one on this machine — with a disc
+in the drive at the same time. Until then, the *only* evidence that two eligible
+volumes resolve correctly is a stub.
 
 ### 11. A disc out of a set — D16 and §4.4
 
@@ -4321,15 +4586,50 @@ call, and this is the material it needs.
       message and there should not be one — from here it is a mounted volume like
       any other (§1.3).
 
+### 13. `find_cd` against the drive — new with §1.3
+
+Three tests, all `.enabled(if:)` on `MUTHUR_TEST_CDDA`. They need no capture
+file: the material is the machine. **Nothing here opens the device** — the whole
+point of §1.3's design is that detection is answers *about* the drive — so this
+step is safe to run first, before anything in steps 4 through 8.
+
+```bash
+MUTHUR_TEST_CDDA=/Volumes/<the disc> swift test --package-path MUTHURKit \
+  --filter DiscMaterialTests
+```
+
+- [ ] `find_cd` with the real probes lands on that volume, by the `cddafs` route,
+      with a device node — proving `mount` on this macOS prints the shape the
+      parser was written against.
+- [ ] The node `drutil` names is the node the volume is mounted from. **This is
+      D17's premise, and until this runs D17 rests on one reading taken by
+      hand.**
+- [ ] The picker row built off the real mount: mark `⊙`, the volume's own name,
+      and a count that equals the track count in `.TOC.plist`. The only place
+      D18's count and the drive's count are ever compared.
+
+If the first of these ever comes back `.shape` rather than `.cddafs`, the
+`/Volumes` fallback is load-bearing on this platform after all and §1.3's second
+box wants rewriting.
+
 ---
 
 ### What is still unproven after all of this
 
-- **§1.3 in full.** Disc detection is not written. Steps 1, 3, 10 and 12 are what
-  it gets written against. **Steps 1 and 3 have now been run by hand**, so §1.3
-  gets written against observed output rather than assumed output: `drutil` prints
-  `Type: CD-ROM               Name: /dev/disk10` (D17's premise, confirmed), and
-  the disc mounts as `cddafs` with a `.TOC.plist` beside the tracks.
+- **~~§1.3 in full~~ — written, and unproven on a disc.** Detection now exists
+  and is exhaustively tested through a probes seam, against output transcribed
+  off the disc while it was in (steps 1 and 3). But the disc was ejected before
+  §1.3 was written, so **the disc-present half has never run**: no `cddafs` mount
+  has been through `find_cd`, no picker row has been built off a real volume, and
+  D17's premise still rests on one reading taken by hand rather than on step 13's
+  assertion. What *was* exercised on this machine's real drive is the empty-drive
+  half, and the real `mount` table, which turned out to hold two non-device lines
+  the parser had never been shown.
+- **The disc macOS cannot name.** The disc that was in the drive arrived with
+  real track names, so §4.1's rescue never fired on it and every `find_cd` branch
+  that keys on the string `Audio Track` — including the `/Volumes` fallback's
+  first test — is **stub-only**. This is not a gap in the tests; it is a gap in
+  the material, and only a differently-pressed disc closes it.
 - **~~D42's condition~~ — met, and D42 did not survive it.** This was the entry
   that read "if they do not produce the same disc ID, D42 was taken without
   evidence it assumed, and it gets retaken here." It got retaken. `cdrecord`
@@ -4353,6 +4653,11 @@ call, and this is the material it needs.
   §19 volume test now passes against a real one, but nothing has yet *played*
   from a disc — the AIFF the mount synthesises is read over the drive at the
   drive's pace, and whether gapless survives that is unproven.
-- **Anything above the domain layer.** There is no app, no picker and no panel,
-  so "the panel says which source you got" is a value on a struct and not
-  something you can look at.
+- **~~Anything above the domain layer.~~** This entry said there was no app, no
+  picker and no panel, so that "the panel says which source you got" was a value
+  on a struct and not something you could look at. All three exist and have for
+  some time; the sentence outlived the condition it described. What is still
+  unproven above the domain layer is narrower and worth saying instead: the
+  panel has never been looked at **with a disc in the drive**, so the SOURCE line
+  reading `Audio CD` is still a value on a struct even though every other line
+  of it is not.

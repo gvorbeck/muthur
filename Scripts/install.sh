@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Put a real MUTHUR.app in ~/Applications, where Raycast, Spotlight and the
-# Dock will find it by name.
+# Put a real MUTHUR.app in /Applications, where Raycast, Spotlight and the Dock
+# will find it by name.
 #
 # It has to be a copy. Raycast indexes the standard application folders and
 # nothing else, so a bundle sitting in DerivedData is invisible to it — and a
@@ -9,13 +9,18 @@
 # The cost is that this has to be re-run to pick up changes; during development
 # you are launching from Xcode anyway.
 #
-# Usage: Scripts/install.sh [Release|Debug]   (default Release)
+# /Applications and not ~/Applications: it is `drwxrwxr-x root:admin`, so an
+# admin account writes to it without `sudo`, and it is the folder Spotlight and
+# every launcher look in first. Pass a directory as the second argument to put
+# it somewhere else.
+#
+# Usage: Scripts/install.sh [Release|Debug] [directory]   (default Release, /Applications)
 
 set -euo pipefail
 
 CONFIG="${1:-Release}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="$HOME/Applications/MUTHUR.app"
+DEST="${2:-/Applications}/MUTHUR.app"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 
 xcodebuild -project "$ROOT/MUTHUR.xcodeproj" -scheme MUTHUR \
@@ -25,7 +30,9 @@ xcodebuild -project "$ROOT/MUTHUR.xcodeproj" -scheme MUTHUR \
 SRC="$ROOT/build/DerivedData/Build/Products/$CONFIG/MUTHUR.app"
 [ -d "$SRC" ] || { echo "no bundle at $SRC" >&2; exit 1; }
 
-# Never clear a path in ~/Applications without checking what is standing there.
+# Never clear a path in an application folder without checking what is standing
+# there — the more so now that the default one is shared with every other app on
+# the machine.
 if [ -e "$DEST" ]; then
 	EXISTING="$(defaults read "$DEST/Contents/Info" CFBundleIdentifier 2>/dev/null || true)"
 	if [ "$EXISTING" != "com.gvorbeck.muthur" ]; then

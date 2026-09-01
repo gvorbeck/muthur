@@ -18,6 +18,7 @@ struct DiagnosticsTests {
         drutil: String? = "  Type: CD-ROM\t\t  Name: /dev/disk4\n",
         route: String? = "MacBook Pro Speakers",
         sleeveEnabled: Bool = true,
+        useMusicBrainz: Bool = true,
         shelf: Catalogue? = Catalogue(csv: "Title,Artist,Year\nCut,The Slits,1979\n"),
         found: Int = 3,
         free: UInt64 = 96 * 1024 * 1024 * 1024
@@ -28,6 +29,7 @@ struct DiagnosticsTests {
             drutil: { drutil },
             outputRoute: { route },
             sleeveEnabled: sleeveEnabled,
+            useMusicBrainz: useMusicBrainz,
             catalogue: { (URL(fileURLWithPath: "/x/collection.csv"), shelf) },
             sources: { ([URL(fileURLWithPath: "/x/Music")], found) },
             freeSpace: { _ in free }
@@ -271,6 +273,18 @@ struct DiagnosticsTests {
         let row = try? #require(DiagnosticsTests.row(report, "MusicBrainz"))
         #expect(row?.mark == .warn)
         #expect(row?.detail.contains("untitled discs stay untitled") == true)
+        #expect(row?.detail.contains("MUTHUR_NO_MB") == true)
+    }
+
+    /// **`--check --no-mb` warns**, which is the whole reason the flag is
+    /// carried this far: `run_check` reads `USE_MB` (`player:410`), the same
+    /// merged value the lookup reads, so the row cannot say the lookup is on
+    /// while the disc path has it off.
+    @Test func theFlagReachesTheRowWithNoVariableSet() {
+        let report = Diagnostics.run(DiagnosticsTests.probes(useMusicBrainz: false))
+        let row = try? #require(DiagnosticsTests.row(report, "MusicBrainz"))
+        #expect(row?.mark == .warn)
+        #expect(row?.detail == "disabled with --no-mb — untitled discs stay untitled")
     }
 
     /// It never reaches out to answer this. A check that hangs on a captive

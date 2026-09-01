@@ -273,16 +273,38 @@ struct SleeveResolutionTests {
         let art = TempDirectory("art")
         let mbid = "8f4b1c8e-1f9a-4d3e-9d2c-000000000000"
         let transport = StubSleeveTransport([
-            (match: "front-500", answer: .body(TestPictures.jpeg(500)))
+            (match: "front-1200", answer: .body(TestPictures.jpeg(1200)))
         ])
         let resolution = await resolver(transport: transport, cache: SleeveCache(directory: art.url))
             .resolve(request(releaseMBID: mbid))
 
         let late = await resolution.pending?.value
         #expect(late?.source == .coverArtArchive)
+        // One request, and it is the large one: an entry the archive has a
+        // 1200 px thumbnail for never asks for the 500.
         #expect(transport.asked.count == 1)
         #expect(transport.asked.first?.absoluteString.contains("ws/2") == false)
         #expect(late?.url.lastPathComponent == "mbid-\(mbid).jpg")
+    }
+
+    @Test("An entry that predates the large thumbnail still gets its sleeve")
+    func fallsBackToTheSmallerSize() async throws {
+        let art = TempDirectory("art")
+        // The archive's 1200 px size was added years after the 500 and there is
+        // no promise every entry has one. A 404 for the large one is not the
+        // record having no cover, and must not be read as one.
+        let transport = StubSleeveTransport([
+            (match: "ws/2/release", answer: .body(releases(["r1"]))),
+            (match: "front-500", answer: .body(TestPictures.jpeg(500))),
+        ])
+        let resolution = await resolver(transport: transport, cache: SleeveCache(directory: art.url))
+            .resolve(request())
+
+        #expect(await resolution.pending?.value?.source == .coverArtArchive)
+        // The search, the 1200 that is not there, and the 500 that is — the
+        // fallback happens on the same pass rather than after a second round.
+        #expect(transport.asked.count == 3)
+        #expect(transport.asked.last?.absoluteString.hasSuffix("front-500") == true)
     }
 
     @Test("An answer that is not a picture is not a cover, whatever the status line said")
@@ -299,8 +321,9 @@ struct SleeveResolutionTests {
         // The first release is the one nobody ever scanned, or the node serving
         // it is sick; either way the list is walked.
         #expect(await resolution.pending?.value != nil)
-        // Two tries at r1 before r2 is reached.
-        #expect(transport.asked.count == 4)
+        // The search, then r1 twice over at two sizes each, and then r2 answers
+        // on its first and largest.
+        #expect(transport.asked.count == 6)
     }
 
     @Test("Five candidates, twice each, and then it gives up")
@@ -314,10 +337,12 @@ struct SleeveResolutionTests {
             .resolve(request())
 
         #expect(await resolution.pending?.value == nil)
-        // One search, then five candidates twice over — the sixth is never
-        // asked, because a record with no scan must cost a bounded number of
-        // requests.
-        #expect(transport.asked.count == 11)
+        // One search, then five candidates twice over at two sizes each — the
+        // sixth is never asked, because a record with no scan must cost a
+        // bounded number of requests. Twenty-one is that bound, and asking for
+        // the large size raised it from eleven; it is still a fixed number that
+        // no album can make grow.
+        #expect(transport.asked.count == 21)
     }
 
     @Test("Nothing is left half-written")

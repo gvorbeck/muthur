@@ -313,6 +313,23 @@ public actor PlaybackEngine {
         }
     }
 
+    /// Pause, asked for by name rather than by `␣`.
+    ///
+    /// `player` never needed this — a terminal has one key and it toggles. A
+    /// system transport does not toggle: Control Center sends PAUSE when it can
+    /// see the deck is playing and PLAY when it can see it is not, and a
+    /// Bluetooth remote sends both as separate buttons. Handing either of them
+    /// `togglePause` means a PAUSE that arrives a moment stale starts the
+    /// record instead of stopping it.
+    ///
+    /// Refuses from STOPPED and FINISHED for the same reason `togglePause`
+    /// does (`player:2787`, `player:3308`).
+    public func pause() {
+        guard mode == .playing else { return }
+        mode = .paused
+        player.pause()
+    }
+
     /// `␣`. Nothing to do from STOPPED or FINISHED: the failure pause must not
     /// be reported as the space-bar pause (`player:2787`), and a deck that is
     /// paused is waiting for you while this one is not (`player:3308`).

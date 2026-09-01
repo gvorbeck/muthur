@@ -16,16 +16,28 @@ struct MUTHURApp: App {
                     delegate.model = model
                     Scratch.sweepAbandoned()
 
-                    if CommandLine.arguments.count > 1 {
-                        let path = CommandLine.arguments[1]
-                        do {
+                    // `player:3517`: a named source first, `--cd` second, the
+                    // picker last. Naming a record and asking for the disc in
+                    // the same breath is not an error — the record wins.
+                    do {
+                        let options = try LaunchOptions.parse(
+                            Array(CommandLine.arguments.dropFirst())
+                        )
+                        // Before anything is opened, and not as an argument to
+                        // one call: `--no-mb` outlives the launch. A disc put
+                        // in later and opened off the picker (`r`, §1.2) is
+                        // still this session's disc, and the flag still holds.
+                        model.useMusicBrainz = options.useMusicBrainz
+                        if let path = options.sourcePath {
                             let (url, kind) = try SourceOpener.resolve(path: path)
                             model.open(source: url, kind: kind)
-                        } catch {
-                            model.die("\(error)")
+                        } else if options.wantCD {
+                            model.openDisc()
+                        } else {
+                            model.scan()
                         }
-                    } else {
-                        model.scan()
+                    } catch {
+                        model.die("\(error)")
                     }
                 }
         }

@@ -92,6 +92,10 @@ public struct Diagnostics: Sendable {
         public var outputRoute: @Sendable () -> String?
         /// Whether the sleeve is switched on at all (§13, `PLAYER_ART=0`).
         public var sleeveEnabled: Bool
+        /// `--no-mb`'s half of the MusicBrainz switch. The other half is
+        /// `MUTHUR_NO_MB`, which is already in `environment`; the row merges
+        /// them the same way the disc path does.
+        public var useMusicBrainz: Bool
         /// §8's catalogue, and where it was looked for.
         public var catalogue: @Sendable () -> (location: URL, shelf: Catalogue?)
         /// §1.2's scan: the directories, and what was found in them.
@@ -105,6 +109,7 @@ public struct Diagnostics: Sendable {
             drutil: @escaping @Sendable () -> String? = Diagnostics.drutilStatus,
             outputRoute: @escaping @Sendable () -> String? = AudioRoute.current,
             sleeveEnabled: Bool = true,
+            useMusicBrainz: Bool = true,
             catalogue: @escaping @Sendable () -> (location: URL, shelf: Catalogue?) = {
                 let location = CatalogueFile.locate()
                 return (location.url, CatalogueFile.read(location))
@@ -120,6 +125,7 @@ public struct Diagnostics: Sendable {
             self.drutil = drutil
             self.outputRoute = outputRoute
             self.sleeveEnabled = sleeveEnabled
+            self.useMusicBrainz = useMusicBrainz
             self.catalogue = catalogue
             self.sources = sources
             self.freeSpace = freeSpace
@@ -271,6 +277,43 @@ public struct Diagnostics: Sendable {
         return nil
     }
 
+    /// The media's **device node** off the same `Type:` line. **D17**, and §1.3
+    /// is what uses it.
+    ///
+    /// `drutil` packs two columns onto that row — `burncd:322` says so and
+    /// `burncd:324` works around it — and this is the second column:
+    ///
+    /// ```
+    ///   Type: CD-ROM               Name: /dev/disk10
+    /// ```
+    ///
+    /// Verbatim from this machine, §19 step 1. The padding is generous and
+    /// `Name:` never runs into the type, so this splits on the literal label
+    /// rather than on a column position.
+    ///
+    /// Same empty-bay rule as `mediaType`, and for the same reason: an empty
+    /// drive still prints a perfectly good `Type:` line, so the `no media` test
+    /// has to come first or `No Media Inserted` reads as a media type.
+    ///
+    /// Nil where the drive names no node. That is a real state — a drive that
+    /// does not report one — and §1.3 degrades rather than refusing, per §17.
+    static func mediaDevice(_ status: String?) -> String? {
+        guard let status else { return nil }
+        guard status.range(of: "no media", options: .caseInsensitive) == nil else { return nil }
+        for line in status.split(separator: "\n", omittingEmptySubsequences: false) {
+            guard line.range(of: "Type:") != nil,
+                let range = line.range(of: "Name:")
+            else { continue }
+            let word = line[range.upperBound...]
+                .split(whereSeparator: \.isWhitespace)
+                .first
+                .map(String.init)
+            guard let word, !word.isEmpty else { return nil }
+            return word
+        }
+        return nil
+    }
+
     /// `player:402`, unchanged: §4's chain is cdrtools, and neither binary is
     /// reliably present. Presence only — nothing here opens the drive.
     static func cdText(_ probes: Probes) -> Check {
@@ -291,12 +334,19 @@ public struct Diagnostics: Sendable {
     ///
     /// **It does not reach out to find out.** A diagnostic that hangs on a
     /// captive portal is a worse diagnostic than one that says what it will try.
+    ///
+    /// **The switch is not read here.** `player:410` reads the same `USE_MB` the
+    /// lookup itself reads, so the check cannot claim the lookup is on while it
+    /// is off; this row asks `SourceOpener` the same question §4's disc path
+    /// asks, for the same reason.
     static func musicBrainz(_ probes: Probes) -> Check {
-        let disabled =
-            probes.environment["MUTHUR_NO_MB"].map { $0 != "0" && !$0.isEmpty } ?? false
-        if disabled {
+        let sleeve = SourceOpener.musicBrainzSwitch(
+            flag: probes.useMusicBrainz, environment: probes.environment
+        )
+        if sleeve.isOff {
             return Check(
-                .warn, "MusicBrainz", "disabled with MUTHUR_NO_MB — untitled discs stay untitled")
+                .warn, "MusicBrainz",
+                "disabled with \(sleeve.label) — untitled discs stay untitled")
         }
         return Check(
             .ok, "MusicBrainz",

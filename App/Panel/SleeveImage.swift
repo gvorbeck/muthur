@@ -47,6 +47,21 @@ enum SleeveImage {
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 
+    /// How big the picture actually is, read out of the file's header without
+    /// decoding it. `MPMediaItemArtwork` wants a bounds size up front, and the
+    /// honest answer is what is in the file — promise the system 1024 for a
+    /// 500 px cover and it will ask for 1024 and be given 500.
+    static func pixelSize(of url: URL) -> CGSize? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+                as? [CFString: Any],
+            let width = properties[kCGImagePropertyPixelWidth] as? Int,
+            let height = properties[kCGImagePropertyPixelHeight] as? Int,
+            width > 0, height > 0
+        else { return nil }
+        return CGSize(width: width, height: height)
+    }
+
     // MARK: - The phosphor treatment
 
     /// A screen with one colour in it, showing a photograph.

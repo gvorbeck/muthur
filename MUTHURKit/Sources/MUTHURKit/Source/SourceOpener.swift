@@ -20,7 +20,9 @@ public enum SourceOpener {
     public enum Failure: Error, CustomStringConvertible {
         case notFound(path: String)
         case notASource(path: String)
-        case discNotImplemented
+        /// `--cd` with an empty drive. `die "no audio CD in the drive"`
+        /// (`player:3528`) — the script's words, kept.
+        case noDisc
 
         public var description: String {
             switch self {
@@ -28,8 +30,8 @@ public enum SourceOpener {
                 "no such file or directory: \(path)"
             case .notASource(let path):
                 "not a zip or a folder: \(path)"
-            case .discNotImplemented:
-                "disc sources are not yet implemented"
+            case .noDisc:
+                "no audio CD in the drive"
             }
         }
     }
@@ -52,9 +54,16 @@ public enum SourceOpener {
     }
 
     /// Open a source and return the record it contains.
+    ///
+    /// `useMusicBrainz` is `--no-mb`, carried from the command line
+    /// (`LaunchOptions`) to the one place that would ask. It rides on the
+    /// general `open` rather than on `openDisc` because the picker opens a disc
+    /// too (§1.2's row), and a flag that only worked when the disc was named on
+    /// the command line would be a flag that quietly stopped working.
     public static func open(
         url: URL,
         kind: SourceKind,
+        useMusicBrainz: Bool = true,
         progress: (@Sendable (String) -> Void)? = nil
     ) async throws -> Opened {
         switch kind {
@@ -63,8 +72,124 @@ public enum SourceOpener {
         case .zip:
             return try await openZip(url, progress: progress)
         case .disc:
-            throw Failure.discNotImplemented
+            return try await openDisc(
+                url, useMusicBrainz: useMusicBrainz, progress: progress
+            )
         }
+    }
+
+    /// §1.3 and §4 together: the mounted CDDA volume is read as it stands, and
+    /// then something is asked to name the tracks.
+    ///
+    /// **No ripping step** (`player:1371`). The volume already presents the
+    /// audio as files; copying them somewhere first would buy nothing and cost
+    /// the time.
+    ///
+    /// `numbersFromFilenames: true` is the CD-only rescue (§3, `player:1454`) —
+    /// a CDDA mount has no tags at all, so without it every row is 9999 and
+    /// every title §4 learns lands on the wrong one.
+    ///
+    /// **On the ordering.** The table of contents comes off `.TOC.plist` on the
+    /// mount (**D44**) and opens no device. CD-Text is the one step here that
+    /// talks to the drive, and on this platform it cannot succeed: an audio CD
+    /// is always mounted, `diskarbitrationd` holds it, and cdrtools cannot get
+    /// the exclusive open it insists on. It is attempted anyway rather than
+    /// quietly dropped — it is the script's own §4.2 step, it is what an
+    /// *unmounted* disc would answer, and the failed opens were observed not to
+    /// disturb `drutil` or the mount (§19). What it costs is a handful of
+    /// subprocesses that exit 255, and what it buys is that the port does not
+    /// silently skip a step the script takes.
+    private static func openDisc(
+        _ url: URL,
+        useMusicBrainz: Bool,
+        progress: (@Sendable (String) -> Void)?
+    ) async throws -> Opened {
+        let label = url.lastPathComponent
+        var record = try await Record.read(
+            directory: url, sourceLabel: label,
+            numbersFromFilenames: true,
+            progress: { p in
+                progress?("READING · \(p.percent)% · \(p.filename)")
+            }
+        )
+
+        let drive = OpticalDrive.detect()
+        let outcome = await DiscTitles.resolve(
+            &record,
+            volumeName: label,
+            cdText: DriveCDText(drive: drive),
+            tableOfContents: VolumeTableOfContents(volume: url),
+            // A nil transport disables the lookup silently (`ask`, line 163),
+            // which would make `--no-mb` and "we forgot to pass one" the same
+            // state. The real one goes in, and `useMusicBrainz` is the only
+            // thing that switches it off.
+            transport: URLSessionSleeveTransport(),
+            useMusicBrainz: !musicBrainzDisabled(flag: useMusicBrainz),
+            stage: { stage in
+                progress?("\(DiscTitles.Stage.heading) · \(stage.step)/\(stage.of) · \(stage.detail)")
+            }
+        )
+
+        return Opened(
+            record: record, source: .disc, titleSource: outcome.source,
+            directory: url, scratch: nil
+        )
+    }
+
+    /// Which switch, if either, has the sleeve lookup off.
+    ///
+    /// **Two names for one state.** The script has the same pair —
+    /// `USE_MB="${PLAYER_MB:-1}"` (`player:81`) and `--no-mb) USE_MB=0`
+    /// (`player:334`) — and merges them into one variable before anything reads
+    /// it, which is why `run_check` at `player:410` and the lookup at
+    /// `player:1839` can never disagree. This is that merge. Everything that
+    /// wants to know goes through here: §11's report, and §4's disc path.
+    ///
+    /// **Either switch alone is enough, and nothing switches it back on.** The
+    /// script's `[ "$USE_MB" = 1 ]` says the same: `PLAYER_MB=0` with no flag is
+    /// off, `--no-mb` with no variable is off, and there is no argument that
+    /// undoes either.
+    enum MusicBrainzSwitch: Equatable {
+        case on
+        /// `--no-mb` on the command line.
+        case flag
+        /// `MUTHUR_NO_MB` in the environment.
+        case variable
+
+        var isOff: Bool { self != .on }
+
+        /// What the report calls it. The script names the flag whichever one did
+        /// it (`player:411`); with two names in play, naming the wrong one sends
+        /// the reader to the wrong place, so this names the one that is set.
+        var label: String {
+            switch self {
+            case .on: "on"
+            case .flag: "--no-mb"
+            case .variable: "MUTHUR_NO_MB"
+            }
+        }
+    }
+
+    /// **`MUTHUR_NO_MB` is inverted from the script's `PLAYER_MB`** and reads
+    /// like every other `NO_` variable: unset is on, `0` and empty are on,
+    /// anything else is off. The flag is checked first only because it is the
+    /// thing a person just typed.
+    static func musicBrainzSwitch(
+        flag useMusicBrainz: Bool = true,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> MusicBrainzSwitch {
+        if !useMusicBrainz { return .flag }
+        guard let value = environment["MUTHUR_NO_MB"], value != "0", !value.isEmpty else {
+            return .on
+        }
+        return .variable
+    }
+
+    static func musicBrainzDisabled(
+        flag useMusicBrainz: Bool = true,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        musicBrainzSwitch(flag: useMusicBrainz, environment: environment).isOff
     }
 
     private static func openFolder(

@@ -39,7 +39,8 @@ public struct PickerEntry: Sendable, Identifiable {
         "\(formatSize(bytes)) · zip"
     }
 
-    /// The detail string for a disc: `N tracks · in the drive` (`player:1019`).
+    /// The detail string for a disc: `N tracks · in the drive` (`player:1020`).
+    /// 1019 is where the count is taken; 1020 is where this string is built.
     ///
     /// Not `· disc`. The other two rows name the *thing* — a zip, a folder — and
     /// this one names where it is, because that is the fact you are choosing on:

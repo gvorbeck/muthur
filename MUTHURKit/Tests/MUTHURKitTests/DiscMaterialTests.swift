@@ -245,4 +245,79 @@ struct DiscMaterialTests {
         #expect(record.running.allSatisfy { !$0.title.isEmpty })
         #expect(!record.album.isEmpty)
     }
+
+    // MARK: - §1.3 against the drive itself
+
+    /// **The one test in the suite that uses the real probes.** Everything else
+    /// in `DiscFinderTests` hands `find_cd` a string; this hands it the machine.
+    /// What it proves is the thing no stub can: that `mount` and `drutil` on
+    /// *this* macOS print the shapes those parsers were written against, and
+    /// that the disc the operator named in `MUTHUR_TEST_CDDA` is the one the
+    /// finder lands on.
+    ///
+    /// Still opens nothing. `find_cd` reads the mount table and asks the drive
+    /// for its status; neither is a conversation with the device, which is why
+    /// this can sit in a suite that otherwise refuses to touch it.
+    @Test(
+        "find_cd finds the disc that is actually mounted",
+        .enabled(if: DiscMaterialTests.volume != nil)
+    )
+    func realFind() throws {
+        let expected = DiscMaterialTests.volume!
+        let found = try #require(
+            DiscFinder.find(),
+            "there is a disc at \(expected.path) and find_cd did not see it"
+        )
+        #expect(found.volume.path == expected.path)
+        // macOS mounts an audio CD `cddafs`, so the kernel route is the one a
+        // real disc takes and the `/Volumes` fallback is never reached. If this
+        // ever comes back `.shape`, the fallback is load-bearing after all and
+        // §17 wants to know.
+        #expect(found.route == .cddafs)
+        #expect(found.device != nil)
+    }
+
+    /// The device gate's premise, checked against hardware rather than assumed:
+    /// the node `drutil` names really does back the volume the CD is mounted on.
+    /// D17 is worthless if these two disagree.
+    @Test(
+        "drutil's node is the node the disc is mounted from",
+        .enabled(if: DiscMaterialTests.volume != nil)
+    )
+    func realDeviceGate() throws {
+        let node = try #require(
+            Diagnostics.mediaDevice(Diagnostics.drutilStatus()),
+            "drutil named no device with a disc in the drive"
+        )
+        let table = DiscFinder.MountTable.parse(DiscFinder.mountOutput() ?? "")
+        let device = try #require(table.device(for: DiscMaterialTests.volume!))
+        #expect(DiscFinder.device(device, belongsTo: node))
+    }
+
+    /// The picker row, off the real mount. The count is D18's — `AudioFiles`
+    /// over the volume — and on a CDDA mount it should be the track count the
+    /// drive reports, which is the only place those two numbers are ever
+    /// checked against each other.
+    @Test(
+        "the disc's picker row is built off the real mount",
+        .enabled(if: DiscMaterialTests.volume != nil)
+    )
+    func realPickerRow() throws {
+        let found = try #require(DiscFinder.find())
+        let entries = SourceScanner.scan(directories: [], disc: found)
+        let row = try #require(entries.first)
+        #expect(row.kind == .disc)
+        #expect(row.mark == "⊙")
+        #expect(row.label == found.volume.lastPathComponent)
+        #expect(row.detail.hasSuffix(" · in the drive"))
+
+        let counted = AudioFiles.scan(found.volume, maxDepth: 1).count
+        #expect(row.detail == PickerEntry.discDetail(trackCount: counted))
+        // The drive's own count, for the one comparison that needs a disc.
+        if let table = VolumeTOC.parse(
+            (try? Data(contentsOf: VolumeTOC.url(inVolume: found.volume))) ?? Data()
+        ) {
+            #expect(counted == table.trackCount)
+        }
+    }
 }

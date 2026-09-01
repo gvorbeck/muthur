@@ -66,6 +66,13 @@ final class PanelModel {
 
     private(set) var state = PlaybackEngine.State.empty
 
+    /// §14 — the deck as the rest of the system sees it. Fed from `refresh`,
+    /// which is the one place that already knows a track changed.
+    private let nowPlaying = NowPlaying()
+
+    /// §14's other half of the same sentence: the cover on the Dock tile.
+    private let dock = DockSleeve()
+
     // MARK: - The list
 
     var cursor = Cursor()
@@ -215,6 +222,18 @@ final class PanelModel {
             await engine.listen(analyser)
             await refresh()
         }
+        // Once, because `MPRemoteCommandCenter` is a process-wide singleton and
+        // its targets accumulate.
+        nowPlaying.bind(
+            NowPlaying.Transport(
+                play: { [weak self] in self?.play() },
+                pause: { [weak self] in self?.pause() },
+                toggle: { [weak self] in self?.space() },
+                next: { [weak self] in self?.next() },
+                previous: { [weak self] in self?.previous() },
+                seek: { [weak self] seconds in self?.seekTrack(to: seconds) }
+            )
+        )
         start()
     }
 
@@ -225,15 +244,23 @@ final class PanelModel {
         stage = "▪ \(message)"
     }
 
+    /// `--no-mb`, set once at launch (`player:81`'s `USE_MB`, which is a global
+    /// there for the same reason it is a property here). Every path that opens
+    /// a disc goes through `open(source:kind:)`, so this is the only place it
+    /// has to be remembered.
+    var useMusicBrainz = true
+
     /// Open a source — folder or zip — by URL and kind.
     func open(source url: URL, kind: SourceKind) {
         stage = "OPENING"
         record = nil
         pickerEntries = nil
+        let useMusicBrainz = self.useMusicBrainz
         Task {
             do {
                 let opened = try await SourceOpener.open(
                     url: url, kind: kind,
+                    useMusicBrainz: useMusicBrainz,
                     progress: { [weak self] text in
                         Task { @MainActor in self?.stage = text }
                     }
@@ -253,9 +280,22 @@ final class PanelModel {
 
     /// Scan the default directories for sources and show the picker — or open
     /// directly when there is exactly one.
+    /// `--cd` (`player:3527`). The disc, or the script's own refusal.
+    ///
+    /// A window cannot `die`, so this lands on the panel the way every other
+    /// refusal to open a source does — D36's shape, and the same reason ⌘O
+    /// exists.
+    func openDisc() {
+        guard let disc = DiscFinder.find() else {
+            die("\(SourceOpener.Failure.noDisc)")
+            return
+        }
+        open(source: disc.volume, kind: .disc)
+    }
+
     func scan() {
         let directories = SourceScanner.defaultDirectories()
-        let found = SourceScanner.scan(directories: directories)
+        let found = SourceScanner.scan(directories: directories, disc: DiscFinder.find())
 
         switch found.count {
         case 0:
@@ -271,7 +311,10 @@ final class PanelModel {
 
     func rescan() {
         let directories = SourceScanner.defaultDirectories()
-        let found = SourceScanner.scan(directories: directories)
+        // `r` re-runs `scan_sources`, which re-runs `find_cd` — so a disc put in
+        // after the picker was drawn appears on a rescan (`player:1018`). That
+        // is the whole reason the key exists.
+        let found = SourceScanner.scan(directories: directories, disc: DiscFinder.find())
         pickerEntries = found.isEmpty ? nil : found
         pickerCursor = min(pickerCursor, max(0, found.count - 1))
         pickerStatus = Readout.status("RESCANNED")
@@ -331,6 +374,11 @@ final class PanelModel {
     ) {
         record = read
         stage = nil
+        // The deck is loaded a moment from now, and until it is, `state` still
+        // describes the record that just came off. A record change is a stop and
+        // then a start, and the system is told it that way round rather than
+        // being shown one record's title against another's playhead.
+        nowPlaying.clear()
         // The scales now live across a track change (D33), so this is where they
         // are let go of: a record on the deck knows nothing about the last one.
         analyser.newRecord()
@@ -402,6 +450,16 @@ final class PanelModel {
             )
             offer = resume?.offerToShow(mode: fresh.mode)
         }
+
+        // §14. Outside the `if`, because a panel with no record on it must say
+        // so to the system too — a stale dictionary keeps the media keys coming
+        // here instead of going wherever the music actually is now.
+        nowPlaying.observe(record: record, state: fresh, sleeve: sleeve)
+        // "While playing" is read as "while there is a record on the deck".
+        // Taken literally it would mean the tile flipping back to the app icon
+        // every time the space bar is pressed, which is a strobe and not a
+        // reading — and a held record is still the record you are listening to.
+        dock.show(record == nil ? nil : sleeve)
     }
 
     // MARK: - What the faceplate says
@@ -444,6 +502,11 @@ final class PanelModel {
     // MARK: - The keys (§6.1)
 
     func space() { Task { await engine.togglePause() } }
+
+    /// PLAY and PAUSE as separate verbs, which the keyboard never needed and a
+    /// system transport does. §14 — see `NowPlaying`.
+    func play() { Task { await engine.play(); await refresh() } }
+    func pause() { Task { await engine.pause(); await refresh() } }
 
     func seek(by seconds: Double) { Task { await engine.nudge(by: seconds) } }
 
@@ -535,7 +598,12 @@ final class PanelModel {
     /// A cell of the track meter, which is a position in this track only.
     func seekTrack(cell: Int) {
         guard state.trackDuration > 0 else { return }
-        let seconds = Double(cell) * state.trackDuration / Double(PanelGrid.stripWidth)
+        seekTrack(to: Double(cell) * state.trackDuration / Double(PanelGrid.stripWidth))
+    }
+
+    /// The same move in seconds rather than in cells — where Control Center's
+    /// scrubber lands, because it has no idea the meter is 80 cells wide.
+    func seekTrack(to seconds: Double) {
         Task {
             await engine.seekInTrack(to: seconds)
             await refresh()
@@ -591,6 +659,8 @@ final class PanelModel {
         sleeveWork?.cancel()
         pendingSleeve?.cancel()
         await engine.shutdown()
+        nowPlaying.clear()
+        dock.show(nil)
         tearDownScratch()
     }
 

@@ -61,3 +61,13 @@ Ask before adding any dependency beyond these.
   _sleeve_, you put the _needle_ anywhere in the _record_. Use it in the UI, in
   the code, and in comments.
 - Comment in the register of the original: explain why, not what.
+- **A rule the kernel does not honour is worse than no rule.** When a test or a
+  parser asserts a shape the system never promised — a device node always
+  looking like `/dev/diskN`, a mount line always having a device on the left,
+  a filename always having an extension — the assertion is not strictness, it
+  is a guess that will fail on a machine we have not seen. Assert only what was
+  observed to be true and what the platform actually guarantees; where neither
+  covers it, assert the weak thing (non-empty, present, parses) and say in a
+  comment why the tighter rule was not written. This applies to `#expect`, to
+  every parse of another program's output, and to any place the port is tempted
+  to be tidier than the system it is reading.

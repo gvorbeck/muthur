@@ -237,8 +237,35 @@ public struct SleeveResolver: Sendable {
     /// it (`player:1915`).
     public static let coverTimeout: Duration = .seconds(25)
 
-    public static func coverURL(releaseID: String) -> URL? {
-        URL(string: "https://coverartarchive.org/release/\(releaseID)/front-500")
+    /// The sizes the archive is asked for, largest first.
+    ///
+    /// **A divergence, and a deliberate one.** The script asks for `front-500`
+    /// and nothing else (`player:1916`):
+    ///
+    ///     "https://coverartarchive.org/release/$id/front-500" 2>/dev/null
+    ///
+    /// 500 px was the right number for it. Its sleeve is a character grid and
+    /// the picture is one pixel per cell (`player:1758`), so a 42-column
+    /// ceiling is 42 pixels of cover and 500 is already more than ten times what
+    /// it can show. D2 dropped that ceiling here because a real image has no
+    /// such ceiling — the sleeve is now as big as the window is tall, and on a
+    /// Retina display it is drawn at two device pixels per point. A 400-point
+    /// sleeve is 800 pixels, and 500 px of cover in it is a soft cover.
+    ///
+    /// So the archive is asked for 1200 first. `front-500` stays as the
+    /// fallback rather than being replaced: the 1200 thumbnail was added to the
+    /// archive years after the 500 and an entry that predates the backfill has
+    /// only the smaller one, and a soft sleeve is not worse than no sleeve.
+    ///
+    /// The **original** (`/front`, no size) is not asked for. It is whatever
+    /// somebody uploaded — commonly a 3000 px scan of several megabytes — and
+    /// this is a background fetch that writes to a cache that is never swept.
+    /// 1200 is past the largest sleeve a window can ask for on the displays this
+    /// runs on, which is where the useful pixels stop.
+    public static func coverURLs(releaseID: String) -> [URL] {
+        ["front-1200", "front-500"].compactMap {
+            URL(string: "https://coverartarchive.org/release/\(releaseID)/\($0)")
+        }
     }
 
     /// Every part of this is allowed to fail and none of it is allowed to be
@@ -265,29 +292,40 @@ public struct SleeveResolver: Sendable {
         }
 
         for id in ids.prefix(ReleaseSearch.limit) {
-            guard let url = SleeveResolver.coverURL(releaseID: id) else { continue }
+            let urls = SleeveResolver.coverURLs(releaseID: id)
             // Twice per candidate. A first failure is more often a sick archive
             // node than a missing cover, and the redirect lands on a different
             // node next time (`player:1911`).
+            //
+            // The sizes are walked *inside* that, not around it, so the common
+            // case is still one request: an entry that has the large thumbnail
+            // never asks for the small one, and an entry that does not falls
+            // back on the same pass rather than after a second round trip.
             for _ in 1...2 {
-                if Task.isCancelled {
-                    cache.removePart(forKey: key)
-                    return nil
+                for url in urls {
+                    if Task.isCancelled {
+                        cache.removePart(forKey: key)
+                        return nil
+                    }
+                    guard
+                        case .body(let data) = await transport.get(
+                            url, timeout: Self.coverTimeout)
+                    else { continue }
+                    // An empty body, an error page, a 404: all of them are the
+                    // archive answering, and all of them count.
+                    heard = true
+                    guard !data.isEmpty, let part = cache.writePart(data, forKey: key)
+                    else { continue }
+                    // No floor here. Both sizes asked for are well past the
+                    // 200 px one a picture beside the record has to clear, so
+                    // the only question is whether a decoder can read the bytes
+                    // — which an nginx error page served under a 200 and
+                    // labelled `image/jpeg` cannot (`player:1858`).
+                    guard probe.isPicture(part), let file = cache.commitPart(forKey: key) else {
+                        continue
+                    }
+                    return Sleeve(url: file, source: .coverArtArchive)
                 }
-                guard case .body(let data) = await transport.get(url, timeout: Self.coverTimeout)
-                else { continue }
-                // An empty body, an error page, a 404: all of them are the
-                // archive answering, and all of them count.
-                heard = true
-                guard !data.isEmpty, let part = cache.writePart(data, forKey: key) else { continue }
-                // No floor here. The archive only ever sends one size, so the
-                // only question is whether a decoder can read the bytes — which
-                // an nginx error page served under a 200 and labelled
-                // `image/jpeg` cannot (`player:1858`).
-                guard probe.isPicture(part), let file = cache.commitPart(forKey: key) else {
-                    continue
-                }
-                return Sleeve(url: file, source: .coverArtArchive)
             }
         }
 
