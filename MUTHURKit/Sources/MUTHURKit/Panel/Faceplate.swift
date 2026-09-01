@@ -8,6 +8,18 @@ import Foundation
 /// as one instrument rather than as a run of unrelated screens. The badge is
 /// the only part that differs between the tools that share it, and here it is
 /// always the one word.
+///
+/// **Five screens wear it, and each one puts something different at the far
+/// end.** The script has three of them — the picker's `N SOURCES`
+/// (`player:1063`), the loading stage's own title (`player:1167`), and the
+/// now-playing panel's `PLAYING · 9 TRACKS · tags` (`player:2322`). The port
+/// adds two it had to invent, and both are here rather than in the views so
+/// that "every screen wears the same plate" is a thing the suite can be asked
+/// about: the check screen (`checkMeta`), which in bash is a terminal and not a
+/// panel at all, and the empty deck, which in bash cannot exist because
+/// `pick_source` ends the program rather than coming back with nothing
+/// (`player:1114`). The empty deck takes the ordinary `meta` and gets
+/// `STOPPED · 0 TRACKS`, which is not a special case so much as the true one.
 public enum Faceplate {
 
     /// Drawn as text and never touching the filesystem, so it is the slashed
@@ -43,6 +55,32 @@ public enum Faceplate {
     /// The picker's meta: `N SOURCES` or `1 SOURCE`.
     public static func pickerMeta(count: Int) -> String {
         "\(count) \(count == 1 ? "SOURCE" : "SOURCES")"
+    }
+
+    /// The check screen's meta: `SELF TEST · 14 CHECKS · 2 !`.
+    ///
+    /// **Mine, and there is nothing behind it in the script** — `run_check`
+    /// prints to a terminal and the program ends (`panel.sh:583`); there is no
+    /// panel up and so no faceplate to write. §11 put the same report on a
+    /// screen, and a screen in this port wears the plate.
+    ///
+    /// The shape is the one the other three metas already have: a state word,
+    /// then a count of the thing on screen. `SELF TEST` rather than `HEALTH
+    /// CHECK` because `CheckView`'s first line already says `MU/TH/UR HEALTH
+    /// CHECK` — the plate says what the machine is *doing* and the block under
+    /// it says what is being looked at, which is the same split as the
+    /// now-playing panel, where the plate says `PLAYING` and the header says
+    /// what the record is.
+    ///
+    /// The tally is at the tail for the same reason the volume is: it is the
+    /// part that changes. Marks that are not there are not printed — a clean
+    /// machine gets `SELF TEST · 14 CHECKS` and nothing else, because listing
+    /// `0 ✗` is a way of raising the subject.
+    public static func checkMeta(count: Int, warnings: Int, failures: Int) -> String {
+        var text = "SELF TEST · \(count) \(count == 1 ? "CHECK" : "CHECKS")"
+        if failures > 0 { text += " · \(failures) ✗" }
+        if warnings > 0 { text += " · \(warnings) !" }
+        return text
     }
 
     /// §6.1a's level, stamped at the tail of the meta. New (D1): bash had no

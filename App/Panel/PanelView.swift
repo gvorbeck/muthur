@@ -39,7 +39,11 @@ struct PanelView: View {
                 Bloom {
                     panel(rows: rows)
                         .background(alignment: .topLeading) {
-                            if !model.isPicking && !model.isChecking {
+                            // The burn is the rectangles the *now-playing*
+                            // furniture has never moved out of. Any other screen
+                            // would be showing a ghost of chrome that is not
+                            // above it.
+                            if !model.isPicking && !model.isChecking && !model.isLoading {
                                 BurnIn(marks: burn(rows: rows))
                             }
                         }
@@ -100,12 +104,15 @@ struct PanelView: View {
                             ? listRows(rows: rows) - min(trackCount, rows) : 0
                     )
                     .frame(height: Grid.rows(listRows(rows: rows)))
+                } else if let loading = model.loading {
+                    LoadingView(stage: loading)
+                        .frame(height: Grid.rows(rows + 4))
                 } else {
                     EmptyPanelView(stage: model.stage)
                         .frame(height: Grid.rows(rows + 4))
                 }
 
-                if !model.isPicking && !model.isChecking {
+                if !model.isPicking && !model.isChecking && !model.isLoading {
                     PanelBlank()
                     MeterView(
                         label: Readout.trackLabel(row: model.state.row, of: trackCount),
@@ -133,11 +140,18 @@ struct PanelView: View {
                     AnalyserView(grid: analyserGrid)
                 }
 
-                PanelBlank()
-                KeycapsView(
-                    legend: legend,
-                    press: tapped
-                )
+                // No legend while a source is coming open. `load_stage` prints
+                // no keys (`player:1162`) and there are none to print: the
+                // panel is not answering anything until it has a record, and a
+                // row of caps that light up and do nothing is the same lie the
+                // dead ⌘O was.
+                if !model.isLoading {
+                    PanelBlank()
+                    KeycapsView(
+                        legend: legend,
+                        press: tapped
+                    )
+                }
 
                 if let status = model.statusLine {
                     PanelBlank()

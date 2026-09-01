@@ -55,6 +55,11 @@ Ask before adding any dependency beyond these.
 ## Working notes
 
 - `docs/parity.md` is the definition of done. Keep it current as features land.
+- **The Status paragraph is part of ticking a box, not a separate step.** A box
+  ticked without the count and the narrative moving with it is a half-done edit,
+  not a done feature — it has drifted five times, always the same way. Tick the
+  box, re-derive the count by counting the file, and rewrite the paragraph to
+  describe the section that just landed, all in the one pass.
 - Where a decision in `player` looks wrong, do not silently improve it. It has
   been used and debugged. Flag it and ask.
 - The script's vocabulary is the personality of the program — a cover is a

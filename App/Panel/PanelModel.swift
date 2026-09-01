@@ -23,8 +23,17 @@ final class PanelModel {
     private(set) var titleSource: TitleSource?
     private(set) var sourceKind: SourceKind = .folder
 
-    /// The stage the panel is at when there is no record yet.
+    /// What the panel has to say when there is no record yet and nothing is
+    /// being loaded either — a refusal, or an empty scan. **A port invention
+    /// both times**: the script says one line and exits.
     private(set) var stage: String?
+
+    /// §10's loading stage, while a source is coming open (`player:1152`). Nil
+    /// the rest of the time, and nil again the moment there is a record — the
+    /// screen exists for the wait and for nothing else.
+    private(set) var loading: LoadingStage?
+
+    var isLoading: Bool { loading != nil && record == nil }
 
     /// The scratch directory a zip was unpacked into.
     private(set) var scratch: Scratch?
@@ -241,6 +250,7 @@ final class PanelModel {
 
     /// The script's `die()` — a message and nothing else.
     func die(_ message: String) {
+        loading = nil
         stage = "▪ \(message)"
     }
 
@@ -252,7 +262,13 @@ final class PanelModel {
 
     /// Open a source — folder or zip — by URL and kind.
     func open(source url: URL, kind: SourceKind) {
-        stage = "OPENING"
+        // The first stage is set here rather than waited for, because a folder
+        // of four files can be read faster than the first `progress` call
+        // arrives and a panel that flashes empty first is worse than one that
+        // says `OPENING` for a sixteenth of a second. `open_source` does the
+        // same: it announces the stage and then goes to work (`player:1398`).
+        stage = nil
+        loading = .opening(source: url.lastPathComponent, total: 0)
         record = nil
         pickerEntries = nil
         let useMusicBrainz = self.useMusicBrainz
@@ -261,8 +277,8 @@ final class PanelModel {
                 let opened = try await SourceOpener.open(
                     url: url, kind: kind,
                     useMusicBrainz: useMusicBrainz,
-                    progress: { [weak self] text in
-                        Task { @MainActor in self?.stage = text }
+                    progress: { [weak self] stage in
+                        Task { @MainActor in self?.loading = stage }
                     }
                 )
                 self.scratch = opened.scratch
@@ -374,6 +390,7 @@ final class PanelModel {
     ) {
         record = read
         stage = nil
+        loading = nil
         // The deck is loaded a moment from now, and until it is, `state` still
         // describes the record that just came off. A record change is a stop and
         // then a start, and the system is told it that way round rather than
@@ -473,10 +490,22 @@ final class PanelModel {
         }
     }
 
+    /// **Every screen's plate, in one place** (§10). The order is the order the
+    /// screens cover each other in `PanelView`: the check goes over whatever was
+    /// showing, the picker and the loading stage only exist while there is no
+    /// record, and the deck's own meta is what is left.
     var faceplateMeta: String {
+        if let report {
+            return Faceplate.checkMeta(
+                count: report.checks.count,
+                warnings: report.checks.filter { $0.mark == .warn }.count,
+                failures: report.checks.filter { $0.mark == .fail }.count
+            )
+        }
         if let entries = pickerEntries, record == nil {
             return Faceplate.pickerMeta(count: entries.count)
         }
+        if let loading { return loading.meta }
         return Faceplate.meta(
             mode: mode, trackCount: record?.order.count ?? 0, source: titleSource,
             level: Faceplate.level(volume: state.volume, muted: state.muted)
@@ -493,6 +522,10 @@ final class PanelModel {
         // The check has its own legend and its rows are the message; a status
         // line under it would be the deck talking over the diagnosis.
         if isChecking { return nil }
+        // Nor while a source is coming open: `load_stage` has no status row
+        // (`player:1162`), and the offer it would carry is about the record
+        // that is still being read.
+        if isLoading { return nil }
         if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
         if let offer { return offer.text }

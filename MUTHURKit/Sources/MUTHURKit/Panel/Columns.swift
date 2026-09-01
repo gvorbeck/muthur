@@ -83,7 +83,10 @@ public enum Columns {
 
     public enum Align: Sendable { case leading, trailing }
 
-    /// Pad or truncate to exactly this many columns (`panel.sh:341`).
+    /// Pad or truncate to exactly this many columns — `fit()` (`panel.sh:368`),
+    /// which is one line over `fitv()` (`panel.sh:341`), which is where the
+    /// counting actually happens and where its reasoning is written down
+    /// (`panel.sh:335`).
     ///
     /// Trailing alignment is the same fit with the slack moved to the front.
     /// It is asked for by a track list where the artist column stands against

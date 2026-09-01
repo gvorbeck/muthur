@@ -60,11 +60,17 @@ public enum SourceOpener {
     /// general `open` rather than on `openDisc` because the picker opens a disc
     /// too (§1.2's row), and a flag that only worked when the disc was named on
     /// the command line would be a flag that quietly stopped working.
+    /// **`progress` hands over the stage, not a sentence about it.** It used to
+    /// pass a formatted string, which meant the two numbers `load_stage` puts
+    /// the bar's head at (`player:1152`) were spent on making the words and then
+    /// thrown away — so the panel could say `READING · 62%` and had nothing to
+    /// draw a meter with. `LoadingStage` is what the script hands `load_stage`,
+    /// and the wording is the screen's business.
     public static func open(
         url: URL,
         kind: SourceKind,
         useMusicBrainz: Bool = true,
-        progress: (@Sendable (String) -> Void)? = nil
+        progress: (@Sendable (LoadingStage) -> Void)? = nil
     ) async throws -> Opened {
         switch kind {
         case .folder:
@@ -102,14 +108,14 @@ public enum SourceOpener {
     private static func openDisc(
         _ url: URL,
         useMusicBrainz: Bool,
-        progress: (@Sendable (String) -> Void)?
+        progress: (@Sendable (LoadingStage) -> Void)?
     ) async throws -> Opened {
         let label = url.lastPathComponent
         var record = try await Record.read(
             directory: url, sourceLabel: label,
             numbersFromFilenames: true,
             progress: { p in
-                progress?("READING · \(p.percent)% · \(p.filename)")
+                progress?(.reading(p, source: label))
             }
         )
 
@@ -126,7 +132,7 @@ public enum SourceOpener {
             transport: URLSessionSleeveTransport(),
             useMusicBrainz: !musicBrainzDisabled(flag: useMusicBrainz),
             stage: { stage in
-                progress?("\(DiscTitles.Stage.heading) · \(stage.step)/\(stage.of) · \(stage.detail)")
+                progress?(.disc(stage, source: label))
             }
         )
 
@@ -194,13 +200,13 @@ public enum SourceOpener {
 
     private static func openFolder(
         _ url: URL,
-        progress: (@Sendable (String) -> Void)?
+        progress: (@Sendable (LoadingStage) -> Void)?
     ) async throws -> Opened {
         let label = url.lastPathComponent
         let record = try await Record.read(
             directory: url, sourceLabel: label,
             progress: { p in
-                progress?("READING · \(p.percent)% · \(p.filename)")
+                progress?(.reading(p, source: label))
             }
         )
         return Opened(
@@ -211,18 +217,20 @@ public enum SourceOpener {
 
     private static func openZip(
         _ url: URL,
-        progress: (@Sendable (String) -> Void)?
+        progress: (@Sendable (LoadingStage) -> Void)?
     ) async throws -> Opened {
         let label = url.lastPathComponent
-        progress?("OPENING · \(label)")
+        // `load_stage "OPENING" 0 "$total" "$SRC_LABEL"` (`player:1398`): said
+        // before the archive is opened at all, so that a zip slow to be read off
+        // a disk is a screen rather than a pause.
+        progress?(.opening(source: label, total: 0))
 
         let scratch = try Scratch.open()
 
-        progress?("UNPACKING · \(label)")
         let result = try Unpacker.unpack(
             zip: url, into: scratch.album, label: label,
             progress: { p in
-                progress?("UNPACKING · \(p.percent)% · \(p.name)")
+                progress?(.opening(p, source: label))
             }
         )
 
@@ -231,7 +239,7 @@ public enum SourceOpener {
             directory: scratch.album, sourceLabel: label,
             discsFromSubdirectories: discs,
             progress: { p in
-                progress?("READING · \(p.percent)% · \(p.filename)")
+                progress?(.reading(p, source: label))
             }
         )
         return Opened(

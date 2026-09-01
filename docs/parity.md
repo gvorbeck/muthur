@@ -37,17 +37,56 @@ part worth porting.
 
 ## Status
 
-**270 of 287 boxes** (§19 is a procedure, not boxes, and is not counted; it
-stands separately at 10 of 31).
+**277 of 287 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+counted; it stands separately at 10 of 31).
 
-**The denominator did not move again.** §14 ticked two — real cover art at real
-resolution, and the media keys with Now Playing — and added none. It could not
-have: §14 is the one section with no `player` behind it, so its boxes were
-written from `spec.md` before any of it existed, and implementing them can only
-ever close boxes that were already there. Three of §14's six open boxes are
-blocked on hardware and material rather than on work and are listed as such at
-the section; the fourth, the Dock, is written but only a third looked at, and a
-box that is two-thirds of a box is not a box.
+**The denominator did not move, and §10 closed.** Its last two boxes were one
+box wearing two hats: the loading stage is the fifth screen this panel has, and
+"the faceplate on every stage" could not be shown true until there were enough
+stages for *every* to mean something. Porting it found a divergence and reversed
+it — the port had grown a fourth stage word, `UNPACKING`, which the script does
+not have: `open_source` says `OPENING` before the archive is touched
+(`player:1398`) and the unpack counts up under that same word (`player:1290`,
+`player:1360`). Three words, and the percentage says how far in it is. The
+opener's progress callback used to hand over a formatted string, which spent the
+two numbers `load_stage` puts the bar's head at and threw them away; it now
+hands over a `LoadingStage` — what the script hands `load_stage` — and the screen
+does the wording. Two oddities are kept and flagged rather than tidied: the
+second label always reads `READING` whatever the plate says (`player:1170`), and
+`SOURCE` is printed whole here where `np_frame` fits it to 52 (`player:1169`
+against `player:2330`), so a very long archive name overruns this line and no
+other.
+
+**The denominator did not move for §12, either.** §12 ticked five — the last two §1.1
+flags, `-n` and `--help`, and all three of §12 — and added none. **`-n` is the
+first flag whose whole subject is printing**, so it lands in `App/main.swift`
+beside `--check` rather than in the panel — but not before the read:
+`player:3540` sits after `open_source`, so a dry run does every expensive thing
+a real run does except put a needle down. Four things about its layout look wrong and are
+kept, listed at §12. With no source argument it takes the first one scanned,
+where the script would draw a picker — `player:1118` is the script's own rule
+for a run with no screen, and `player -n | cat` has always behaved that way.
+One box needed wiring rather than inheriting: the script has a single `YEAR`
+that the panel and `-n` both print, where this port has three sources and a
+precedence, so both now call `HeaderBlock.year` and `Inspect` consults the
+catalogue the way `PanelModel` does.
+
+**`--help` is the only thing in this port that is a straight loss, and it is
+D46.** `usage` prints the script's own header by reading `$0` (`panel.sh:270`),
+so the help and the header are not two things that agree — they are one thing.
+A compiled binary has no `$0`, so the text is a literal in `Usage.swift` and a
+literal can drift. What stands in for the mechanism is `UsageTests`, which
+reads `Sources` back off disk and checks both directions: no switch and no
+environment variable undocumented, and nothing documented that has since been
+removed. Weaker than the shell's guarantee, and written down as weaker.
+
+**No new box for the unknown-option refusal, and that is on purpose.**
+`MUTHUR --rip` used to open a window and sit there because `main.swift` parsed
+through a `try?`; it now prints `unknown option: --rip (try --help)` on stderr
+and exits 1, which is `player:336` word for word. **It is counted under §1.1's
+`-h` / `--help` box**, not given one of its own: the script's refusal is an
+instruction to run `--help`, so a `--help` that cannot be reached by getting
+something wrong is half a flag. See §1.1's prose for the detail.
 
 **The denominator did not move the time before, either, and that is the point of
 recording it.** §1.3 ticked thirteen boxes — one in §1.1 (`--cd`), two in §1.2 (the
@@ -84,13 +123,9 @@ it: the two degraded paths for an album that vanishes while it is playing, and
 the two about a folder of mixed formats, which is the same requirement §6 opens
 with and the album it would be audible on.
 
-§10 itself is **most of the way and deliberately not finished**. The layout, the
-arithmetic, the behaviour, the amber and the type are done and on screen. **Two
-of its boxes stay open and neither is §10's**: the faceplate cannot be shown true
-on *every* stage while there is only one stage, and the loading stage's per-file
-album meter needs §1 to have a file to load. The other two were §8's and §8 has
-closed them — `SHELF`/`NOTE` are drawn, and the year now has all three of its
-sources.
+**§10 is now done whole** — the loading stage and the faceplate, described
+above. Two of the four boxes that were open here were §8's and §8 closed them:
+`SHELF`/`NOTE` are drawn, and the year now has all three of its sources.
 
 **§8 is the new one, and it is done whole** — thirteen boxes, the file picker and
 D5's bookmark included. `Shelf/` is three files: a CSV walk, the catalogue and
@@ -206,12 +241,22 @@ time one goes in. The split between what ran on hardware and what ran on stubs i
 written into §1.3's boxes one at a time rather than summarised, because they are
 different kinds of confidence and a summary blurs them.
 
-Two §1.1 flags stay open, and the reason is the same in both cases: **the parse
-is not the flag.** `--dry-run` and `--help` are recognised so they are not
-mistaken for a path, and nothing consumes them. They are named here so a done
-parse is not read as a done flag. `--no-mb` was the third of these and is now
-threaded — one merge of flag and environment, asked by §11's row and §4's disc
-path alike.
+**§1.1 is now done whole.** The last two flags were open on the same grounds —
+**the parse is not the flag**: `--dry-run` and `--help` were recognised so they
+would not be mistaken for a path, and nothing consumed them. Both are consumed
+now, in `App/main.swift` and before `NSApplication` starts. `--no-mb` was the
+third of these and was threaded first — one merge of flag and environment,
+asked by §11's row and §4's disc path alike.
+
+Closing them exposed a fourth thing the parse was doing and the flag was not.
+`main.swift` read the arguments through a `try?`, so an argument the parse
+rejected fell through to the panel and `MUTHUR --rip` opened a window and sat
+there, where `player:336` is
+`-*) die "unknown option: $1 (try --help)" ;;`. The `try?` is gone; an unknown
+switch now prints exactly that on stderr and exits 1, and a bad source path
+prints its own refusal the same way. **This lands under §1.1's `--help` box** —
+it is that flag's other half, because the message the script prints is an
+instruction to run it.
 
 **§18.4** came due while §5 was being written and is answered — **D14**: the
 `.none` marker is written only when something at the far end actually replied.
@@ -532,9 +577,18 @@ material is not there.
       just this one, so `-*` dies as an unknown option instead of being opened as
       a file — the failure mode of guessing is opening something nobody asked
       for.
-- [ ] `-n` / `--dry-run` → read it, print the album, play nothing
-      (`player:331`, `player:3540`). **Parsed, not acted on.** `LaunchOptions`
-      recognises it so it is not mistaken for a path; nothing consumes it yet.
+- [x] `-n` / `--dry-run` → read it, print the album, play nothing
+      (`player:331`, `player:3540`). Answered in `App/main.swift` alongside
+      `--check`, and for the same reason: it prints and *ends*. §12 has the
+      layout and the four oddities kept in it.
+      **With no source argument it takes the first one it finds**, where the
+      script would run the picker (`player:3531`). The picker here is a window
+      and a window cannot hand its answer back to a pipe — but the script
+      already has a rule for a run that cannot draw one, one line into
+      `pick_source`: `[ "$SCREEN" -eq 1 ] || { PICKED=${SRC[0]}; return 0; }`
+      (`player:1118`). `player -n | cat` has always behaved this way.
+      **`--check` beats it**, which is the script's own order — `CHECK` is
+      tested at `player:531` and `DRY_RUN` at `player:3540`.
 - [x] `--check` → diagnostics, exit non-zero on hard failure (`player:332`,
       `player:531`). **Answered before `NSApplication` starts**, in `App/main.swift`
       rather than by `@main` on `MUTHURApp`: the flag's whole value is that it
@@ -562,8 +616,27 @@ material is not there.
       switch did it, because the script had one message to write. The port has
       two names in play, so the row names the one that is actually set — naming
       the wrong one sends the reader to the wrong switch.
-- [ ] `-h` / `--help` → the header comment, reprinted (`panel.sh:269`).
-      **Parsed, not acted on**, same as `--dry-run`.
+- [x] `-h` / `--help` → the header comment, reprinted (`panel.sh:269`).
+      **It stops the parse where it stands.** The script's arm is
+      `-h|--help) usage 0 ;;` and `usage` *exits* (`panel.sh:271`) from inside
+      the loop, so nothing to the right of it was ever looked at:
+      `--help --rip` prints the help and leaves 0, `--rip --help` dies on
+      `--rip`. `LaunchOptions.parse` returns on the flag rather than collecting
+      everything and picking a winner afterwards.
+      **What does not survive is the mechanism, and it was the good part.**
+      `usage` runs `awk` over `$0`, so the help and the file's own header are
+      the same forty-nine lines (`player:3`–`player:51`) and cannot drift. A
+      compiled binary has no `$0` to read, so the text is a literal in
+      `Usage.swift` — the only copy in the repository, with the suite reading
+      `Sources` back off disk to check that no switch and no environment
+      variable was added without a line about it, and that nothing named there
+      has since been removed. Weaker than the shell's guarantee, and the
+      strongest one available.
+      Two small departures, both **mine**: the examples are written in the name
+      it was invoked under rather than a hard-coded `player`, since `usage` was
+      already reading `$0` for the text; and the page describes this port, so
+      it says AVFoundation where the script says ffmpeg and documents no art
+      switch, there being no `MUTHUR_ART` to document (`player:49`).
 
 ### 1.2 The picker
 
@@ -1868,13 +1941,25 @@ The character-grid arithmetic is documented here so the *visual rhythm* survives
 even where the constraint does not. `spec.md`: treat the grid as a design grid,
 drop the constraint where it only ever existed because of the terminal.
 
-- [ ] Faceplate on every stage — badge, rule, and the machine's state stamped at
+- [x] Faceplate on every stage — badge, rule, and the machine's state stamped at
       the far end the way a deck prints its mode. Every screen wearing the same
       one is most of why they read as one instrument (`panel.sh:256`).
-      *`FaceplateView` is written and takes its meta as an argument, so a second
-      stage wears it by being handed one. The box stays open because there is
-      only one stage so far: the picker is §1, the shelf is §8, diagnostics is
-      §11, and "every screen" cannot be shown true against a single screen.*
+      *Closed by the loading stage below, which was the fifth screen and the
+      third the script has. There are now enough of them for "every" to mean
+      something, and `Faceplate` holds all five metas rather than the views
+      holding their own, so the claim is a thing the suite can be asked about.
+      Three are the script's — `N SOURCES` (`player:1063`), the loading stage's
+      own title (`player:1167`), `PLAYING · 9 TRACKS · tags` (`player:2322`).
+      Two are the port's, because the screens are: `SELF TEST · 14 CHECKS · 2 !`
+      on §11's check, which in bash is a terminal and wears no plate at all, and
+      `STOPPED · 0 TRACKS` on the empty deck, which in bash cannot exist. The
+      check's wording is **mine** — the state word is `SELF TEST` and not
+      `HEALTH CHECK` because `CheckView`'s own first line already says the
+      latter, and the plate saying what the machine is doing while the block
+      under it says what is being looked at is the same split the now-playing
+      panel already has. The two tests that matter are that all five put badge,
+      rule and meta in that order, and that all five land flush on the panel's
+      right-hand edge with a rule still in them.*
 - [x] Faceplate meta on the now-playing panel: `PLAYING · 9 TRACKS · tags`
       (`player:2320`). Mode labels: `PLAYING`, `PAUSED`, `STOPPED`, `FINISHED`.
 - [x] Header block: `ALBUM`, `ARTIST`, `SOURCE`, then `SHELF`/`NOTE` when the
@@ -1961,10 +2046,33 @@ drop the constraint where it only ever existed because of the terminal.
 - [x] `▾ N MORE` when the list is clamped, worded the same wherever that happens
       (`panel.sh:384`).
 - [x] Keycap legend rows, both of them (`player:2429`, `player:2430`).
-- [ ] Loading stage: the album meter with no bands yet, one per file as they
+- [x] Loading stage: the album meter with no bands yet, one per file as they
       land, which is the honest picture of the wait. Distinct stages `OPENING`,
       `READING`, `READING DISC` with a per-file/per-step line
       (`player:1148`).
+      *`LoadingStage` is what the script hands `load_stage` — a heading, a
+      source, a detail and the two numbers the bar's head sits at — and
+      `LoadingView` is the frame at `player:1162`: `SOURCE`, `READING`, and one
+      `trackbar` under them, in the header block's own column because it is the
+      same column. **`SourceOpener`'s `progress` used to hand over a formatted
+      sentence**, which meant the two numbers were spent on the wording and
+      thrown away, so the panel could say `READING · 62%` and had nothing to
+      draw a meter with. It hands over the stage now.*
+      ***A fourth stage word went away.*** *The port had grown `UNPACKING`,
+      which the script has nowhere: `open_source` says `OPENING` before the
+      archive is touched (`player:1398`) and the unpack counts up under the same
+      word (`player:1290`, `player:1360`). Three words, and the percentage is
+      what says how far in it is.*
+      *Four oddities kept and written up in `LoadingStage`: the second label is
+      always `READING` whatever the heading says (`player:1170`); `SOURCE` is
+      **not** cut here and is cut on the now-playing panel (`player:1169` against
+      `player:2330`); `head` is computed and never used (`player:1160`); and
+      `bands` is called with its answer thrown away (`player:1161`) — the frame
+      prints `$TRACKBAR` and nothing else. The last two are dead in the original
+      and are not carried over; the first two are visible and are.*
+      *While it is up there are no keycaps, no status row, no meters and no
+      burn-in — `load_stage` prints none of them, and a legend that lights up
+      and does nothing is the lie the dead ⌘O was.*
 - [x] **Clickable keycaps** (**D30**). The legend was a picture of a keyboard on
       an instrument that answered the pointer everywhere else (§6.4), and a drawn
       switch that does nothing when you push it reads as broken rather than as
@@ -2182,11 +2290,35 @@ startup).
 
 ## 12. `-n` inspect mode
 
-- [ ] Album — artist (year), then `N tracks, M:SS, from <source>`, then a
+- [x] Album — artist (year), then `N tracks, M:SS, from <source>`, then a
       numbered list of fitted titles with durations (`player:3540`).
-- [ ] The way to get the track list as plain text; a normal run draws the panel.
-- [ ] The year shown here and the year on the panel are now the same year, from
+      **Four things about the layout look wrong and are kept.** `%d tracks` is
+      unconditionally plural, so a single prints `1 tracks` — the picker got
+      this right (§1.2) and nobody came back here. The separator between album
+      and artist is an em dash and so is the `${X:-—}` fallback for all three
+      fields, so a record with nothing tagged prints `— — — (—)`, which reads
+      as a rule. `%2d` is the *row* rather than the track number and is two
+      places wide, so a hundred-track set steps one column right from a hundred
+      on. And the title is padded to exactly 52 with the duration right-aligned
+      in 6 whether or not either needed it — reproduced by hand rather than
+      through `Columns.fit`, because `fit` truncates with an ellipsis where
+      `%6s` does not truncate at all.
+- [x] The way to get the track list as plain text; a normal run draws the panel.
+      It runs *after* the read and before the panel (`player:3535`), so a dry
+      run does every expensive thing a real run does except put a needle down:
+      a zip is unpacked in full and then torn down, and `MUTHUR_KEEP` says so
+      on stderr the way the exit trap does (`player:317`).
+- [x] The year shown here and the year on the panel are now the same year, from
       the same precedence (§10, D6).
+      **This one had to be wired, not merely inherited.** The script has a
+      single `YEAR` global that MusicBrainz overwrites (`player:2215`) and that
+      both the panel and `-n` print, so they could not disagree. Here the tag
+      year, the lookup and the shelf are three separate values, and `-n`
+      printing `record.year` would have shown the tag year where the panel
+      showed the shelf's. Both now call `HeaderBlock.year`, and `Inspect` looks
+      the record up in the catalogue the same way `PanelModel` does — not to
+      print the note, for which `-n` has no line, but because the shelf is one
+      of the three places the year can come from.
 
 ---
 
@@ -2207,6 +2339,15 @@ All eight are documented in the script's own header comment (`player:47`).
 | `XDG_CACHE_HOME` | `player:197` | Where the scratch and art caches live |
 | `XDG_STATE_HOME` | `player:1557` | Where the resume file lives |
 | — | — | Volume and mute, persisted (§6.1a) — new |
+
+**This table is no longer the only place they are written down.** `--help`
+lists them too, as the script's header did (`player:45`), and D46's suite holds
+the two in step: a variable the kit reads and the page does not name is a
+failure, and so is a variable the page names and nothing reads. `PLAYER_ART`
+has no row on the page for that second reason — there is no `MUTHUR_ART`, and
+a help page that lists a switch that does not exist is worse than a short one.
+The four `PLAYER_` names still honoured (`DIRS`, `WORK`, `KEEP`, `COLLECTION`)
+are named there as a group, and the suite asserts that the group is complete.
 
 ---
 
@@ -2286,7 +2427,7 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-forty-five are settled. Recorded here with the answer so that a departure from
+forty-six are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -2315,7 +2456,9 @@ screen that should be allowed to hang. **D40–D45** each came out of the thing 
 names: D40 out of §12, D41 out of the fixtures, D42–D44 out of the disc — the
 last of them reversing the first two on the evidence of a real pressing — and
 **D45** out of §14, which is the first section with no `player` behind it at
-all.
+all. **D46** came out of §1.1 and is the only one here that is a *loss*: a
+mechanism the script had and a compiled binary cannot, written down with what
+was put in its place.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -3503,6 +3646,43 @@ therefore goes from 5 × 2 = 10 requests to 5 × 2 × 2 = 20, and the ordinary c
 sometimes 3000 px and sometimes a 40 MB scan of a booklet. Nothing ever waits
 for this fetch (§5), but it is still someone's connection, and the panel cannot
 draw more than the thumbnail already gives it.
+
+**D46 — `--help` is a literal, and the suite is what stands in for `$0`.**
+→ §1.1, §13
+
+`usage` is four lines and the whole of it is a trick (`panel.sh:269`):
+
+    awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print; next } NR > 2 { exit }' "$0"
+
+It prints the script's own header comment — lines 3 to 51 of `player`,
+forty-nine of them — by reading the file it is running from. The help and the
+header are therefore not two things that agree; they are one thing. **That
+cannot be ported.** A compiled binary has no `$0` worth reading, the bundle
+carries no copy of the source, and a literal in `Usage.swift` can drift from
+the code the moment somebody adds a flag.
+
+What replaces it is weaker and is written down as weaker: `UsageTests` reads
+`Sources` back off disk through `#filePath` and asserts that every switch
+`LaunchOptions.parse` accepts is spoken for in the text, that every
+`MUTHUR_`/`PLAYER_`/`XDG_` name the kit reads is named, and — the direction a
+literal is likeliest to get wrong — that nothing the page *offers* has since
+been removed. `#filePath` is what the compiler saw and not a promise about this
+machine, so those checks are conditional on finding the directory rather than
+asserting a layout nobody guaranteed.
+
+**Spoken for, not named**, because the original is not stricter than that: the
+script's header lists `-n` and not `--dry-run` (`player:10`), and does not
+mention `-h` or `--help` at all. The two alias pairs are carried by hand in the
+suite; a switch with no alias to hide behind must appear under its own name.
+
+Two departures inside the text itself. The examples are written in the name the
+binary was invoked under rather than a hard-coded `player` — `usage` was
+already reading `$0` for the text, so reading it for the name seemed the smaller
+lie. And the page describes *this* program: AVFoundation where the script says
+ffmpeg, `~/.cache/muthur/work`, the keys the panel actually binds, and no art
+switch at all, there being no `MUTHUR_ART` to document (`player:49`). A help
+page that lists a variable nothing reads is worse than a short one, so
+`theHelpListsNothingImaginary` asserts that too.
 
 ---
 

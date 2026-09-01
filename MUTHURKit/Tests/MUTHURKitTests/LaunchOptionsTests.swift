@@ -47,6 +47,29 @@ struct LaunchOptionsTests {
         #expect(options.sourcePath == nil)
     }
 
+    /// **`usage` exits from inside the loop** (`player:335`, `panel.sh:271`), so
+    /// nothing to the right of `--help` was ever read — including an option that
+    /// would otherwise have been fatal. Reversed, the fatal one comes first and
+    /// wins.
+    @Test func helpStopsTheParseWhereItStands() throws {
+        let options = try LaunchOptions.parse(["--help", "--rip", "/a", "/b"])
+        #expect(options.help)
+        #expect(options.sourcePath == nil)
+
+        #expect(throws: LaunchOptions.Failure.unknownOption("--rip")) {
+            try LaunchOptions.parse(["--rip", "--help"])
+        }
+    }
+
+    /// `CHECK` is a flag the loop sets and carries on past; `--help` is a flag
+    /// that leaves. So whichever order they arrive in, the help is what prints —
+    /// `CHECK` is not read until `player:531`, and 531 is never reached.
+    @Test func helpBeatsCheckBothWaysRound() throws {
+        #expect(try LaunchOptions.parse(["--check", "--help"]).help)
+        #expect(try LaunchOptions.parse(["--help", "--check"]).help)
+        #expect(try !LaunchOptions.parse(["--help", "--check"]).check)
+    }
+
     /// **`-*` dies rather than being taken for a path.** Guessing here would
     /// open something nobody asked for.
     @Test func anUnknownFlagDies() {

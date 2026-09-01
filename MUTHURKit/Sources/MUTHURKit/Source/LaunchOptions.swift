@@ -12,10 +12,11 @@ public struct LaunchOptions: Sendable, Equatable {
     public var wantCD: Bool = false
     /// `--no-mb` (`player:334`).
     public var useMusicBrainz: Bool = true
-    /// `-n` / `--dry-run`. **Parsed, not yet acted on** — its own box in §1.1.
-    /// Recognised here so it is not mistaken for a path.
+    /// `-n` / `--dry-run` (`player:331`). Read the record, print it, play
+    /// nothing — §12, and `Inspect` is where it happens.
     public var dryRun: Bool = false
-    /// `-h` / `--help`. **Parsed, not yet acted on** — its own box in §1.1.
+    /// `-h` / `--help` (`player:335`). **Nothing after it was parsed**, because
+    /// in the script nothing after it was reached: see `parse`.
     public var help: Bool = false
     /// `--check`, which `main.swift` answers before there is an app at all
     /// (§11). Carried so this parse is a complete account of the flag set.
@@ -46,6 +47,14 @@ public struct LaunchOptions: Sendable, Equatable {
     /// this is one of the places where matching the original matters more than
     /// being clever, because the failure mode of guessing is opening something
     /// nobody asked for.
+    ///
+    /// **`--help` stops the parse where it stands**, and that is not tidiness.
+    /// The script's arm is `-h|--help) usage 0 ;;` — `usage` *exits*
+    /// (`panel.sh:271`), from inside the loop, so nothing to the right of it was
+    /// ever looked at. `player --help --rip` prints the help and leaves 0;
+    /// `player --rip --help` dies on `--rip`. A parse that collected everything
+    /// first and reported `help` alongside `unknownOption` would have to pick
+    /// one, and it would pick the wrong one half the time.
     public static func parse(_ arguments: [String]) throws -> LaunchOptions {
         var options = LaunchOptions()
         for argument in arguments {
@@ -60,6 +69,7 @@ public struct LaunchOptions: Sendable, Equatable {
                 options.useMusicBrainz = false
             case "-h", "--help":
                 options.help = true
+                return options
             default:
                 if argument.hasPrefix("-") {
                     throw Failure.unknownOption(argument)
