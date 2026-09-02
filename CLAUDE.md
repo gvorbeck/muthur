@@ -55,13 +55,24 @@ Ask before adding any dependency beyond these.
 ## Working notes
 
 - `docs/parity.md` is the definition of done. Keep it current as features land.
+- **It is three files, and the numbering runs across all three.** `parity.md` is
+  §1–§15, §17, and the still-open questions of §18; it is the only one carrying
+  the Status paragraph and the counts. `docs/decisions.md` is §16 — every
+  deliberate departure from the script, D1 onwards — plus the answered half of
+  §18. `docs/hardware.md` is §19, the procedure to work through with a disc in
+  the drive. Nothing was renumbered when they split, so `§16`, `§18.24` and
+  `D44` mean in any of the three, and in the source, exactly what they always
+  meant. A new decision goes in `decisions.md` and is numbered on from the last
+  one there.
 - **The Status paragraph is part of ticking a box, not a separate step.** A box
   ticked without the count and the narrative moving with it is a half-done edit,
   not a done feature — it has drifted five times, always the same way. Tick the
-  box, re-derive the count by counting the file, and rewrite the paragraph to
-  describe the section that just landed, all in the one pass.
+  box, re-derive the count by counting the files — the boxes are in `parity.md`
+  and, for D8's four, in `decisions.md` — and rewrite the paragraph to describe
+  the section that just landed, all in the one pass.
 - Where a decision in `player` looks wrong, do not silently improve it. It has
-  been used and debugged. Flag it and ask.
+  been used and debugged. Flag it and ask. The answer, once it is given, is a
+  numbered entry in `docs/decisions.md`.
 - The script's vocabulary is the personality of the program — a cover is a
   _sleeve_, you put the _needle_ anywhere in the _record_. Use it in the UI, in
   the code, and in comments.

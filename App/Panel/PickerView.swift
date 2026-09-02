@@ -25,7 +25,7 @@ struct PickerView: View {
 
             PanelBlank()
 
-            // Source list
+            // Source list — at most the disc, since D50.
             ForEach(Array(visibleRange), id: \.self) { index in
                 PickerRowView(
                     entry: entries[index],
@@ -33,6 +33,19 @@ struct PickerView: View {
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { click(index) }
+            }
+
+            // An empty bay. The line names no key, unlike `EmptyPanelView`'s
+            // `⌘O` — the way on from here is `B`, and `B` is on the legend two
+            // rows below. A panel that prints its own keycaps twice has stopped
+            // trusting them.
+            if entries.isEmpty {
+                HStack(spacing: 0) {
+                    Spacer().frame(width: Grid.columns(PanelGrid.gutter))
+                    run("NOTHING IN THE DRIVE", Theme.etch).font(Theme.swiftUIFont)
+                    Spacer(minLength: 0)
+                }
+                .gridLine()
             }
 
             if below > 0 {

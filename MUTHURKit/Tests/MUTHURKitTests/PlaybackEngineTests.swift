@@ -29,6 +29,39 @@ struct PlaybackEngineTests {
         return recordOf(entries, label: "deck")
     }
 
+    // MARK: - §6.1a A record plays when it is opened
+
+    /// **`append-play`** (`player:3259`, and the comment above it at
+    /// `player:3245`): the playlist mpv is handed is handed with the flag that
+    /// starts it. Nothing in the script ever puts a record on and waits.
+    ///
+    /// Every other test here calls `pick(row:)` by hand, which is why the gap
+    /// survived as long as it did — the suite was starting the deck for the one
+    /// caller that had forgotten to.
+    @Test("A record plays when it is opened")
+    func loadingARecordStartsIt() async throws {
+        let folder = try ToneFolder()
+        let engine = PlaybackEngine(offline: true)
+        try await engine.load(tones([4, 4], in: folder))
+
+        #expect(await engine.state.mode == .playing)
+        #expect(await engine.state.row == 0)
+
+        // And it is really playing, not merely saying so: the frames come out.
+        let capture = try await engine.render(seconds: 0.2)
+        #expect(capture.frames > 0)
+    }
+
+    /// A record with no rows in it has nothing to start, and must come out of
+    /// `load` stopped rather than playing nothing. Going through `play()` rather
+    /// than `pick(row: 0)` is what makes that fall out on its own.
+    @Test("A record of no rows stays stopped")
+    func loadingAnEmptyRecordStaysStopped() async throws {
+        let engine = PlaybackEngine(offline: true)
+        try await engine.load(recordOf([], label: "nothing"))
+        #expect(await engine.state.mode == .stopped)
+    }
+
     // MARK: - §6.1 The transport, through the engine
 
     /// The row is not assumed anywhere — it is read back off the timeline, which
@@ -93,12 +126,18 @@ struct PlaybackEngineTests {
     @Test("`␣` pauses and resumes; STOPPED and FINISHED are not paused states")
     func pauseRules() async throws {
         let folder = try ToneFolder()
+
+        // Nothing to pause before anything is playing (`player:2787`). A loaded
+        // engine is no longer such a deck — **D51** starts the record when it is
+        // opened — so the only deck still sitting in `.stopped` is one that has
+        // never been handed a record at all, and that is where the rule is now
+        // asserted.
+        let idle = PlaybackEngine(offline: true)
+        await idle.togglePause()
+        #expect(await idle.state.mode == .stopped)
+
         let engine = PlaybackEngine(offline: true)
         try await engine.load(tones([4, 4], in: folder))
-
-        // Nothing to pause before anything is playing.
-        await engine.togglePause()
-        #expect(await engine.state.mode == .stopped)
 
         await engine.pick(row: 0)
         _ = try await engine.render(seconds: 0.1)

@@ -97,10 +97,14 @@ public enum Readout {
         case jump
         case next, previous
         case shuffle, repeatMode
+        /// Ask the drive again (`player:1018`). It was named for `scan_sources`
+        /// and outlived it (D50) — the bay is the one thing left that can change
+        /// under a screen that is already drawn.
         case rescan
-        /// Open something the scan did not find (§14). New, and it has to be:
-        /// the script's picker is the search path or nothing, because a TUI over
-        /// ssh has no file chooser to offer. A window does.
+        /// Open a record from anywhere (§14). New, and since D50 it is the way
+        /// in for everything that is not the disc: the script's picker is the
+        /// search path or nothing, because a TUI over ssh has no file chooser to
+        /// offer. A window does.
         case browse
         /// Off the check screen and back to the panel (§11). New — `--check`
         /// leaves by ending the program (`player:531`), which a window cannot
@@ -149,25 +153,39 @@ public enum Readout {
         ],
     ]
 
-    /// The picker's keycap row (`player:1134`), plus `BROWSE`.
+    /// The picker's keycap row (`player:1134`), plus `BROWSE` — **and it is now
+    /// two rows, one of which is not drawn at the same time as the other.**
+    ///
+    /// D50 took the scan away, so the picker is the disc or it is nothing, and
+    /// there is no list left to walk: `↑↓ SELECT` is gone from both forms
+    /// because with at most one row there is nowhere for a cursor to go. When
+    /// the bay is empty `⏎ OPEN` goes too, since it would open nothing. That is
+    /// the same rule the check screen's row and the loading screen's absent row
+    /// are already keeping — a legend naming keys the screen does not answer is
+    /// the same lie the dead ⌘O was.
     ///
     /// **`BROWSE` sits between `RESCAN` and `QUIT`** and not at the end, because
-    /// the three before it are all *do something with this list* and `QUIT` is
-    /// the way out; a cap that opens a record belongs with the others that open
-    /// records. `Q` stays last, where the hand already looks for it.
+    /// what comes before it is *do something about a record* and `QUIT` is the
+    /// way out. `Q` stays last, where the hand already looks for it.
     ///
-    /// The row is still one row — five caps come to 59 of the 69 columns — which
-    /// is the whole constraint on adding anything here (§14: a legend that has
-    /// to wrap has stopped being a legend).
-    public static let pickerLegend: [[Cap]] = [
-        [
-            Cap("↑↓", "SELECT", .selectUp, .selectDown),
-            Cap("⏎", "OPEN", .jump),
-            Cap("R", "RESCAN", .rescan),
-            Cap("B", "BROWSE", .browse),
-            Cap("Q", "QUIT", .quit),
-        ],
-    ]
+    /// **`RESCAN` survives the scan it was named for**, and means the one thing
+    /// it always mainly meant: `r` re-runs `find_cd`, so a disc put in after the
+    /// screen was drawn appears (`player:1018`). The bay is all there is left to
+    /// look at, and looking again at it is still worth a key.
+    ///
+    /// Measured against the 69 columns, by the arithmetic `KeycapTests.fits`
+    /// uses — a plate is ` KEY `, a legend is ` LABEL`, three columns between
+    /// caps. With the disc: 36 of caps and 9 of gaps, **45**. With an empty bay:
+    /// 28 and 6, **34**. The row that used to be there was 59, so there is more
+    /// air on this screen than there was, not less.
+    public static func pickerLegend(hasDisc: Bool) -> [[Cap]] {
+        var caps: [Cap] = []
+        if hasDisc { caps.append(Cap("⏎", "OPEN", .jump)) }
+        caps.append(Cap("R", "RESCAN", .rescan))
+        caps.append(Cap("B", "BROWSE", .browse))
+        caps.append(Cap("Q", "QUIT", .quit))
+        return [caps]
+    }
 
     /// The check screen's row (§11). Two things can be done to a health check —
     /// leave it, or ask it again after fixing something — and `R` is already

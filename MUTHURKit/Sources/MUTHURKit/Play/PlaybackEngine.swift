@@ -171,6 +171,25 @@ public actor PlaybackEngine {
 
     /// The whole record at once, in panel order, so the engine can read ahead
     /// into the next file while the current one is still playing (`player:2453`).
+    ///
+    /// **And it starts.** `playlist_build` hands mpv `append-play`
+    /// (`player:3259`) and says why in the comment above it (`player:3245`): the
+    /// flag is what puts the needle down, so building the playlist and starting
+    /// the record are one act in the script and there is no state in which
+    /// `player` has read an album and is sitting silent in front of it. The port
+    /// had one, and it lasted until somebody pressed ⏎.
+    ///
+    /// The start lives here rather than at the call site, which is the shape of
+    /// `main`'s own tail — `engine_start; play` (`player:3566`) — because a rule
+    /// kept by the one caller that remembers it is the rule that goes missing
+    /// when a second caller arrives. Nothing is left in `.stopped` by a load; a
+    /// record with no rows in it is, and `pick` refusing a row that is not there
+    /// is what says so.
+    ///
+    /// §7's offer is unaffected and is meant to be. The script starts the record
+    /// at its beginning too and puts `RESUME AT … — PRESS U` on the status line
+    /// beside it (`player:2827`) — the offer is a thing you take, never a thing
+    /// that is done to you, which is §7's first box.
     public func load(_ record: Record, source: SourceKind = .folder, seed: UInt64? = nil) throws {
         teardown()
 
@@ -198,6 +217,11 @@ public actor PlaybackEngine {
         feedVisit = 0
         mode = .stopped
         status = nil
+
+        // `append-play`. Through `play` rather than `pick` so there is one door
+        // into starting a stopped deck, and so a record of no rows falls out of
+        // it still stopped.
+        play()
     }
 
     private func startGraph() throws {

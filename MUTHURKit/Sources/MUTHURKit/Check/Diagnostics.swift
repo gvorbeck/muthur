@@ -104,8 +104,6 @@ public struct Diagnostics: Sendable {
         public var useMusicBrainz: Bool
         /// §8's catalogue, and where it was looked for.
         public var catalogue: @Sendable () -> (location: URL, shelf: Catalogue?)
-        /// §1.2's scan: the directories, and what was found in them.
-        public var sources: @Sendable () -> (directories: [URL], found: Int)
         /// Free bytes where a zip would be unpacked.
         public var freeSpace: @Sendable (URL) -> UInt64
 
@@ -121,10 +119,6 @@ public struct Diagnostics: Sendable {
                 let location = CatalogueFile.locate()
                 return (location.url, CatalogueFile.read(location))
             },
-            sources: @escaping @Sendable () -> (directories: [URL], found: Int) = {
-                let directories = SourceScanner.defaultDirectories()
-                return (directories, SourceScanner.scan(directories: directories).count)
-            },
             freeSpace: @escaping @Sendable (URL) -> UInt64 = Unpacker.freeSpace(at:)
         ) {
             self.environment = environment
@@ -135,7 +129,6 @@ public struct Diagnostics: Sendable {
             self.sleeveEnabled = sleeveEnabled
             self.useMusicBrainz = useMusicBrainz
             self.catalogue = catalogue
-            self.sources = sources
             self.freeSpace = freeSpace
         }
     }
@@ -164,7 +157,7 @@ public struct Diagnostics: Sendable {
         checks.append(sleeve(probes))
         checks.append(audioOutput(probes))
         checks.append(shelf(probes))
-        checks.append(records(probes))
+        checks.append(records())
 
         return Report(checks: checks)
     }
@@ -449,16 +442,34 @@ public struct Diagnostics: Sendable {
     }
 
     /// **New — not in bash**, where `die "nothing to play…"` (`player:1114`) said
-    /// this at the moment it mattered and then ended the program. D36 is why it
-    /// cannot end the program here, and this row is the calm version of the same
-    /// sentence: where it looks, and what it found there.
-    static func records(_ probes: Probes) -> Check {
-        let (directories, found) = probes.sources()
-        let where_ = directories.map(\.path).joined(separator: ", ")
-        guard found > 0 else {
-            return Check(.warn, "records", "nothing to play in \(where_)")
-        }
-        return Check(.ok, "records", "\(found) in \(where_)")
+    /// this at the moment it mattered and then ended the program.
+    ///
+    /// **D50 took its subject away and the row stays anyway**, changed from a
+    /// count into a sentence. It used to walk `MUTHUR_DIRS` and report `3 in
+    /// /Users/x/Music, /Users/x/Downloads` — which is the second reason it had
+    /// to change and not the first: it was the check screen's own copy of the
+    /// scan, so opening `--check` fired the same two TCC prompts D50 exists to
+    /// stop. A row cannot be the calm version of a sentence it is still causing.
+    ///
+    /// It could have gone. It does not, because of the two readers who would
+    /// come looking for it: the one who ran the old build, saw `nothing to play
+    /// in …`, and wants to know what became of the search path; and the one
+    /// whose albums are simply not offered any more and is trying to find out
+    /// where the app thinks it should be looking. A vanished row leaves both of
+    /// them with the question they arrived with, which is the thing this module
+    /// says at the top it will not do. So the row answers it outright: nothing is
+    /// searched, and here are the two ways in instead.
+    ///
+    /// **It can no longer warn**, and that is `zips`'s precedent rather than a
+    /// new idea — a row whose failure has been designed out reports the fact and
+    /// stops being a verdict. Whether the drive has anything in it is the row
+    /// above's business (`optical drive`), and saying it twice would make two
+    /// rows that can disagree.
+    static func records() -> Check {
+        Check(
+            .ok, "records",
+            "the disc in the drive, or one you point BROWSE at — no directory is searched, so none can be missing"
+        )
     }
 
     // MARK: - Asking the machine

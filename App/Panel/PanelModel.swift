@@ -47,6 +47,11 @@ final class PanelModel {
 
     var isPicking: Bool { pickerEntries != nil && record == nil }
 
+    /// Whether the picker has anything on it to open. With the scan gone that is
+    /// the same question as *is there a disc in the drive*, and the legend and
+    /// the empty line both ask it.
+    var pickerHasDisc: Bool { !(pickerEntries ?? []).isEmpty }
+
     // MARK: - The health check (§11)
 
     /// The check that is on screen. `--check` in bash prints and the program
@@ -59,9 +64,13 @@ final class PanelModel {
 
     var isChecking: Bool { report != nil }
 
-    /// Off the main actor: it launches `drutil`, walks `PLAYER_DIRS` and stats
+    /// Off the main actor: it launches `drutil`, reads the mount table and stats
     /// the scratch directory, and a drive that has to spin up takes seconds
     /// (`player:395`). None of that belongs on the thread doing the drawing.
+    ///
+    /// It used to walk `PLAYER_DIRS` too, which is how `--check` came to be the
+    /// second thing firing the permission prompts D50 is about — the `records`
+    /// row was a whole second copy of the scan. It no longer walks anything.
     func check() {
         Task {
             report = await Task.detached { Diagnostics.run() }.value
@@ -298,8 +307,6 @@ final class PanelModel {
 
     // MARK: - The picker (§1.2)
 
-    /// Scan the default directories for sources and show the picker — or open
-    /// directly when there is exactly one.
     /// `--cd` (`player:3527`). The disc, or the script's own refusal.
     ///
     /// A window cannot `die`, so this lands on the panel the way every other
@@ -313,35 +320,30 @@ final class PanelModel {
         open(source: disc.volume, kind: .disc)
     }
 
-    func scan() {
-        let directories = SourceScanner.defaultDirectories()
-        let found = SourceScanner.scan(directories: directories, disc: DiscFinder.find())
-
-        switch found.count {
-        case 0:
-            let searched = directories.map(\.path).joined(separator: ", ")
-            stage = "NOTHING TO PLAY IN \(searched.uppercased())"
-        case 1:
-            open(source: found[0].url, kind: found[0].kind)
-        default:
-            pickerEntries = found
-            pickerCursor = 0
-        }
+    /// The opening screen: the disc in the drive, offered, and `BROWSE` for
+    /// everything else. **D50** — there is no scan behind this any more.
+    ///
+    /// **The disc is offered and not opened, and that is the one place this
+    /// declines to follow `pick_source`.** `player:1117` says a single source is
+    /// not a choice but the answer, and with the search path gone the disc is
+    /// always either the single source or none — so the rule now reads *launch
+    /// the app with a CD in the drive and it opens the CD*. Which, since a
+    /// record now plays when it is opened (§7), would mean launching the app
+    /// starts playing whatever is in the bay, unasked, from the Dock. The
+    /// script's rule was written where it could not mean that: `player` is typed,
+    /// and typing it is already the asking. Pressing ⏎ is that asking here.
+    func pickSource() {
+        pickerEntries = DiscFinder.find().map { [PickerEntry.disc($0)] } ?? []
+        pickerCursor = 0
     }
 
     func rescan() {
-        let directories = SourceScanner.defaultDirectories()
         // `r` re-runs `scan_sources`, which re-runs `find_cd` — so a disc put in
         // after the picker was drawn appears on a rescan (`player:1018`). That
-        // is the whole reason the key exists.
-        let found = SourceScanner.scan(directories: directories, disc: DiscFinder.find())
-        pickerEntries = found.isEmpty ? nil : found
-        pickerCursor = min(pickerCursor, max(0, found.count - 1))
+        // is the whole reason the key exists, and it is the whole of what the
+        // key does now.
+        pickSource()
         pickerStatus = Readout.status("RESCANNED")
-        if found.isEmpty {
-            let searched = directories.map(\.path).joined(separator: ", ")
-            stage = "NOTHING TO PLAY IN \(searched.uppercased())"
-        }
     }
 
     func pickerStep(by delta: Int) {
@@ -361,21 +363,25 @@ final class PanelModel {
         open(source: entry.url, kind: entry.kind)
     }
 
-    /// `BROWSE` — a record from anywhere, on the same rails as one from the list.
+    /// `BROWSE` — a record from anywhere. **Since D50 it is how every record
+    /// that is not the disc arrives**, where it used to be the escape hatch from
+    /// a list that could not reach far enough.
     ///
-    /// **The scan is not what is wrong with the picker; it is what is limited
-    /// about it.** `scan_sources` looks one level down `MUTHUR_DIRS` and nowhere
-    /// else (`player:1036`), which is right nearly always and useless for the
-    /// album on the external drive, the one two folders deep, and — since D47 —
-    /// the archive whose central directory would not open. The script has no
-    /// answer to any of those but "export a different `PLAYER_DIRS` and start
-    /// again", because a TUI over ssh has no file chooser to reach for. A window
-    /// does, so the list stays the default and this is the escape hatch.
+    /// `scan_sources` looked one level down `MUTHUR_DIRS` and nowhere else
+    /// (`player:1036`), which is right nearly always and useless for the album on
+    /// the external drive, the one two folders deep, and — since D47 — the
+    /// archive whose central directory would not open. The script has no answer
+    /// to any of those but "export a different `PLAYER_DIRS` and start again",
+    /// because a TUI over ssh has no file chooser to reach for. A window does,
+    /// and having one turned out to be worth more than the list: what the list
+    /// cost was two permission prompts on every launch, and what this costs is
+    /// nothing, because the powerbox hands back the file without asking anybody
+    /// (D50).
     ///
     /// It goes through `SourceOpener.resolve` and `open(source:kind:)`, which is
-    /// exactly what `openPicked` does with a row — one way in, so a folder
-    /// chosen here cannot behave differently from the same folder found by the
-    /// scan. ⌘O is this method too.
+    /// exactly what `openPicked` does with the disc row — one way in, kept
+    /// deliberately when the rows around it went, so that a folder chosen here
+    /// opens the way a scanned one did. ⌘O is this method too.
     func browse() {
         let panel = NSOpenPanel()
         panel.message = "A folder of tracks, or a zip of one."
@@ -452,14 +458,27 @@ final class PanelModel {
         lastPlayingRow = -1
 
         let key = ResumeFile.key(for: read)
-        var watch = ResumeWatch(
+        // Built before the deck is loaded, because the load starts the record
+        // and the first thing a started record does is write over where you had
+        // got to. `ResumeWatch` reads the file in its initialiser and keeps the
+        // answer for the session (`ResumeWatch.offer`), which is what makes that
+        // harmless — and is why this line is above the `Task` and not in it.
+        //
+        // Nothing is asked of it here. The offer goes up on the first tick after
+        // a track has started, never before (`player:2825`, `offerToShow`), so
+        // `refresh` is what puts it on the status line. Asking now would be
+        // asking while the deck is still stopped, which is a question with only
+        // one answer.
+        resume = ResumeWatch(
             file: .standard(), key: key, sourceLabel: read.sourceLabel, rows: read.order.count
         )
-        offer = watch.offerToShow(mode: .stopped)
-        resume = watch
+        offer = nil
 
         findSleeve(for: read, directory: directory)
 
+        // And it plays. `load` is `playlist_build` with `append-play` on it
+        // (`player:3259`) — see the note there. Nothing here decides to start it;
+        // there is no state in which a record has been read and is not playing.
         Task {
             try? await engine.load(read, source: source)
             await refresh()

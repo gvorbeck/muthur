@@ -27,7 +27,6 @@ struct DiagnosticsTests {
         sleeveEnabled: Bool = true,
         useMusicBrainz: Bool = true,
         shelf: Catalogue? = Catalogue(csv: "Title,Artist,Year\nCut,The Slits,1979\n"),
-        found: Int = 3,
         free: UInt64 = 96 * 1024 * 1024 * 1024
     ) -> Diagnostics.Probes {
         Diagnostics.Probes(
@@ -39,7 +38,6 @@ struct DiagnosticsTests {
             sleeveEnabled: sleeveEnabled,
             useMusicBrainz: useMusicBrainz,
             catalogue: { (URL(fileURLWithPath: "/x/collection.csv"), shelf) },
-            sources: { ([URL(fileURLWithPath: "/x/Music")], found) },
             freeSpace: { _ in free }
         )
     }
@@ -348,7 +346,6 @@ struct DiagnosticsTests {
                 environment: ["XDG_CACHE_HOME": blocked, "TMPDIR": NSTemporaryDirectory()],
                 tool: { _ in nil }, drutil: { nil }, outputRoute: { nil },
                 catalogue: { (URL(fileURLWithPath: "/x"), nil) },
-                sources: { ([], 0) },
                 freeSpace: { _ in 1024 }
             ))
         let row = try #require(DiagnosticsTests.row(report, "scratch space"))
@@ -386,18 +383,20 @@ struct DiagnosticsTests {
         #expect(row.detail.contains("no title column"))
     }
 
-    /// The calm version of `die "nothing to play…"` (`player:1114`), which D36
-    /// is why this port cannot say the way the script says it.
-    @Test func recordsSaysWhereItLookedEvenWhenItFoundNone() throws {
-        var report = Diagnostics.run(DiagnosticsTests.probes(found: 0))
-        var row = try #require(DiagnosticsTests.row(report, "records"))
-        #expect(row.mark == .warn)
-        #expect(row.detail == "nothing to play in /x/Music")
-
-        report = Diagnostics.run(DiagnosticsTests.probes(found: 3))
-        row = try #require(DiagnosticsTests.row(report, "records"))
-        #expect(row.mark == .ok)
-        #expect(row.detail == "3 in /x/Music")
+    /// The row that used to be the calm version of `die "nothing to play…"`
+    /// (`player:1114`). **D50** took the scan away, and with it both the count
+    /// and the warning — a row that cannot look cannot fail to find. It stays
+    /// because two readers of `--check` would come looking for it and read its
+    /// absence as a bug, and it says instead what the answer is now.
+    ///
+    /// Never `.warn`: the `zips` row's precedent (a capability, not a state).
+    @Test func recordsNoLongerCountsAnythingAndSaysSoInsteadOfWarning() throws {
+        for probes in [DiagnosticsTests.probes(), DiagnosticsTests.probes(disc: nil)] {
+            let row = try #require(DiagnosticsTests.row(Diagnostics.run(probes), "records"))
+            #expect(row.mark == .ok)
+            #expect(row.detail.contains("no directory is searched"))
+            #expect(row.detail.contains("BROWSE"))
+        }
     }
 
     /// §14's box for route handling is unticked, and the row says so rather than

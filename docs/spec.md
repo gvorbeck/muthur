@@ -29,6 +29,21 @@ expanded by reading the source:
 it first, or from the audio CD in the drive. Accept aiff, flac, mp3, ogg, wav,
 m4a, opus — anything ffmpeg reads.
 
+*How you reach one has diverged from the script, deliberately: see **D50** in
+`decisions.md`.* The bash picker scans `PLAYER_DIRS` — `~/Music:~/Downloads` by
+default — and lists what it finds. **This port does not scan anything.** The
+opening screen offers the disc in the drive if there is one, and `BROWSE`
+otherwise; a folder or a zip arrives through an open panel, or as an argument on
+the command line, and opens by exactly the path a scanned row used to take. The
+reason is macOS: reading those two directories at launch fires two TCC prompts,
+and ad-hoc signing means they come back on every build, while the open panel goes
+through the powerbox and needs no grant at all. Nothing about **what** can be
+played changed — only what the program is allowed to go looking for uninvited.
+
+**A record plays when it is opened**, as the script's `append-play` does
+(`player:3259`). Not a divergence — it was a gap, and `parity.md` §6.0a is where
+it is written down.
+
 **Track ordering** comes from embedded metadata, not filenames. This is
 deliberate and is not negotiable.
 
@@ -76,7 +91,7 @@ in scope, not stretch goals:
   while playing: that was asked for here, built, and then withdrawn once it was
   seen — the Cmd-Tab switcher draws from the same tile, so the cover cannot go in
   one without going in the other, and a constant icon is what the app is found
-  by. See `parity.md` D49. The sleeve goes to Now Playing instead.
+  by. See `decisions.md` D49. The sleeve goes to Now Playing instead.
 
 ## Visual design: cassette futurism
 
@@ -129,7 +144,9 @@ that makes you read dialogue before it will play a record.
 
 1. **Feature inventory** derived from reading the source. Write it to
    `docs/parity.md` as a checklist, and **stop for review before writing code** —
-   this is the artifact parity gets measured against.
+   this is the artifact parity gets measured against. *(It has since split in
+   three: `docs/decisions.md` holds §16 and the answered questions of §18,
+   `docs/hardware.md` holds §19. The numbering runs across all three.)*
 2. **Domain layer, headless, with tests** — disc TOC reading, the CD-Text →
    MusicBrainz → track-numbers fallback chain, metadata-based track ordering,
    artwork resolution, zip handling and its scratch-directory behavior. This is

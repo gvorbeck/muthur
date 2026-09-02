@@ -16,7 +16,8 @@ import Foundation
 /// spec for everything else.
 ///
 /// **Nothing here is exercised by the suite.** It cannot be — it needs a drive.
-/// See the "With a disc in the drive" checklist in `docs/parity.md`.
+/// See `docs/hardware.md`, which is §19 — the "with a disc in the drive"
+/// checklist, moved out of `docs/parity.md` and still numbered §19.
 public struct OpticalDrive: Sendable, Equatable {
     /// `IODVDServices/0` and the like — what goes in `dev=`.
     public let device: String

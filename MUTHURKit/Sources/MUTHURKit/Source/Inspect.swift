@@ -53,11 +53,11 @@ public enum Inspect {
     /// **Four things here look wrong and are kept anyway.**
     ///
     /// 1. `%d tracks` is unconditionally plural, so a single is `1 tracks`.
-    ///    The panel's own picker got this right (`PickerEntry.folderDetail`),
-    ///    which means somebody thought about it *there* and did not come back
-    ///    here. Matched rather than mended: the line is not a sentence, it is a
-    ///    field, and a port that quietly improves one field is a port nobody
-    ///    can diff.
+    ///    The panel's own picker got this right (`PickerEntry.discDetail`, and
+    ///    `folderDetail` beside it until D50), which means somebody thought
+    ///    about it *there* and did not come back here. Matched rather than
+    ///    mended: the line is not a sentence, it is a field, and a port that
+    ///    quietly improves one field is a port nobody can diff.
     /// 2. The separator between album and artist is an em dash, and so is the
     ///    `:-` fallback for all three fields — so a record with nothing tagged
     ///    on it prints `— — — (—)`, which reads as a rule rather than as three
@@ -135,6 +135,15 @@ public enum Inspect {
     /// (`player:1118`) — with no screen, the first source found *is* the
     /// answer. `player -n | cat` has always behaved this way. So does this.
     ///
+    /// **What "the first source found" means is now the disc or nothing**
+    /// (D50). This branch used to run the scan, which is the third of the three
+    /// places that read `~/Music` and `~/Downloads` at startup and so the third
+    /// that fired the TCC prompts. With the scan gone there is one source that
+    /// can be found without being named, and `player:1118`'s rule applied to a
+    /// list of one gives the disc. Everything else has to be named on the
+    /// command line, which on a run with no screen is the only place it could
+    /// have come from anyway — `BROWSE` is a window, and this is a pipe.
+    ///
     /// `--check` never reaches here: it is answered and exited before there is
     /// an app at all (`player:531`, `App/main.swift`), which is the script's own
     /// order — `CHECK` is tested at 531 and `DRY_RUN` at 3540.
@@ -160,14 +169,10 @@ public enum Inspect {
             }
             chosen = (disc.volume, .disc)
         } else {
-            let directories = SourceScanner.defaultDirectories(environment: environment)
-            let found = SourceScanner.scan(
-                directories: directories, disc: DiscFinder.find()
-            )
-            guard let first = found.first else {
-                return .died(nothingToPlay(environment: environment))
+            guard let disc = DiscFinder.find() else {
+                return .died(nothingToPlay())
             }
-            chosen = (first.url, first.kind)
+            chosen = (disc.volume, .disc)
         }
 
         do {
@@ -205,26 +210,24 @@ public enum Inspect {
         }
     }
 
-    /// `player:1114`, kept including the shape of its own substitution:
+    /// `player:1114`:
     ///
     ///     die "nothing to play. Put an album in ${PLAYER_DIRS:-~/Music or ~/Downloads}, or a CD in the drive"
     ///
-    /// **The two halves of that `:-` are not the same kind of thing** — set, it
-    /// interpolates a colon-separated path list; unset, it interpolates English
-    /// with an "or" in it. So the message reads either `Put an album in
-    /// ~/Music or ~/Downloads` or `Put an album in /a:/b`, and only one of them
-    /// is a sentence. Matched anyway. The variable named is the one that is
-    /// actually set, for the same reason §11's MusicBrainz row names the switch
-    /// that did it: sending a reader to the wrong name is worse than saying
-    /// nothing.
-    static func nothingToPlay(environment: [String: String]) -> String {
-        let named = nonEmpty(environment["MUTHUR_DIRS"]) ?? nonEmpty(environment["PLAYER_DIRS"])
-        return "nothing to play. Put an album in \(named ?? "~/Music or ~/Downloads")"
-            + ", or a CD in the drive"
-    }
-
-    private static func nonEmpty(_ value: String?) -> String? {
-        guard let value, !value.isEmpty else { return nil }
-        return value
+    /// **Half of that sentence is about a search path that no longer exists**
+    /// (D50), so half of it goes. What is left is the half that is still true,
+    /// in the script's own words: a CD in the drive. The other way in is to name
+    /// the record — which is a thing this run can be told and the script's could
+    /// not, since `player -n` with no argument had the picker to fall back on
+    /// and this has a pipe. So the message says both, and neither half of it
+    /// sends the reader to a directory nothing will ever look in.
+    ///
+    /// The `${PLAYER_DIRS:-…}` substitution it used to reproduce went with the
+    /// variable. It was worth keeping while there was a path to name; naming one
+    /// now would be the wrong-name failure §11's MusicBrainz row is written
+    /// against, one step worse — a name for something that is not consulted at
+    /// all.
+    static func nothingToPlay() -> String {
+        "nothing to play. Put a CD in the drive, or name a zip or a folder"
     }
 }

@@ -405,6 +405,57 @@ struct ResumeTests {
         #expect(watch.offer == nil)
     }
 
+    // MARK: - Against autoplay (D51)
+
+    /// **The thing D51 could have broken.** A record now starts the moment it is
+    /// opened, and it starts at the top — so the deck's very first observation
+    /// writes row nought over the line that says where you had got to. If the
+    /// watch read the file lazily, the saved position would be gone before
+    /// anybody could be offered it, and a record opened at a saved position
+    /// would simply restart.
+    ///
+    /// It does not, because the file is read in `init` and the answer is kept in
+    /// memory for the session. This is the assertion that keeps that true, and
+    /// it is why `PanelModel.adopt` builds the watch *above* the load, not
+    /// inside it.
+    @Test("Autoplay overwrites the file and the offer survives it anyway")
+    func theOfferOutlivesTheRecordStartingItself() {
+        let scratch = Scratch()
+        scratch.plant("k\t2\t95\tKin\n")
+
+        // Opened. Everything the panel knows about resume, it knows by now.
+        var watch = ResumeWatch(file: scratch.file, key: "k", sourceLabel: "Kin", rows: 3)
+
+        // And immediately started, the way `append-play` starts it.
+        watch.observe(mode: .playing, row: 0, positionInTrack: 0)
+        watch.observe(mode: .playing, row: 0, positionInTrack: 6)
+
+        // The file has been rewritten to the top of the record.
+        #expect(scratch.lines == ["k\t0\t6\tKin"])
+        // The offer is still where it was, and still pressable.
+        #expect(watch.offerToShow(mode: .playing) == ResumeFile.Offer(row: 2, position: 95))
+        #expect(watch.spend() == ResumeFile.Offer(row: 2, position: 95))
+    }
+
+    /// The same thing from the other side: reading the file *after* the deck has
+    /// started finds row nought, which is exactly the restart the ordering above
+    /// exists to prevent. Not a rule anything follows — a demonstration of the
+    /// one that is being followed, so that reordering `adopt` fails here.
+    @Test("A watch built after the deck started would find only the restart")
+    func readingLateWouldLoseThePlace() {
+        let scratch = Scratch()
+        scratch.plant("k\t2\t95\tKin\n")
+
+        var early = ResumeWatch(file: scratch.file, key: "k", sourceLabel: "Kin", rows: 3)
+        early.observe(mode: .playing, row: 0, positionInTrack: 0)
+
+        let late = ResumeWatch(file: scratch.file, key: "k", sourceLabel: "Kin", rows: 3)
+        // Row nought at nought seconds is not worth offering, so the late reader
+        // has nothing at all — the place is not merely wrong, it is gone.
+        #expect(late.offer == nil)
+        #expect(early.offer == ResumeFile.Offer(row: 2, position: 95))
+    }
+
     @Test("No offer means nothing to show and nothing to spend")
     func noOfferNoShow() {
         let scratch = Scratch()

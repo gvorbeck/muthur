@@ -58,6 +58,93 @@ struct SourceOpenerTests {
         }
     }
 
+    // MARK: - Which archives are records (D47, now at the door)
+
+    // These were `SourceScannerTests`. **D50** deleted the scan, and D47's rule
+    // came with them into `resolve`, which is now the only place a zip is ever
+    // judged. The rule is the same rule; what changed is who it is answering —
+    // the picker was choosing what to *offer*, and this is answering a file
+    // somebody has just pointed at. `droppingArchivesKeepsOrder` did not come
+    // over: it asserted that the filter ran after the `LC_ALL=C` sort, and there
+    // is no longer a list for anything to be in order in.
+
+    /// The reason the rule exists: `~/Downloads` is where zips go, and most of
+    /// them are not albums. Picking one off `BROWSE` should say so rather than
+    /// open an empty record.
+    @Test func archiveWithoutAudioIsRefused() throws {
+        let tmp = TempDirectory("opener-zip-pdf")
+        let zip = tmp.appending("Rules.zip")
+        try TestZip.write(
+            [
+                TestZip.Member("Rulebook.pdf", "%PDF"),
+                TestZip.Member("Errata.docx", "PK"),
+            ],
+            to: zip
+        )
+
+        #expect(throws: SourceOpener.Failure.noAudioInArchive(path: zip.path)) {
+            try SourceOpener.resolve(path: zip.path)
+        }
+        // And it says which file, in `Record.Failure.noAudio`'s words.
+        #expect(
+            SourceOpener.Failure.noAudioInArchive(path: zip.path).description
+                == "no audio in Rules.zip")
+    }
+
+    /// One audio member is enough — the folder rule is `audio_count > 0`
+    /// (`player:1039`) and this is that rule, not a stricter one.
+    @Test func archiveWithOneAudioMemberIsLetThrough() throws {
+        let tmp = TempDirectory("opener-zip-mixed")
+        let zip = tmp.appending("Album.zip")
+        try TestZip.write(
+            [
+                TestZip.Member("Album/cover.jpg", "jpeg"),
+                TestZip.Member("Album/notes.txt", "hello"),
+                TestZip.Member("Album/01 Track.FLAC", "audio"),
+            ],
+            to: zip
+        )
+
+        let (url, kind) = try SourceOpener.resolve(path: zip.path)
+        #expect(kind == .zip)
+        #expect(url.path == zip.path)
+    }
+
+    /// The AppleDouble case. `AudioFiles.scan` walks with `.skipsHiddenFiles`,
+    /// so `__MACOSX/._Song.flac` is not a track once it is on disk; an archive
+    /// holding only those would open as an empty record.
+    @Test func appleDoubleStubIsNotAudio() throws {
+        let tmp = TempDirectory("opener-zip-appledouble")
+        let zip = tmp.appending("Ghost.zip")
+        try TestZip.write(
+            [
+                TestZip.Member("__MACOSX/._Song.flac", "stub"),
+                TestZip.Member("readme.txt", "hello"),
+            ],
+            to: zip
+        )
+
+        #expect(throws: SourceOpener.Failure.noAudioInArchive(path: zip.path)) {
+            try SourceOpener.resolve(path: zip.path)
+        }
+    }
+
+    /// **The one that inverted.** A `.zip` whose central directory will not read
+    /// was dropped by the scan, because the scan was listing what would play. At
+    /// the door the answer is the other way round: `BROWSE` exists precisely so
+    /// that the archive the central directory would not read can still be tried,
+    /// and the unzip is a better judge of a damaged archive than a probe that
+    /// only ever peeked at the end of it. It is let through, and fails — with
+    /// whatever the unzip actually found — when it is opened.
+    @Test func unreadableArchiveIsLetThroughToFailOnOpening() throws {
+        let tmp = TempDirectory("opener-zip-broken")
+        let zip = tmp.appending("Broken.zip")
+        try Data("this is not an archive".utf8).write(to: zip)
+
+        let (_, kind) = try SourceOpener.resolve(path: zip.path)
+        #expect(kind == .zip)
+    }
+
     // MARK: - open
 
     @Test func openFolderWithNoAudioThrows() async throws {
@@ -98,17 +185,13 @@ struct SourceOpenerTests {
 
     // MARK: - PickerEntry
 
-    @Test func folderDetail() {
-        #expect(PickerEntry.folderDetail(trackCount: 12) == "12 tracks · folder")
-        #expect(PickerEntry.folderDetail(trackCount: 1) == "1 track · folder")
-    }
+    // `folderDetail` and `zipDetail` — and the `du -h` arithmetic under the
+    // second, which was five assertions of its own — went with the scan (D50).
+    // Their strings were for rows nothing builds now.
 
-    @Test func zipDetail() {
-        #expect(PickerEntry.zipDetail(bytes: 4_200_000) == "4.0M · zip")
-        #expect(PickerEntry.zipDetail(bytes: 479_300_000) == "457M · zip")
-        #expect(PickerEntry.zipDetail(bytes: 973_100_000) == "928M · zip")
-        #expect(PickerEntry.zipDetail(bytes: 1_700_000) == "1.6M · zip")
-        #expect(PickerEntry.zipDetail(bytes: 500) == "500B · zip")
+    @Test func discDetail() {
+        #expect(PickerEntry.discDetail(trackCount: 12) == "12 tracks · in the drive")
+        #expect(PickerEntry.discDetail(trackCount: 1) == "1 track · in the drive")
     }
 
     @Test func marks() {

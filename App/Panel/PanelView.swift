@@ -167,7 +167,8 @@ struct PanelView: View {
     /// the current screen does not answer is the same lie the dead ⌘O was.
     private var legend: [[Readout.Cap]] {
         if model.isChecking { return Readout.checkLegend }
-        return model.isPicking ? Readout.pickerLegend : Readout.legend
+        if model.isPicking { return Readout.pickerLegend(hasDisc: model.pickerHasDisc) }
+        return Readout.legend
     }
 
     // MARK: - How big the sleeve may be (§5)

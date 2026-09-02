@@ -31,8 +31,10 @@ enum SleeveImage {
     /// square comes out stretched. The script's geometry is written throughout as
     /// if every cover were square — the whole "a cell is twice as tall as it is
     /// wide" argument only makes sense that way — so this is a case it does not
-    /// appear to have considered rather than one it decided. Flagged in
-    /// `docs/parity.md` §18.24.
+    /// appear to have considered rather than one it decided. Flagged as §18.24,
+    /// and answered — the letterboxing stays, D48. Both are in
+    /// `docs/decisions.md`, which is where §16 and the answered half of §18 live
+    /// since `docs/parity.md` was split into three.
     static func decode(_ url: URL, side: CGFloat, scale: CGFloat) -> CGImage? {
         let pixels = Int((side * scale).rounded(.up))
         guard pixels > 0,

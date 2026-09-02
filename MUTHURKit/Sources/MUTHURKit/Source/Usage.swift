@@ -53,7 +53,7 @@ public enum Usage {
         return """
             MU/TH/UR — play an album from a zip, a folder, or the CD in the drive.
 
-              \(called)                         pick a source from what is to hand
+              \(called)                         offer the disc in the drive, or browse
               \(called) ~/Downloads/Album.zip   play a zip without unpacking it yourself
               \(called) ~/Music/Album           play a folder
               \(called) --cd                    play the disc in the drive
@@ -100,8 +100,14 @@ public enum Usage {
             waited for: if there is no cover, or no network, the panel is exactly
             the panel it would have been.
 
+            Nothing on this machine is searched for records. Opened with no
+            argument, the panel offers the disc in the drive if there is one, and
+            B browses for anything else — which is also ⌘O, and is how a folder or
+            a zip is chosen. The bash player scanned ~/Music and ~/Downloads and
+            this does not: the scan cost two of macOS's permission prompts on
+            every launch, and an open panel costs none.
+
             Env overrides:
-              MUTHUR_DIRS        colon-separated dirs the picker scans (default ~/Music:~/Downloads)
               MUTHUR_WORK        where zips unpack (default ~/.cache/muthur/work)
               MUTHUR_KEEP        set to keep the scratch directory instead of destroying it
               MUTHUR_NO_MB       set to never ask MusicBrainz about a disc
@@ -110,9 +116,10 @@ public enum Usage {
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_STATE_HOME     where the resume file lives
 
-            MUTHUR_DIRS, MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read
-            under their PLAYER_ names too, for somebody who has had those exported
-            for years. MUTHUR_NO_MB is the other way up from the script's PLAYER_MB:
+            MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read under their
+            PLAYER_ names too, for somebody who has had those exported for years.
+            PLAYER_DIRS is the one that is not: there is no scan for it to point
+            at. MUTHUR_NO_MB is the other way up from the script's PLAYER_MB:
             unset, 0 and empty are on.
 
             """

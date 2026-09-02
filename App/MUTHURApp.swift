@@ -34,7 +34,7 @@ struct MUTHURApp: App {
                         } else if options.wantCD {
                             model.openDisc()
                         } else {
-                            model.scan()
+                            model.pickSource()
                         }
                     } catch {
                         model.die("\(error)")

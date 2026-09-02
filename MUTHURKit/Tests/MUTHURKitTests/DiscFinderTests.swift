@@ -396,15 +396,12 @@ struct DiscFinderTests {
 
     // MARK: - The picker row (§1.2's half of §1.3)
 
-    /// `player:1018`: the disc is appended before the search path is walked, so
-    /// its row is above everything.
-    @Test func theDiscRowGoesFirst() throws {
-        let tmp = TempDirectory("disc-row-order")
-        let shelf = tmp.url.appending(path: "Shelf")
-        let album = shelf.appending(path: "AAA Album")
-        try FileManager.default.createDirectory(at: album, withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: album.appending(path: "01.flac").path, contents: Data())
-
+    /// `player:1018` appended the disc before walking the search path, so its
+    /// row was above everything. **D50** removed the search path, and with it
+    /// the question of order: the disc is the only row the picker has to offer.
+    /// What is left to assert is the row itself.
+    @Test func theDiscRowIsBuiltFromTheDiscAlone() throws {
+        let tmp = TempDirectory("disc-row")
         let volume = tmp.url.appending(path: "Deluxe")
         try FileManager.default.createDirectory(at: volume, withIntermediateDirectories: true)
         for n in 1...3 {
@@ -413,17 +410,16 @@ struct DiscFinderTests {
             )
         }
 
-        let entries = SourceScanner.scan(
-            directories: [shelf],
-            disc: DiscFinder.Found(
+        let row = PickerEntry.disc(
+            DiscFinder.Found(
                 volume: volume, device: "/dev/disk10", route: .cddafs, deviceConfirmed: false
             )
         )
-        #expect(entries.first?.kind == .disc)
-        #expect(entries.first?.label == "Deluxe")
-        #expect(entries.first?.detail == "3 tracks · in the drive")
-        #expect(entries.first?.mark == "⊙")
-        #expect(entries.count == 2)
+        #expect(row.kind == .disc)
+        #expect(row.label == "Deluxe")
+        #expect(row.detail == "3 tracks · in the drive")
+        #expect(row.mark == "⊙")
+        #expect(row.url == volume)
     }
 
     /// **D18.** The row is counted with `AudioFiles`, not with the script's
@@ -438,14 +434,13 @@ struct DiscFinderTests {
                 atPath: volume.appending(path: name).path, contents: Data()
             )
         }
-        let entries = SourceScanner.scan(
-            directories: [],
-            disc: DiscFinder.Found(
+        let row = PickerEntry.disc(
+            DiscFinder.Found(
                 volume: volume, device: nil, route: .shape, deviceConfirmed: false
             )
         )
         // Three playable files; the jpg is not one. The AIFF grep would say two.
-        #expect(entries.first?.detail == "3 tracks · in the drive")
+        #expect(row.detail == "3 tracks · in the drive")
     }
 
     /// One level, because a CDDA mount is flat and the script counts with `ls`.
@@ -460,20 +455,18 @@ struct DiscFinderTests {
         FileManager.default.createFile(
             atPath: extras.appending(path: "video.flac").path, contents: Data()
         )
-        let entries = SourceScanner.scan(
-            directories: [],
-            disc: DiscFinder.Found(
+        let row = PickerEntry.disc(
+            DiscFinder.Found(
                 volume: volume, device: nil, route: .cddafs, deviceConfirmed: false
             )
         )
-        #expect(entries.first?.detail == "1 track · in the drive")
+        #expect(row.detail == "1 track · in the drive")
     }
 
-    @Test func noDiscMeansNoDiscRow() {
-        let tmp = TempDirectory("disc-row-absent")
-        let entries = SourceScanner.scan(directories: [tmp.url], disc: nil)
-        #expect(!entries.contains { $0.kind == .disc })
-    }
+    // `noDiscMeansNoDiscRow` went with the scan. Since **D50** the row cannot be
+    // built without a `DiscFinder.Found` to build it from, so the old assertion
+    // is now the signature: there is no argument that would produce a disc row
+    // out of no disc. `DiscFinder.find()` returning nil is tested above.
 
     // MARK: - Against the machine, whatever is in it
 

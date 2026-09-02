@@ -162,8 +162,12 @@ struct UsageTests {
         }
     }
 
-    /// The compatibility paragraph names four variables by hand. If a fifth
+    /// The compatibility paragraph names three variables by hand. If a fourth
     /// `PLAYER_` name is ever honoured, that sentence is wrong and this says so.
+    ///
+    /// `PLAYER_DIRS` is the one that left: **D50** deleted the scan, and the
+    /// paragraph says so out loud rather than quietly dropping the name, because
+    /// somebody with it exported is owed an answer about why it stopped working.
     @Test(
         "The PLAYER_ paragraph names exactly the PLAYER_ names that work",
         .enabled(if: UsageTests.canReadSource)
@@ -172,12 +176,12 @@ struct UsageTests {
         let honoured = Self.environmentNames(in: Self.sourceText())
             .filter { $0.hasPrefix("PLAYER_") }
             .sorted()
-        #expect(
-            honoured == ["PLAYER_COLLECTION", "PLAYER_DIRS", "PLAYER_KEEP", "PLAYER_WORK"])
+        #expect(honoured == ["PLAYER_COLLECTION", "PLAYER_KEEP", "PLAYER_WORK"])
         let help = Usage.text()
         #expect(
             help.contains(
-                "MUTHUR_DIRS, MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read"))
+                "MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read"))
+        #expect(help.contains("PLAYER_DIRS is the one that is not"))
     }
 
     private static func environmentNames(in text: String) -> Set<String> {

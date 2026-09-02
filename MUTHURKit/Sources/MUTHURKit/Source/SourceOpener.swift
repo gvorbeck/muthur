@@ -17,9 +17,12 @@ public enum SourceOpener {
         public let scratch: Scratch?
     }
 
-    public enum Failure: Error, CustomStringConvertible {
+    public enum Failure: Error, Equatable, CustomStringConvertible {
         case notFound(path: String)
         case notASource(path: String)
+        /// A `.zip` that opened, and holds nothing to play. **D47**, moved here
+        /// from the scan by D50.
+        case noAudioInArchive(path: String)
         /// `--cd` with an empty drive. `die "no audio CD in the drive"`
         /// (`player:3528`) — the script's words, kept.
         case noDisc
@@ -30,13 +33,36 @@ public enum SourceOpener {
                 "no such file or directory: \(path)"
             case .notASource(let path):
                 "not a zip or a folder: \(path)"
+            case .noAudioInArchive(let path):
+                // `Record.Failure.noAudio`'s words, because it is the same
+                // finding arrived at earlier: a source with nothing in it to
+                // play. A person who has seen one should recognise the other.
+                "no audio in \(URL(fileURLWithPath: path).lastPathComponent)"
             case .noDisc:
                 "no audio CD in the drive"
             }
         }
     }
 
-    /// Resolve a path from the command line to a URL and a source kind.
+    /// Resolve a path — off the command line, or out of `BROWSE`'s open panel —
+    /// to a URL and a source kind.
+    ///
+    /// **D47 is applied here now, and it used to be applied in the scan.** With
+    /// the scan gone (D50) this is the only place left that gets to look at an
+    /// archive before it is unpacked, and it is the place that matters: a zip of
+    /// scanned PDFs picked out of `BROWSE` said `OPENING`, spent the unpack, and
+    /// then reported an empty record. It says what is wrong with it instead, for
+    /// the price of the two `pread`s §2.2 already knows how to do.
+    ///
+    /// **An archive that will not open at all is let through, and the scan
+    /// dropped it.** That is not an oversight in either direction — it is the
+    /// same rule reaching a different answer because the question changed. The
+    /// scan was choosing what to *offer*, and had no business offering a row it
+    /// could not vouch for. This is answering a file somebody has just pointed
+    /// at, and `BROWSE` exists precisely so that the archive the central
+    /// directory would not read can still be tried (`PanelModel.browse`). Refuse
+    /// only what was read and found wanting; where the read itself failed, let
+    /// `Unpacker` have its go and report what it finds.
     public static func resolve(path: String) throws -> (url: URL, kind: SourceKind) {
         let url = URL(fileURLWithPath: path)
         let fm = FileManager.default
@@ -48,6 +74,9 @@ public enum SourceOpener {
             return (url, .folder)
         }
         if url.pathExtension.lowercased() == "zip" {
+            if let archive = try? ZipArchive(url: url), !archive.holdsAudio {
+                throw Failure.noAudioInArchive(path: path)
+            }
             return (url, .zip)
         }
         throw Failure.notASource(path: path)

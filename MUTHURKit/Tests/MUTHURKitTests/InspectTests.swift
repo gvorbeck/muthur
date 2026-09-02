@@ -220,31 +220,26 @@ struct InspectTests {
         #expect(outcome == .died("not a zip or a folder: \(file.path)"))
     }
 
-    /// `player:1114`'s message, including the half of its `:-` that is English
-    /// and the half that is a path list. Both are kept; only one is a sentence.
-    @Test("Nothing to play says where it looked, in whichever of two voices")
-    func nothingToPlayNamesWhereItLooked() {
+    /// `player:1114`'s message, minus the half of its `:-` that was a path list:
+    /// since **D50** there are no paths to name. What is left is the sentence,
+    /// and it now names the two ways in that still exist.
+    @Test("Nothing to play names the two ways in that are left")
+    func nothingToPlayNamesTheWaysIn() {
         #expect(
-            Inspect.nothingToPlay(environment: [:])
-                == "nothing to play. Put an album in ~/Music or ~/Downloads, or a CD in the drive"
-        )
-        #expect(
-            Inspect.nothingToPlay(environment: ["MUTHUR_DIRS": "/a:/b"])
-                == "nothing to play. Put an album in /a:/b, or a CD in the drive"
-        )
-        // The old name still means it, the way it does everywhere else (D13).
-        #expect(
-            Inspect.nothingToPlay(environment: ["PLAYER_DIRS": "/c"])
-                == "nothing to play. Put an album in /c, or a CD in the drive"
+            Inspect.nothingToPlay()
+                == "nothing to play. Put a CD in the drive, or name a zip or a folder"
         )
     }
 
-    /// **`-n` with no argument takes the first source it finds.** The picker is
-    /// a window and cannot answer a pipe, and `player:1118` already says what a
-    /// run with no screen does: `PICKED=${SRC[0]}`.
-    @Test("With no argument it inspects the first source rather than asking")
-    func noArgumentTakesTheFirstSource() async throws {
-        let tmp = TempDirectory("inspect-scan")
+    /// **`-n` with no argument asks the drive and nothing else.** The picker is
+    /// a window and cannot answer a pipe; `player:1118`'s `PICKED=${SRC[0]}`
+    /// took the first row of the scan, and since **D50** the only row there ever
+    /// was is the disc. With an empty bay it dies with `nothingToPlay`.
+    @Test("With no argument and no disc it dies rather than searching")
+    func noArgumentAsksTheDriveOnly() async throws {
+        // A folder full of records that used to be found by a scan, sitting
+        // where a scan would have found it. Nothing looks at it any more.
+        let tmp = TempDirectory("inspect-no-scan")
         let library = tmp.directory("Music")
         let album = library.appending(path: "Zebra")
         try FileManager.default.createDirectory(at: album, withIntermediateDirectories: true)
@@ -253,13 +248,16 @@ struct InspectTests {
 
         var options = LaunchOptions()
         options.dryRun = true
-        let outcome = await Inspect.run(options, environment: ["MUTHUR_DIRS": library.path])
-        // The file is not audio anything can read, so the *read* is what fails —
-        // which is itself the proof that the scan chose it without being asked.
-        #expect(outcome != .died(Inspect.nothingToPlay(environment: [:])))
+        let outcome = await Inspect.run(
+            options, environment: ["MUTHUR_DIRS": library.path, "PLAYER_DIRS": library.path])
+
+        // On a machine with a disc in the bay this reads it instead, which is
+        // the whole of the new behaviour and not a failure — so the assertion is
+        // only that the folder was not what answered.
         if case .died(let message) = outcome {
-            #expect(!message.contains("nothing to play"))
+            #expect(message == Inspect.nothingToPlay())
         }
+        #expect(!"\(outcome)".contains("Zebra"))
     }
 
     /// End to end against something somebody really tagged: `-n` on a folder

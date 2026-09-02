@@ -824,12 +824,17 @@ struct KeycapTests {
 
     /// A cap that has to wrap has stopped being a legend (`player:2429`).
     ///
-    /// **All three legends**, not just the playing one. The picker's row is the
-    /// one that grows — `BROWSE` (§14) went on it — and this is the only thing
-    /// standing between the next addition and a wrapped row.
+    /// **Every legend**, not just the playing one — and the picker has two
+    /// shapes since **D50** (a disc in the bay, or an empty one), so both are
+    /// measured. The picker's row is the one that grows: `BROWSE` (§14) went on
+    /// it, and this is the only thing standing between the next addition and a
+    /// wrapped row.
     @Test("Each row fits the panel it is drawn on")
     func fits() {
-        for caps in Readout.legend + Readout.pickerLegend + Readout.checkLegend {
+        let legends =
+            Readout.legend + Readout.pickerLegend(hasDisc: true)
+            + Readout.pickerLegend(hasDisc: false) + Readout.checkLegend
+        for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
             let width = caps.reduce(0) { total, cap in
@@ -860,9 +865,23 @@ struct KeycapTests {
     @Test("Every press a cap can make is one the legend names")
     func wired() {
         let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
-        let picker = Set(Readout.pickerLegend.flatMap { $0 }.flatMap(\.presses))
+        let picker = Set(Readout.pickerLegend(hasDisc: true).flatMap { $0 }.flatMap(\.presses))
         let check = Set(Readout.checkLegend.flatMap { $0 }.flatMap(\.presses))
         let all = playing.union(picker).union(check)
         #expect(all == Set(Readout.Press.allCases))
+    }
+
+    /// **D50.** `OPEN` is on the picker's legend only when there is something to
+    /// open. A cap for a key that does nothing is worse than no cap: it is the
+    /// panel promising something the bay cannot deliver.
+    @Test("The picker offers OPEN only when the bay has something in it")
+    func theOpenCapFollowsTheDisc() {
+        let withDisc = Readout.pickerLegend(hasDisc: true).flatMap { $0 }
+        let empty = Readout.pickerLegend(hasDisc: false).flatMap { $0 }
+        #expect(withDisc.map(\.label) == ["OPEN", "RESCAN", "BROWSE", "QUIT"])
+        #expect(empty.map(\.label) == ["RESCAN", "BROWSE", "QUIT"])
+        // `RESCAN` survives an empty bay because an empty bay is exactly when it
+        // means something: it is how a disc put in after launch gets noticed.
+        #expect(empty.contains { $0.presses.contains(.rescan) })
     }
 }

@@ -13,7 +13,8 @@ import Testing
 ///
 /// Nothing is committed and nothing is assumed present: every test is
 /// `.enabled(if:)` on an environment variable, so a clone with an empty drive is
-/// green rather than red. `docs/parity.md` §19 is the checklist that produces the
+/// green rather than red. `docs/hardware.md` — which is §19, moved whole out of
+/// `docs/parity.md` and still numbered §19 — is the checklist that produces the
 /// material, one command per variable.
 ///
 /// - `MUTHUR_TEST_TOC` — a file holding `cdrecord dev=… -toc` output.
@@ -304,8 +305,7 @@ struct DiscMaterialTests {
     )
     func realPickerRow() throws {
         let found = try #require(DiscFinder.find())
-        let entries = SourceScanner.scan(directories: [], disc: found)
-        let row = try #require(entries.first)
+        let row = PickerEntry.disc(found)
         #expect(row.kind == .disc)
         #expect(row.mark == "⊙")
         #expect(row.label == found.volume.lastPathComponent)
