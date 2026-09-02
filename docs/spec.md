@@ -72,8 +72,11 @@ in scope, not stretch goals:
 - AirPlay and correct audio device route handling — unplugging headphones should
   pause, not blast.
 - Output sample-rate switching for hi-res material.
-- A Dock icon, its own Cmd-Tab identity, and the album art visible in the Dock
-  while playing.
+- A Dock icon and its own Cmd-Tab identity. **Not** the album art in the Dock
+  while playing: that was asked for here, built, and then withdrawn once it was
+  seen — the Cmd-Tab switcher draws from the same tile, so the cover cannot go in
+  one without going in the other, and a constant icon is what the app is found
+  by. See `parity.md` D49. The sleeve goes to Now Playing instead.
 
 ## Visual design: cassette futurism
 

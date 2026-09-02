@@ -81,8 +81,10 @@ final class PanelModel {
     /// which is the one place that already knows a track changed.
     private let nowPlaying = NowPlaying()
 
-    /// §14's other half of the same sentence: the cover on the Dock tile.
-    private let dock = DockSleeve()
+    // Nothing here touches the Dock tile, and that is the decision rather than
+    // an omission — §14. The cover is what the *system* is shown (`NowPlaying`,
+    // Control Center, the lock screen); the tile is what the *app* is found by,
+    // and those are not the same job.
 
     // MARK: - The list
 
@@ -512,11 +514,6 @@ final class PanelModel {
         // so to the system too — a stale dictionary keeps the media keys coming
         // here instead of going wherever the music actually is now.
         nowPlaying.observe(record: record, state: fresh, sleeve: sleeve)
-        // "While playing" is read as "while there is a record on the deck".
-        // Taken literally it would mean the tile flipping back to the app icon
-        // every time the space bar is pressed, which is a strobe and not a
-        // reading — and a held record is still the record you are listening to.
-        dock.show(record == nil ? nil : sleeve)
     }
 
     // MARK: - What the faceplate says
@@ -733,7 +730,6 @@ final class PanelModel {
         pendingSleeve?.cancel()
         await engine.shutdown()
         nowPlaying.clear()
-        dock.show(nil)
         tearDownScratch()
     }
 

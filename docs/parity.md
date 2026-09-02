@@ -40,11 +40,34 @@ part worth porting.
 
 ## Status
 
-**284 of 289 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**285 of 289 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 10 of 33). Re-derived by counting the file:
-284 ticked and 5 open above §19, 10 and 23 below it.
+285 ticked and 4 open above §19, 10 and 23 below it.
 
-**Nothing was ticked or added this time — a row was caught lying.** `optical
+**One box ticked, and it is the first one this document has closed by taking a
+requirement out.** §14's Dock box asked for three things and gets two: the icon
+and the ⌘⇥ identity are both on screen and were looked at — `App/MUTHUR.icns`,
+still the amber-wordmark placeholder `Scripts/make-icon.sh` draws out of `Theme`,
+on the tile and in the switcher under the name `MUTHUR` — and `Info.plist` needed
+nothing for either, `LSUIElement` already `false` and `CFBundleIconFile` already
+`MUTHUR`. The third, the cover in the Dock while playing, was **written, working,
+and has been deleted** (`App/DockSleeve.swift`). It rested on a premise that four
+captures disproved: the ⌘⇥ switcher draws its image *from* the Dock tile, so
+`NSDockTile.contentView` was never the split it was documented as being and there
+is no way to have the record in the Dock and the wordmark in ⌘⇥. Made one choice
+instead of two, it is not a close one — **the tile is the handle you grab the app
+by, not a display**, and an icon that changes with every record is one you have to
+read before you can click it. That is **D49**, and it retires a line of `spec.md`
+rather than deferring one. The cover still goes where it was always for:
+`NowPlaying` pushes it to Control Center and the lock screen, which is the box
+directly above this one and was already ticked. **The denominator did not move** —
+a clause declined with reasoning is not a requirement removed from the count, and
+the box is ticked because all three clauses are now settled rather than because
+all three were built. That leaves **four open boxes in the whole document**:
+`cdda2wav`'s CD-Text capture, and §14's other three — AirPlay and route handling,
+output sample-rate switching, and ffmpeg as a fallback decoder.
+
+**Before that, nothing was ticked or added, and a row was caught lying.** `optical
 drive` still said `media: <type> — the disc source is not built yet, so it cannot
 be played` after §1.3 built it, and it went on saying so because that sentence is
 unreachable on a machine with an empty bay. It is now the script's
@@ -2500,18 +2523,29 @@ look for a line in the script to justify any of it; there is none.
 - [ ] AirPlay and correct route handling — **unplugging headphones pauses, it
       does not blast**.
 - [ ] Output sample-rate switching for hi-res material.
-- [ ] Dock icon, its own Cmd-Tab identity, album art in the Dock while playing.
-      **Written, and one of the three clauses seen.** `App/MUTHUR.icns` is a
-      **placeholder** generated from `Theme` — the wordmark in phosphor amber on
-      the CRT ground, meant to be replaced — and the app does appear in the Dock
-      under it. The cover goes on `NSDockTile.contentView` rather than on
-      `applicationIconImage`, so that the Dock can show the record while ⌘⇥ goes
-      on showing the app (`App/DockSleeve.swift`); neither of those two has been
-      looked at with a Dock on screen and a record playing, and until it has,
-      this stays a box that is two-thirds of a box. Note also that *while
-      playing* is read here as **while a record is on the deck** — a paused deck
-      keeps its cover, because the alternative is a tile that flickers back to
-      the wordmark every time you press ␣.
+- [x] Dock icon, its own Cmd-Tab identity, album art in the Dock while playing.
+      **Two clauses seen on screen, and the third withdrawn on purpose
+      (D49).** `App/MUTHUR.icns` is a **placeholder** generated from `Theme` —
+      the wordmark in phosphor amber on the CRT ground, meant to be replaced —
+      and both halves of it were looked at with the Dock revealed and a record
+      on the deck: the tile carries it, and ⌘⇥ carries it under the name
+      `MUTHUR`, which is the whole of what a Cmd-Tab identity is. `Info.plist`
+      needed nothing for that — `LSUIElement` is already `false` and
+      `CFBundleIconFile` is already `MUTHUR`, so the bundle was never an
+      accessory and the box was asking to confirm that rather than to change it.
+      **The cover is not drawn on either, and the wiring for it is gone**
+      (`App/DockSleeve.swift`, deleted). Two things settled that. The first is a
+      platform fact this document did not know when the code was written: **the
+      ⌘⇥ switcher draws its image from the Dock tile**, so `contentView` was
+      never the split it was documented as being — four captures, cover on the
+      deck and cover in the switcher, wordmark off the deck and wordmark in the
+      switcher. There is no arrangement on macOS 15 that puts the record in the
+      Dock and the wordmark in ⌘⇥. The second is that once it is one choice
+      rather than two, the choice is easy: **a constant icon is what an app is
+      *found* by**, and one that changes with every record is harder to pick out
+      of a Dock, not easier. The sleeve still goes to the system — `NowPlaying`,
+      Control Center, the lock screen — because that is the other job, and it is
+      the one the cover is actually for.
 - [ ] ffmpeg as a *fallback* decoder only, for what AVFoundation will not take
       (notably Opus and Ogg).
 - [x] Drag-scrubbing on both meters (the terminal could not do it) — §6.4, and
@@ -2610,7 +2644,12 @@ than `player` would while following `player`'s own rule more completely. D48
 records a difference where there was never a decision on the other side of it:
 `scale=$w:$((h*2))` carries no aspect term, so a non-square cover is a case the
 script never met rather than one it settled. It closes §18.24, which was the
-oldest question here that had been waiting on material.
+oldest question here that had been waiting on material. **D49** is the second out
+of §14 after D45, and it is the only decision in this list that *removes* a
+requirement: `spec.md` asks for the cover in the Dock, the cover was in the Dock,
+and it has been taken out — because the ⌘⇥ switcher turned out to draw from the
+same tile, and between a Dock that shows the record and a Dock you can find the
+app in, the app wins.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -3951,6 +3990,39 @@ material it was written against every cover was.
 the distinction `CLAUDE.md` draws, and it is why this is recorded here as a
 divergence with reasoning rather than as one of the places the port corrects the
 script (D15, D21, D39). The box in §5.4 comes down; the reasoning stays up.
+
+---
+
+**D49 — the Dock tile keeps the wordmark. The cover goes to the system, not to
+the icon.** → §14
+
+`spec.md` asks for "the album art visible in the Dock while playing", and the app
+had it: `DockSleeve` put the decoded cover on `NSDockTile.contentView`, chosen
+over `applicationIconImage` on the stated grounds that the Dock draws the tile
+and ⌘⇥ does not. **That premise is false, and it was checked rather than
+reasoned about.** Four captures with the Dock revealed: record on the deck —
+cover on the tile, cover in the switcher; no record — wordmark on the tile,
+wordmark in the switcher, labelled `MUTHUR` both times. The App Switcher takes
+its image *from* the Dock tile. There is no seam between them to write code into,
+so the two clauses of §14's box that looked independent are one clause, and the
+port had to pick a side.
+
+**It picks the constant icon.** The reason is not that the cover looks wrong on
+the tile — it looks rather good — but that the tile is not a display. It is the
+handle you grab the app by. An icon that is a different photograph every time you
+put a record on is an icon you have to *read* before you can click it, and the
+whole point of the amber wordmark on the CRT ground is that you do not. This is
+the user's call, made looking at it, and it is recorded here because it **retires
+a line of `spec.md`** rather than merely leaving a box unticked: the cover in the
+Dock is not deferred, not blocked, and not a stretch goal. It is declined.
+
+None of that touches the cover's real audience. `NowPlaying` still pushes it to
+`MPNowPlayingInfoCenter`, so the record's sleeve is what Control Center and the
+lock screen draw — that is the surface built to show what is playing, and it is
+already ticked two boxes above. **What the system is shown and what the app is
+found by are different jobs**; the mistake the deleted file made was treating
+them as one. `PanelModel` carries a comment at the old call site saying so, so
+that this does not come back as an omission somebody helpfully fixes.
 
 ---
 
