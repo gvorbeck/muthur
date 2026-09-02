@@ -37,8 +37,9 @@ struct CheckView: View {
             PanelBlank()
 
             // `check_summary` (`panel.sh:598`): the one line that is allowed to
-            // talk. Three of them, because ten of the fourteen checks can only
-            // ever warn and `Mostly ready.` is where most machines land.
+            // talk. Three of them, because eleven of the twelve checks can only
+            // ever warn — scratch space is the one that can fail — and
+            // `Mostly ready.` is where most machines land.
             ForEach(
                 Columns.wrap(report.verdict, to: PanelGrid.width - PanelGrid.margin),
                 id: \.self

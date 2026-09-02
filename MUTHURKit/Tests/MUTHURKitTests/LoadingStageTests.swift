@@ -88,7 +88,7 @@ struct LoadingStageTests {
     }
 
     /// **`SOURCE` is not cut on this screen and is cut on the next one**
-    /// (`player:1169` prints `$SRC_LABEL` whole; `player:2330` fits it to 52).
+    /// (`player:1169` prints `$SRC_LABEL` whole; `player:2329` fits it to 52).
     /// Kept rather than tidied: a zip with a very long name overruns this line
     /// and no other, and it has always done so.
     @Test("The source label is carried whole, unlike the panel's own SOURCE row")

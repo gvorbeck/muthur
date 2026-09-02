@@ -14,9 +14,12 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All thirty-nine are settled; §16
+  the reasoning and the decision it came from. All forty-eight are settled; §16
   lists them together so a difference from `player` is never later mistaken for
-  a porting mistake.
+  a porting mistake. *(This number had drifted to thirty-nine while §16 said
+  forty-six — two numbers for one set, which is the drift this document keeps
+  warning about. Re-derived here by counting §16, and it is §16 that is
+  authoritative.)*
 
 §17 collects the degraded paths — no network, no drive, a disc that will not
 read, a folder with nothing in its tags. §18 is the open list: things in the
@@ -37,10 +40,79 @@ part worth porting.
 
 ## Status
 
-**277 of 287 boxes** outside §19 (§19 is a procedure, not boxes, and is not
-counted; it stands separately at 10 of 31).
+**284 of 289 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+counted; it stands separately at 10 of 33). Re-derived by counting the file:
+284 ticked and 5 open above §19, 10 and 23 below it.
 
-**The denominator did not move, and §10 closed.** Its last two boxes were one
+**Nothing was ticked or added this time — a row was caught lying.** `optical
+drive` still said `media: <type> — the disc source is not built yet, so it cannot
+be played` after §1.3 built it, and it went on saying so because that sentence is
+unreachable on a machine with an empty bay. It is now the script's
+own `ok` (`player:396`) with where the disc is mounted, and a warning kept for
+media §1.3 will not open — four outcomes where bash has three, because the media
+*type* cannot tell the two apart: a real audio CD reports `Type: CD-ROM` (§19
+step 1), the same word a data disc gives, so the row asks `DiscFinder` instead,
+which opens nothing either. §11.1a carries the reasoning and the suite now pins
+both media outcomes. **The row still cannot fail**, so `scratch space` remains
+the only one that can and nothing about the exit code moved; the denominator did
+not move because a message that was wrong is not a new requirement. **§19 grew
+31 → 33**, one box in step 12 and one in step 13, both of them "read this row
+with a disc in the drive" — which is the only thing that would have caught it,
+and §19 is uncounted, so the figure below the line moves and the figure above it
+does not.
+
+**Before that, the denominator moved twice, and that is the whole of what is left
+to explain about this figure.** 287 → 289, both of them requirements this document did not
+previously have and neither of them a box that got split or reworded. **The first
+is D47**: an archive is offered only if it holds audio, which is `player:1039`'s
+folder rule applied to the one kind of row the script could not apply it to.
+`scan_sources` lists every `*.zip` unfiltered because bash cannot see inside one
+without unpacking it (`player:1035`), so on this machine the picker's top rows
+were three RPG rulebooks out of `~/Downloads`. §2.2 already reads a central
+directory where the archive lies, so the port can ask the question for two
+`pread`s and no bytes of entry data; six archives in `~/Downloads` become two.
+Audio is `AudioFiles.extensions` and nothing else — the same twelve the folder
+rows count with, D7's lesson pointed the other way — and dotted paths are out,
+because `AudioFiles.scan` skips hidden files and an archive whose only `.flac` is
+a `__MACOSX/._Song.flac` stub would open as an empty record. One second,
+wall-clock, shared across a directory's archives and probed together rather than
+in turn; a `pread` into a sleeping disk cannot be cancelled, so what the deadline
+buys is the right to stop waiting. **The second is `BROWSE`**, §14's new cap:
+`NSOpenPanel` on `B`, between `RESCAN` and `QUIT`, opening its selection through
+the same `SourceOpener.resolve` a picked row goes through. The scan is untouched
+and still the default — `BROWSE` is the escape hatch for the album outside
+`MUTHUR_DIRS`, the one two folders deep, and now the archive D47 declined to
+offer. It is `PanelModel.browse()`, which is also what ⌘O calls, so the menu item
+and the cap are one chooser rather than two kept in agreement.
+
+**Seven boxes ticked, and six of them were waiting on being looked at rather than
+on being written.** **D8's four** closed on the diagnostics screen existing: the
+conceit turned out to want *less* room than was reserved for it — `Report.verdict`
+is the only first-person line in the program, the twelve rows above it report
+plainly in the script's own register, and nothing anywhere prompts or waits.
+**§5.4's `§18.24`** closed as **D48**: the letterboxing stays, and it is recorded
+as a divergence rather than an override because `scale=$w:$((h*2))`
+(`player:2974`) carries no aspect term and every number around it is the terminal
+cell's 2:1 shape being undone. The script was written as if every cover were
+square; a case it never met is not a decision being overruled. That leaves §18 at
+twenty-three of twenty-eight answered, and **five open boxes in the whole
+document** — `cdda2wav`'s CD-Text capture, and §14's four, three of which are
+blocked on hardware and material rather than on work.
+
+**Three corrections carried in from the last report, all three verified before
+anything was written.** The check screen has **twelve** rows on this machine, not
+fourteen; the stale count is gone from `Faceplate.checkMeta`'s examples and from
+§10's faceplate note. **`SELF TEST · N CHECKS` never reaching `--check` is
+intended**: `--check` prints `Report.plainText`, which is `ck`'s terminal layout
+(`panel.sh:583`, `panel.sh:588`), and the script's `run_check` prints with no
+panel up — there is no plate to write on, and inventing one over a terminal
+report would be chrome the original never had. `checkMeta` is the screen
+version's plate and is reached only from `PanelModel.faceplateMeta`. Said outright
+in §11.1a so the question is not asked a third time. And `player:2330` is
+`player:2329` — the `printf … SOURCE … fit "$SRC_LABEL" 52` line; 2330 is the
+comment under it. Fixed here and in the three source files that cited it.
+
+**Before that, the denominator did not move, and §10 closed.** Its last two boxes were one
 box wearing two hats: the loading stage is the fifth screen this panel has, and
 "the faceplate on every stage" could not be shown true until there were enough
 stages for *every* to mean something. Porting it found a divergence and reversed
@@ -54,7 +126,7 @@ hands over a `LoadingStage` — what the script hands `load_stage` — and the s
 does the wording. Two oddities are kept and flagged rather than tidied: the
 second label always reads `READING` whatever the plate says (`player:1170`), and
 `SOURCE` is printed whole here where `np_frame` fits it to 52 (`player:1169`
-against `player:2330`), so a very long archive name overruns this line and no
+against `player:2329`), so a very long archive name overruns this line and no
 other.
 
 **The denominator did not move for §12, either.** §12 ticked five — the last two §1.1
@@ -98,11 +170,14 @@ cleanly should have. `--no-mb` landed after it and ticks the fourteenth, again
 adding nothing: the requirement was already written, and what was missing was
 the wire from the flag to the opener.
 
-**The rule, restated so it keeps working.** The denominator moved once, 286 →
-287, when D44 added §4.3's `.TOC.plist` reader at line 864 — a requirement this
-document did not previously have, discovered by putting a disc in the drive. **A
-new requirement is the only thing that may move it.** If it moves again and no
-box was added for a behaviour newly discovered to be required, that is drift — a
+**The rule, restated so it keeps working.** The denominator has moved three
+times. 286 → 287, when D44 added §4.3's `.TOC.plist` reader — a requirement this
+document did not previously have, discovered by putting a disc in the drive. Then
+287 → 289, for D47's archive rule and §14's `BROWSE`, both found the same way:
+by opening the picker on this machine and reading what was in it. **A new
+requirement is the only thing that may move it**, and all three were. If it moves
+again and no box was added for a behaviour newly discovered to be required, that
+is drift — a
 miscount, a box that got split, a box quietly reworded into two — and it should
 be found and reversed rather than absorbed. Both figures here were re-derived by
 counting the file, not carried forward from the last edit.
@@ -499,8 +574,8 @@ in §6. §7 and §9 were taken next for the same reason and against the same tes
 both are state and arithmetic with no picture in them, and both can be proved
 before there is anything to look at. What is left of §9 is §10's half: it has
 sixteen numbers and a grid of graded cells and nothing that knows what amber is.
-§16 D8 is a constraint on the UI when it arrives, not work that can be started
-early.
+§16 D8 was a constraint on the UI until the UI arrived; the diagnostics screen it
+was waiting for exists, has been looked at, and closed all four of its boxes.
 
 **Test material.** The suites come in two tiers. The rules tier runs anywhere —
 zero-byte files with the right names, and a stub reader that says what the tags
@@ -678,6 +753,22 @@ material is not there.
 - [x] Row marks: `⊙` disc, `▤` zip, `▸` folder (`player:1073`).
 - [x] Zips sorted `LC_ALL=C`, folders likewise, per scanned directory.
 - [x] A folder is offered only if it contains audio (`player:1039`).
+- [x] **Changed from bash (D47). An archive is offered only if it contains audio
+      too.** A new box, and it moves the denominator (see Status) on the D44
+      precedent: a requirement this document did not previously have, found by
+      looking at the picker on a real machine. The script applies the rule to
+      folders and lists every `*.zip` unfiltered (`player:1035`) — bash cannot
+      see inside one
+      without unpacking it, so the rule is not absent there — it is suspended at
+      the one place it could not be run. §2.2 reads a central directory where the
+      archive lies, so the port can run it: two `pread`s, no entry data, nothing
+      written to disk. On this machine it takes `~/Downloads` from six archives to
+      two. Audio means `AudioFiles.extensions`, the same twelve the folder rows
+      count with, and dotted paths are excluded because `AudioFiles.scan` skips
+      hidden files — an archive whose only `.flac` is a `__MACOSX/._Song.flac`
+      stub would open as an empty record. One second, wall-clock, shared across a
+      directory's archives; anything that has not answered by then is skipped
+      rather than waited on, and `BROWSE` (§14) is how you reach it anyway.
 - [x] **Changed from bash (D7).** The count that decides this looks two levels
       deep, not one. In bash the picker counted at `maxdepth 1` while playback
       reads at any depth (`player:1050` vs. `player:1422`) — so an album whose
@@ -1367,10 +1458,19 @@ anything.
       being cut out of it. `MUTHUR_SLEEVE_EDGE=rule` keeps the other.
 - [x] **The ceiling is level with the plate**, at 5 along the ramp
       (`Theme.sleeveCeiling`) — settled, and the number the ramp is cut at.
-- [ ] **§18.24** — a cover that is not square. The script fills the box exactly
-      and stretches; the port keeps the aspect. **Deliberately still open**: the
-      letterboxing is confirmed right and the flag stays up, so the divergence is
-      never mistaken for something nobody noticed.
+- [x] **§18.24 — a cover that is not square. The letterboxing stays, as
+      D48.** The script fills the box exactly and stretches
+      (`scale=$w:$((h*2))`, `player:2974`); the port preserves the aspect and
+      leaves ground above and below. *Closed as a divergence rather than as a
+      question, because there was never an opposing decision to override:
+      `scale` is given two exact numbers and **no aspect term at all** — no
+      `force_original_aspect_ratio`, no `-1` — and every number around it is the
+      cell being un-squashed (`h=$((w/2))`, then `w=$((h*2))`), which is about
+      the terminal and not about the picture. The script was written as if every
+      cover were square and, on the material it was written against, every cover
+      was. That makes stretching an **unmet case**, not a settled preference,
+      and a port that inherits it inherits nothing that was chosen. The flag
+      comes down; the divergence is on the record with its reasoning.*
 
 ---
 
@@ -1950,7 +2050,7 @@ drop the constraint where it only ever existed because of the terminal.
       holding their own, so the claim is a thing the suite can be asked about.
       Three are the script's — `N SOURCES` (`player:1063`), the loading stage's
       own title (`player:1167`), `PLAYING · 9 TRACKS · tags` (`player:2322`).
-      Two are the port's, because the screens are: `SELF TEST · 14 CHECKS · 2 !`
+      Two are the port's, because the screens are: `SELF TEST · 12 CHECKS · 2 !`
       on §11's check, which in bash is a terminal and wears no plate at all, and
       `STOPPED · 0 TRACKS` on the empty deck, which in bash cannot exist. The
       check's wording is **mine** — the state word is `SELF TEST` and not
@@ -2066,7 +2166,7 @@ drop the constraint where it only ever existed because of the terminal.
       *Four oddities kept and written up in `LoadingStage`: the second label is
       always `READING` whatever the heading says (`player:1170`); `SOURCE` is
       **not** cut here and is cut on the now-playing panel (`player:1169` against
-      `player:2330`); `head` is computed and never used (`player:1160`); and
+      `player:2329`); `head` is computed and never used (`player:1160`); and
       `bands` is called with its answer thrown away (`player:1161`) — the frame
       prints `$TRACKBAR` and nothing else. The last two are dead in the original
       and are not carried over; the first two are visible and are.*
@@ -2258,13 +2358,23 @@ The list above is bash's. This is the screen as it stands, walked against it:
 twelve rows where bash has fourteen, and **nothing goes silent** — a subsystem
 the port cannot yet report on says so in its own row rather than being left off.
 
+**`--check` and the check screen are the same twelve rows and deliberately not
+the same output**, which is worth stating because the faceplate makes it look
+like a discrepancy. `--check` prints `Report.plainText` — `ck`'s own layout with
+the colour left out (`panel.sh:583`, `panel.sh:588`) — and never prints `SELF
+TEST · 12 CHECKS`. It cannot and should not: the script's `run_check` prints to a
+terminal with no panel up, so there is no plate to write on, and a faceplate over
+a terminal report would be the port inventing chrome the original never had.
+`Faceplate.checkMeta` is the *screen* version's plate and is reached only from
+`PanelModel.faceplateMeta`. Intended, not an omission.
+
 | Port row | Was | Marks and details, verbatim |
 | --- | --- | --- |
 | `playback` | `mpv` (`player:349`) | **ok** `AVFoundation — the engine is part of the system`. Cannot fail; kept because "where did the mpv check go" is a question this screen exists to answer |
 | `metadata` | `ffprobe` (`player:361`) | **ok** `AVFoundation, with ffprobe at <path>` · **warn** `AVFoundation only — no ffprobe, so Opus and Ogg may not read. brew install ffmpeg`. **A fail becomes a warn**: bash needed ffprobe for every tag, this needs it only for what AVFoundation will not take |
 | `analyser` | `analyser` (`player:371`) | **ok** `an AVAudioEngine tap — the columns are the audio itself`. §9's FFT is the audio, so the pattern fallback has nothing left to fall back from |
 | `zips` | `mpv archives` + `zips` (`player:355`, `player:379`) | **ok** `read where they lie — no tar, no unzip, no charset to get wrong`. Two rows collapse into one and bash's hard fail disappears with them (§2.2, `player:256`) |
-| `optical drive` | `optical drive` (`player:395`) | **warn** `drutil not found — CDs cannot be detected` · **warn** `no disc, or no drive` · **warn** `media: <type> — the disc source is not built yet, so it cannot be played` |
+| `optical drive` | `optical drive` (`player:395`) | **ok** `media: <type> — mounted at <path>` · **warn** `media: <type> — not mounted as an audio CD, so --cd has nothing to open` · **warn** `no disc, or no drive` · **warn** `drutil not found — CDs cannot be detected`. Four outcomes where bash has three: §1.3 split the media case in two |
 | `CD-Text` | `CD-Text` (`player:402`) | **ok** `cdda2wav present` / `cdrecord present` · **warn** `no cdrtools — discs fall back to MusicBrainz or numbers`. Presence only — **nothing here opens the drive** |
 | `MusicBrainz` | `MusicBrainz` (`player:410`) | **ok** `URLSession — no curl, no jq. Reached when a disc needs naming, never before` · **warn** `disabled with --no-mb — untitled discs stay untitled` · **warn** `disabled with MUTHUR_NO_MB — …`, the same row naming whichever switch is set |
 | `scratch space` | `scratch space` (`player:423`) | **ok** `<N> free in <dir>` · **warn** `<N> free in <dir> — cache dir unwritable, so long albums may be reclaimed mid-play` · **fail** `cannot write to <dir> — zips cannot be opened`. All three, and it is the only row that can fail |
@@ -2273,12 +2383,26 @@ the port cannot yet report on says so in its own row rather than being left off.
 | `the shelf` | — | **ok** `<N> records in <path>` · **warn** `no catalogue at <path> — records play, they just arrive unannotated` · **warn** `<path> has no title column — nothing can be looked up in it`. **New** (§8) |
 | `records` | — | **ok** `<N> in <dirs>` · **warn** `nothing to play in <dirs>`. **New** (§1, and the calm form of `player:1114`) |
 
-**`optical drive` does not go quiet because §1.3 is deferred.** It is asked
-first, with `drutil` and nothing that opens the device (`burncd:278`), and when
-there *is* a disc it says so and then says it cannot play it — `media: CD-ROM —
-the disc source is not built yet, so it cannot be played`. Printing `media:
-CD-ROM` alone would read as a promise; omitting the row would be worse than
-either.
+**`optical drive` asks §1.3, because the media type cannot answer the question
+the row is for.** It is still asked first, with `drutil` and nothing that opens
+the device (`burncd:278`), and `DiscFinder` is asked after it for the same reason
+it is safe on every rescan: it opens nothing either, it reads the mount table and
+a status. That second question is not decoration. **A real audio CD reports
+`Type: CD-ROM`** — §19 step 1, the disc that mounted as `/Volumes/Deluxe` — which
+is the same word a data disc gives, so a list of playable type strings would be a
+rule the kernel never promised. Whether §1.3 found a record on the media is a
+thing the port actually knows: found is the script's own `ok` back again,
+`media: <type>` (`player:396`), plus where it is mounted; media the disc source
+will not open stays a warning, because `media: DVD-R` on its own would read as a
+promise.
+
+**This row went on saying `the disc source is not built yet` after §1.3 landed**,
+and it is worth recording why it survived: the sentence is only reachable with a
+disc in the drive, and the drive was empty every time the screen was looked at.
+A row that can only be read on hardware nobody has loaded is a row that goes
+stale silently — the same shape as the count-and-narrative drift this document
+keeps warning about, one floor down. The suite now pins both media outcomes
+through the probe seam, so the next one cannot wait for a disc to be noticed.
 
 **Five bash rows are gone and each one is gone for a reason**, not by omission:
 `mpv` and `unix sockets` (there is no mpv to drive), `mpv archives` (zips are
@@ -2392,6 +2516,26 @@ look for a line in the script to justify any of it; there is none.
       (notably Opus and Ogg).
 - [x] Drag-scrubbing on both meters (the terminal could not do it) — §6.4, and
       the clickable keycaps (**D30**) are the same argument finished.
+- [x] **`BROWSE` on the picker — a record from outside the search path.** A new
+      box, and one of the few things in this document that adds a requirement
+      rather than inheriting one, so it moves the denominator (see Status).
+      `scan_sources` is one level down `MUTHUR_DIRS` and nothing else
+      (`player:1036`), which is right nearly always and useless for the album on
+      the external drive, the one two folders deep, or — since **D47** — the
+      archive whose central directory would not open. The script's only answer
+      is to export a different `PLAYER_DIRS` and start again, because a TUI over
+      ssh has no file chooser to reach for; a window does. **The scan stays the
+      default and this is the escape hatch**, not the other way round: the list
+      is still what the picker opens on, and `BROWSE` is a fifth cap on the same
+      row (`B`, between `RESCAN` and `QUIT`). It is `PanelModel.browse()`, which
+      is also what ⌘O calls, so the menu item and the cap are one file chooser
+      and not two that have to be kept agreeing; the selection then goes through
+      `SourceOpener.resolve` and `open(source:kind:)` exactly as a picked row
+      does, so a folder chosen here cannot behave differently from the same
+      folder found by the scan. The row still fits — five caps, 59 of 69 columns
+      — and `KeycapTests.fits` now measures all three legends rather than only
+      the playing one, which is the thing standing between the next cap and a
+      wrapped legend.
 - [x] Reduce Motion and Reduce Transparency honoured — see §10. Transparency
       drops the veils; Motion has nothing to act on, because everything that
       moves on this panel is a reading and not an animation.
@@ -2427,7 +2571,7 @@ looks unfinished rather than left over — see §18.15.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-forty-six are settled. Recorded here with the answer so that a departure from
+forty-eight are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -2458,7 +2602,15 @@ last of them reversing the first two on the evidence of a real pressing — and
 **D45** out of §14, which is the first section with no `player` behind it at
 all. **D46** came out of §1.1 and is the only one here that is a *loss*: a
 mechanism the script had and a compiled binary cannot, written down with what
-was put in its place.
+was put in its place. **D47 and D48 are the pair that are not departures at
+all**, and they are opposite shapes of that: D47 *closes* an inconsistency the
+script left open — the picker's audio rule applies to folders and is suspended
+for archives, because bash cannot see inside one — so the port lists fewer things
+than `player` would while following `player`'s own rule more completely. D48
+records a difference where there was never a decision on the other side of it:
+`scale=$w:$((h*2))` carries no aspect term, so a non-square cover is a case the
+script never met rather than one it settled. It closes §18.24, which was the
+oldest question here that had been waiting on material.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -2527,24 +2679,59 @@ part is the guard. Playback still reads at any depth. → §1.2
 `spec.md` names the diagnostics screen as the one place it would genuinely fit,
 and that is exactly as far as it should go. The rule:
 
-- [ ] **Nothing stands between launching and sound.** No boot sequence, no
+- [x] **Nothing stands between launching and sound.** No boot sequence, no
       dialogue, no acknowledgement to dismiss. The failure mode `spec.md` names —
       an app that makes you read before it will play a record — is the only way
       this goes wrong, and it goes wrong permanently: a joke you cannot skip is
       not a joke by the fourth listen.
-- [ ] Diagnostics answers in the first person, flat and declarative, the way a
+      *Closed by there being nothing to point at. `main.swift` answers `--check`
+      and `--help` and otherwise goes straight to `open_source`'s work
+      (`player:3517`): a named record opens, `--cd` opens the disc, and anything
+      else scans. The one screen between launch and sound is `LoadingView`, and
+      it is a progress meter carrying `OPENING`/`READING`/`SCANNING` — the
+      script's own three words (`player:1398`), not a greeting. The suite cannot
+      prove a negative, so what is on record instead is that no view in `App/`
+      waits on a dismissal and nothing is drawn before the source is asked for.*
+- [x] Diagnostics answers in the first person, flat and declarative, the way a
       ship's computer answers a query. It reports. It does not banter, it is not
       withholding, and it never has anything to say that is not an answer.
-- [ ] Everywhere else it is a name on the chassis. In particular the playback
+      *Closed on the screen, and it came out narrower than the box allows.
+      **`Report.verdict` is the only first-person line in the program** — `I
+      CANNOT PLAY A RECORD. THE ✗ ITEMS ABOVE ARE WHY.` and its two siblings,
+      which are `check_summary`'s three cases (`panel.sh:598`) said as a machine
+      answering rather than as a status printed. The twelve rows above it stay in
+      the third person and in the script's register: `drutil not found — CDs
+      cannot be detected`, `<N> free in <dir>`. That split is the finding, not an
+      accident of drafting — the verdict is the only line on the screen that is a
+      **reply to a question**, and the rows are readings. A row that spoke as
+      `I` would be the machine narrating its own instruments.*
+- [x] Everywhere else it is a name on the chassis. In particular the playback
       failure messages stay exactly as blunt as they are — `▪ N OF M TRACKS ARE
       NO LONGER ON DISK`. They already read as a machine talking, which is
       precisely why they work, and dressing them up would put personality between
       you and the reason your record stopped.
-- [ ] It is a voice, not a conversation. No prompts, nothing that waits for a
+      *Closed unchanged, which is the whole claim. `Readout.status` is still `▪`
+      and a shouted clause, `die` still prints the script's own words
+      (`player:3524`, `player:1114`), and the faceplate still says `PLAYING`
+      rather than anything about itself. Outside `Report.verdict` the string
+      `MU/TH/UR` appears only where it is the product's name: `Faceplate.badge`
+      — literally a name on the chassis, in the corner of every screen — plus the
+      window title, the check's heading, `usage`'s first line and the icon.*
+- [x] It is a voice, not a conversation. No prompts, nothing that waits for a
       reply.
+      *Closed. The verdict is a sentence the screen ends on; nothing anywhere
+      asks a question or holds a key. The check screen's own legend is `RETURN`
+      and `RECHECK` (§11) — two ways out and no acknowledgement — and even
+      `QUIT` is unguarded on purpose (§18.25). The one modal thing in the app is
+      `NSOpenPanel` under `BROWSE`/⌘O (§14), which is the system asking for a
+      file and not the program asking you anything.*
 
-This is cheap to reverse in either direction, and worth revisiting only once the
-diagnostics screen exists and can be looked at.
+**Settled by the screen existing, which is what this decision was waiting for.**
+It said it was worth revisiting once the diagnostics screen could be looked at;
+it has been, on this machine, and the conceit turned out to want *less* room than
+was reserved for it — one line, at the bottom, where a question is being
+answered. Still cheap to reverse in either direction, and there is now something
+to reverse it against.
 
 **D9 — `row_of_track`. Intent, not confusion.** → §18.2, §3
 
@@ -3684,6 +3871,87 @@ switch at all, there being no `MUTHUR_ART` to document (`player:49`). A help
 page that lists a variable nothing reads is worse than a short one, so
 `theHelpListsNothingImaginary` asserts that too.
 
+**D47 — the picker's audio rule applies to archives too. Closing an
+inconsistency in the script, not diverging from it.** → §1.2, §2.2, §14
+
+`scan_sources` gates its two kinds of row differently, and only one of them is
+gated at all (`player:1014`–`player:1043`). A folder appears if it has audio in
+it — `audio_count` is `find … "${AUDIO_GLOB[@]}" | wc -l` (`player:1050`), and
+the gate is one line (`player:1039`):
+
+    n=$(audio_count "$z")
+    [ "$n" -gt 0 ] || continue
+
+An archive appears because it is called `*.zip` (`player:1035`):
+
+    find "$d" -maxdepth 1 -type f -iname '*.zip' 2>/dev/null | LC_ALL=C sort
+
+**Nothing there is a decision about archives.** It is the same rule, stopped
+short at the one place the script cannot apply it — bash has no way to see
+inside a zip without unpacking it, and unpacking every archive in `~/Downloads`
+to decide whether to list it is obviously worse than listing it. So the rule
+exists, applies to one kind of row, and is silently suspended for the other. The
+consequence on this machine is a picker whose top three rows are RPG PDFs.
+
+**§2.2 is what changes the arithmetic.** `ZipArchive` reads a central directory
+where the archive lies — two `pread`s of a few kilobytes, nothing written to
+disk, no entry data touched — so a member list is already in hand the moment the
+file is opened. Asking `audio_count > 0` of that costs microseconds, which puts
+the port in a position bash was never in. `ZipArchive.holdsAudio` asks it and
+`SourceScanner` drops the rows that answer no.
+
+**The definition of audio is `AudioFiles.extensions`, and that is the point.**
+The same twelve extensions the folder rows count with and the same ones
+`Record.read` will use on the scratch directory after the unpack. D7's lesson
+was that a picker counting by a different rule from playback drops albums that
+play perfectly; this is that lesson applied in the other direction, and the two
+rules being one is what keeps *offered* and *playable* the same set. Members
+under a dotted path are not audio, because `AudioFiles.scan` walks with
+`.skipsHiddenFiles` — so an archive whose only `.flac` is a `__MACOSX/._Song.flac`
+stub, which is most archives a Mac made, would open as an empty record. It is
+not offered.
+
+**A short deadline, and skipping rather than hanging.** One second, wall-clock,
+shared across every archive in a directory — probed together rather than in
+turn, so the budget does not multiply by however many zips are sitting there,
+and one archive on a stalled mount loses only itself. The budget is never spent
+on work; it is spent on a `pread` into a sleeping external disk or a network
+volume that has stopped answering, which cannot be cancelled from here. What the
+deadline buys is the right to **stop waiting** and draw the picker without that
+row. A picker missing a row you can still reach with `BROWSE` (§14) beats a
+picker that never appears, and that is the honest way round to state the trade.
+An archive that will not open at all — truncated, not a zip under a `.zip` name,
+encrypted so hard the directory will not read — answers no and is not offered,
+which is exactly what the folder rows have always done with a directory that
+turns out to hold nothing.
+
+**Written down as a decision even though it changes no behaviour the script
+chose**, because the picker after this lists fewer things than `player` would
+and the next person to notice deserves to find the reason here rather than
+guess at a porting mistake.
+
+**D48 — a sleeve that is not square keeps its aspect. A divergence, not an
+override.** → §5.4, §18.24
+
+`art_render_blocks` hands ffmpeg `scale=$w:$((h*2))` (`player:2974`), which is an
+exact size and not a fit: a 1500×1200 cover is squashed into the square box and a
+1200×1500 one is stretched out into it. The port preserves the aspect and
+letterboxes inside the same box.
+
+What kept this open in §18 for as long as it was open is the worry that the port
+was overruling a choice. **It is not, and the call is its own evidence.** There
+is no aspect term in it — no `force_original_aspect_ratio`, no `-1` for an axis
+to be computed from — and the arithmetic around it (`h=$((w/2))`, then
+`w=$((h*2))`) is the terminal cell's 2:1 shape being undone and has nothing to
+do with the picture's proportions. Nowhere in `art_tick` is stretching weighed
+against fitting. The script was written as if every cover were square, and on the
+material it was written against every cover was.
+
+**A case the script never met is not a decision the port is overriding.** That is
+the distinction `CLAUDE.md` draws, and it is why this is recorded here as a
+divergence with reasoning rather than as one of the places the port corrects the
+script (D15, D21, D39). The box in §5.4 comes down; the reasoning stays up.
+
 ---
 
 ## 17. When something is missing
@@ -3853,10 +4121,13 @@ Found while reading, and not obviously either intended behaviour or a bug. Per
 silently improved: each needs a yes or a no before the code it describes gets
 written, and nothing is ported or "fixed" until it has one.
 
-Of twenty-eight, twenty-two are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15,
-16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27 and 28** — each marked below and
-carrying the decision it became. The other six are open: **5, 8, 9, 10, 13 and
-24**. **18** and **28** were the newest closures and were the two the drive was
+Of twenty-eight, twenty-three are answered — **1, 2, 3, 4, 6, 7, 11, 12, 14, 15,
+16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 and 28** — each marked below and
+carrying the decision it became. The other five are open: **5, 8, 9, 10 and 13**.
+**24 is the newest closure and the one that took longest**, because it was held
+open waiting for material — a non-square cover to look at — and closed in the end
+on the script instead: `scale=$w:$((h*2))` carries no aspect term, so there was
+never a choice there to override (**D48**). **18** and **28** closed before it and were the two the drive was
 holding — both answered before a disc went in, on the reasoning that neither
 turned out to be a question about the disc. **One of those two answers survived
 contact with a disc and one did not.** 28 stands: it is a question about what the
@@ -4294,8 +4565,8 @@ question is only whether that was the right half to keep. It reads as yes.
     one job it has. The divergence stands and is a decision now, not a drift.
     → **D32.**
 
-24. **A sleeve that is not square. — OPEN, and the port currently diverges.**
-    → §5, §10 `art_render_blocks` hands ffmpeg
+24. **A sleeve that is not square. — ANSWERED: keep the aspect, and it is a
+    divergence, not an override.** → §5, §10, **D48** `art_render_blocks` hands ffmpeg
     `scale=$w:$((h*2))` (`player:2974`), which is an exact size and not a fit: a
     cover that is 1500×1200 is squashed into the square box, and one that is
     1200×1500 is stretched out into it. The port preserves aspect and letterboxes
@@ -4315,10 +4586,17 @@ question is only whether that was the right half to keep. It reads as yes.
     *keep the aspect*, which is what is written now and what leaves a band of
     ground above and below a wide cover.
 
-    **Held open on purpose.** The letterboxing is confirmed as the behaviour to
-    ship; this entry stays up so the divergence is never mistaken for something
-    nobody noticed. It closes when a cover that is not square has actually been
-    looked at beside the panel.
+    **Held open on purpose**, and then closed on the reading rather than on the
+    picture. What kept it open was the worry that the port was overriding a
+    choice. It is not, and the `scale` call is its own evidence: **two exact
+    numbers and no aspect term** — no `force_original_aspect_ratio`, no `-1` for
+    the axis to be computed from — sitting inside arithmetic (`h=$((w/2))`,
+    `w=$((h*2))`) that is entirely about undoing the terminal cell's 2:1 shape
+    and says nothing about the image's. There is no place in `art_tick` where
+    stretching was weighed against fitting. **A case the script never met is not
+    a decision the port is overriding**, which is the distinction `CLAUDE.md`
+    draws, and it is why this closes as a divergence with reasoning rather than
+    as a correction. Letterboxing ships. → **D48.**
 
 25. **A `QUIT` cap that is one click from the end of the record. — ANSWERED:
     leave it, unguarded.** → §10, D30 Not a `player` behaviour: a hole in a decision made
@@ -4765,6 +5043,11 @@ volumes resolve correctly is a stub.
       listing, and it simply is not offered. There is no "this is a data disc"
       message and there should not be one — from here it is a mounted volume like
       any other (§1.3).
+- [ ] `--check` with that same data disc in: `optical drive` warns
+      `media: <type> — not mounted as an audio CD, so --cd has nothing to open`,
+      and the verdict is still one that can play a record. **The picker says
+      nothing about a data disc and this row does**, which is the difference
+      between a chooser and a diagnostic (§11.1a).
 
 ### 13. `find_cd` against the drive — new with §1.3
 
@@ -4787,6 +5070,12 @@ MUTHUR_TEST_CDDA=/Volumes/<the disc> swift test --package-path MUTHURKit \
 - [ ] The picker row built off the real mount: mark `⊙`, the volume's own name,
       and a count that equals the track count in `.TOC.plist`. The only place
       D18's count and the drive's count are ever compared.
+- [ ] `--check` with the disc in: `optical drive` is a `✓` reading
+      `media: <type> — mounted at <the volume>`, and the path is the one step 3
+      printed. **Read the whole row rather than the mark.** This is the line that
+      went on saying `the disc source is not built yet` after §1.3 built it, for
+      the only reason such a line ever survives — it cannot be seen from an empty
+      bay (§11.1a).
 
 If the first of these ever comes back `.shape` rather than `.cddafs`, the
 `/Volumes` fallback is load-bearing on this platform after all and §1.3's second

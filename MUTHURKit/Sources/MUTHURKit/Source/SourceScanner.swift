@@ -36,6 +36,13 @@ public enum SourceScanner {
     /// subdirectories that contain audio, both sorted `LC_ALL=C`
     /// (`player:1036`).
     ///
+    /// **Both kinds are gated on containing audio (D47).** `scan_sources` gates
+    /// the folders and not the zips, because it has no way to look inside one
+    /// without unpacking it — so every `*.zip` in `~/Downloads` is offered as a
+    /// record whatever is in it. §2.2 reads a central directory where it lies,
+    /// which makes the folder rule askable of an archive for the price of two
+    /// small reads. Closing the inconsistency, not diverging from it.
+    ///
     /// **The disc goes first, above every directory**, because `scan_sources`
     /// appends it before it walks the search path at all (`player:1018`). Not a
     /// ranking — it is the row you almost certainly came for, and the script
@@ -84,6 +91,10 @@ public enum SourceScanner {
             zips.sort { AudioFiles.byteOrder($0.name, $1.name) == .orderedAscending }
             folders.sort { AudioFiles.byteOrder($0.name, $1.name) == .orderedAscending }
 
+            // D47 — the folder rule, applied to the archives. Sorted first so
+            // that dropping rows cannot change the order of the ones that stay.
+            zips = holdingAudio(zips)
+
             // Zips before folders, within each directory.
             for zip in zips {
                 let size = fileSize(zip.url, fileManager: fileManager)
@@ -128,6 +139,78 @@ public enum SourceScanner {
             label: disc.volume.lastPathComponent,
             detail: PickerEntry.discDetail(trackCount: count)
         )
+    }
+
+    // MARK: - Which archives are records (D47)
+
+    /// How long the archives in one directory get, between them, to say whether
+    /// they hold audio.
+    ///
+    /// The read itself is two `pread`s of a few kilobytes and finishes in
+    /// microseconds, so this budget is never spent on work — it is spent on a
+    /// mount that has stopped answering. A `pread` into a stalled network volume
+    /// or a sleeping external disk cannot be cancelled from here, so what the
+    /// deadline buys is the right to **stop waiting** for one and go on drawing
+    /// the picker without it. That is the trade this makes and it is the honest
+    /// way round: a picker that is missing a row you can still reach with
+    /// `BROWSE` (§14) beats a picker that never appears.
+    static let zipProbeBudget: TimeInterval = 1
+
+    /// The archives that hold something to play, in the order they came in.
+    ///
+    /// **Probed together rather than one after another**, so the budget above is
+    /// wall-clock for the whole directory instead of a per-archive cost that
+    /// multiplies by however many zips are sitting in `~/Downloads`. One archive
+    /// on a stalled mount then loses only itself.
+    ///
+    /// An archive that cannot be opened at all — truncated, not a zip under a
+    /// `.zip` name, encrypted so hard the directory will not read — comes back
+    /// `false` and is not offered. The picker's job is to list what will play,
+    /// and this is what the folder rows have always done with a directory that
+    /// turns out to hold nothing: they do not appear either.
+    private static func holdingAudio(
+        _ zips: [(url: URL, name: String)]
+    ) -> [(url: URL, name: String)] {
+        guard !zips.isEmpty else { return [] }
+
+        let answers = Answers(count: zips.count)
+        let group = DispatchGroup()
+        for (index, zip) in zips.enumerated() {
+            DispatchQueue.global(qos: .userInitiated).async(group: group) {
+                answers.settle(index, (try? ZipArchive(url: zip.url))?.holdsAudio ?? false)
+            }
+        }
+        // The return value is deliberately dropped: a timeout is not an error
+        // here, it is the answer for whichever archives have not given one.
+        _ = group.wait(timeout: .now() + zipProbeBudget)
+
+        let settled = answers.snapshot()
+        return zips.enumerated().filter { settled[$0.offset] == true }.map(\.element)
+    }
+
+    /// Somewhere for the probes to put their answers that outlives the wait.
+    ///
+    /// A probe that misses the deadline goes on running — there is no way to
+    /// stop it — and writes here after `snapshot` has already been taken. The
+    /// lock is what makes that harmless rather than a race: the late write lands
+    /// in a box nobody is reading any more.
+    private final class Answers: @unchecked Sendable {
+        private let lock = NSLock()
+        private var values: [Bool?]
+
+        init(count: Int) { values = Array(repeating: nil, count: count) }
+
+        func settle(_ index: Int, _ value: Bool) {
+            lock.lock()
+            defer { lock.unlock() }
+            values[index] = value
+        }
+
+        func snapshot() -> [Bool?] {
+            lock.lock()
+            defer { lock.unlock() }
+            return values
+        }
     }
 
     private static func fileSize(_ url: URL, fileManager: FileManager) -> UInt64 {

@@ -98,6 +98,10 @@ public enum Readout {
         case next, previous
         case shuffle, repeatMode
         case rescan
+        /// Open something the scan did not find (§14). New, and it has to be:
+        /// the script's picker is the search path or nothing, because a TUI over
+        /// ssh has no file chooser to offer. A window does.
+        case browse
         /// Off the check screen and back to the panel (§11). New — `--check`
         /// leaves by ending the program (`player:531`), which a window cannot
         /// do.
@@ -145,12 +149,22 @@ public enum Readout {
         ],
     ]
 
-    /// The picker's keycap row (`player:1134`).
+    /// The picker's keycap row (`player:1134`), plus `BROWSE`.
+    ///
+    /// **`BROWSE` sits between `RESCAN` and `QUIT`** and not at the end, because
+    /// the three before it are all *do something with this list* and `QUIT` is
+    /// the way out; a cap that opens a record belongs with the others that open
+    /// records. `Q` stays last, where the hand already looks for it.
+    ///
+    /// The row is still one row — five caps come to 59 of the 69 columns — which
+    /// is the whole constraint on adding anything here (§14: a legend that has
+    /// to wrap has stopped being a legend).
     public static let pickerLegend: [[Cap]] = [
         [
             Cap("↑↓", "SELECT", .selectUp, .selectDown),
             Cap("⏎", "OPEN", .jump),
             Cap("R", "RESCAN", .rescan),
+            Cap("B", "BROWSE", .browse),
             Cap("Q", "QUIT", .quit),
         ],
     ]

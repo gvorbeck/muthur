@@ -21,11 +21,11 @@ import Foundation
 /// - `terminal` (`player:438`) and `window size` (`player:444`) — a locale and a
 ///   row count are questions about a terminal emulator. There isn't one.
 ///
-/// **Nothing that the port cannot yet answer goes quiet.** §1.3 is deferred, so
-/// the disc rows say that they can see a drive and cannot yet play what is in
-/// it — which is the whole point of a diagnostic. A screen that omits a
+/// **Nothing that the port cannot yet answer goes quiet.** A screen that omits a
 /// subsystem it is unsure about leaves the reader with the same question they
-/// arrived with.
+/// arrived with — so `audio output` names a route it does not yet follow, and
+/// `optical drive` says which of the two things the media in the bay is: a
+/// record §1.3 can open, or something it cannot.
 public struct Diagnostics: Sendable {
 
     /// The finished screen. `CHECK_FAIL` / `CHECK_WARN` are derived rather than
@@ -87,6 +87,12 @@ public struct Diagnostics: Sendable {
         /// `drutil status`, whole. Parsed here rather than there so the suite
         /// can hand over a recorded one.
         public var drutil: @Sendable () -> String?
+        /// §1.3's answer about the same drive: the disc, if the disc source can
+        /// find one on it. **It opens nothing** — `DiscFinder` reads the mount
+        /// table and a `drutil status`, both of which are answers *about* the
+        /// drive — so asking it here is on the safe side of the ordering rule
+        /// below.
+        public var disc: @Sendable () -> DiscFinder.Found?
         /// The default output device's name, or nil where CoreAudio would not
         /// say.
         public var outputRoute: @Sendable () -> String?
@@ -107,6 +113,7 @@ public struct Diagnostics: Sendable {
             environment: [String: String] = ProcessInfo.processInfo.environment,
             tool: @escaping @Sendable (String) -> URL? = Diagnostics.locate,
             drutil: @escaping @Sendable () -> String? = Diagnostics.drutilStatus,
+            disc: @escaping @Sendable () -> DiscFinder.Found? = Diagnostics.discInTheDrive,
             outputRoute: @escaping @Sendable () -> String? = AudioRoute.current,
             sleeveEnabled: Bool = true,
             useMusicBrainz: Bool = true,
@@ -123,6 +130,7 @@ public struct Diagnostics: Sendable {
             self.environment = environment
             self.tool = tool
             self.drutil = drutil
+            self.disc = disc
             self.outputRoute = outputRoute
             self.sleeveEnabled = sleeveEnabled
             self.useMusicBrainz = useMusicBrainz
@@ -225,11 +233,20 @@ public struct Diagnostics: Sendable {
     }
 
     /// `player:395`, ported outcome for outcome. Asked **first**, and asked with
-    /// `drutil` rather than anything that opens the device.
+    /// `drutil` rather than anything that opens the device. `DiscFinder` is
+    /// asked after it and is safe to ask here for the same reason it is safe to
+    /// ask on every rescan: it opens nothing either (§1.3's fifth box).
     ///
-    /// The one addition is the second sentence on a drive that has media in it:
-    /// §1.3 is not built, so this port can see the disc and cannot play it, and
-    /// saying only `media: CD-ROM` here would read as a promise.
+    /// **The media type cannot say whether a disc will play, which is why the
+    /// finder is asked at all.** The audio CD this port was written against
+    /// reported `Type: CD-ROM` — §19 step 1, the disc that mounted as
+    /// `/Volumes/Deluxe` — the same word a data disc gives, so a list of
+    /// playable type strings would be a rule the kernel never promised. What
+    /// can be said honestly is whether §1.3 found a record on it, and that is
+    /// the split: found is the script's own `ok` back again, `media: <type>`
+    /// (`player:396`), with where it is mounted; media the disc source cannot
+    /// open stays a warning, because `media: DVD-R` alone would read as a
+    /// promise.
     static func opticalDrive(_ probes: Probes) -> Check {
         guard probes.tool("drutil") != nil else {
             return Check(.warn, "optical drive", "drutil not found — CDs cannot be detected")
@@ -237,9 +254,12 @@ public struct Diagnostics: Sendable {
         guard let media = mediaType(probes.drutil()) else {
             return Check(.warn, "optical drive", "no disc, or no drive")
         }
-        return Check(
-            .warn, "optical drive",
-            "media: \(media) — the disc source is not built yet, so it cannot be played")
+        guard let disc = probes.disc() else {
+            return Check(
+                .warn, "optical drive",
+                "media: \(media) — not mounted as an audio CD, so --cd has nothing to open")
+        }
+        return Check(.ok, "optical drive", "media: \(media) — mounted at \(disc.volume.path)")
     }
 
     /// The media type off `drutil status`, or nil for an empty bay. **D37.**
@@ -446,6 +466,11 @@ public struct Diagnostics: Sendable {
     /// `command -v <name>`. Public only because a default argument cannot reach
     /// `Tooling`, which is §4's own business and stays internal.
     public static func locate(_ name: String) -> URL? { Tooling.locate(name) }
+
+    /// §1.3's `find_cd`, with its own default probes. Named here so the row has
+    /// a default it can be handed a recorded answer in place of, the same way
+    /// `drutilStatus` is.
+    public static func discInTheDrive() -> DiscFinder.Found? { DiscFinder.find() }
 
     /// `drutil status`, whole and unparsed. Nil where drutil is not installed or
     /// would not run.

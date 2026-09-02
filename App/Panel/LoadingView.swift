@@ -21,7 +21,7 @@ struct LoadingView: View {
         VStack(alignment: .leading, spacing: 0) {
             // `SOURCE`, and **not cut** — `player:1169` prints `$SRC_LABEL`
             // whole where `np_frame` fits the same field to 52
-            // (`player:2330`). Kept: a name too long for the panel overruns
+            // (`player:2329`). Kept: a name too long for the panel overruns
             // here and nowhere else, and it has always done so.
             row(label: "SOURCE", value: stage.source)
             PanelBlank()

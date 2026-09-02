@@ -57,12 +57,17 @@ public enum Faceplate {
         "\(count) \(count == 1 ? "SOURCE" : "SOURCES")"
     }
 
-    /// The check screen's meta: `SELF TEST · 14 CHECKS · 2 !`.
+    /// The check screen's meta: `SELF TEST · 12 CHECKS · 2 !`.
     ///
     /// **Mine, and there is nothing behind it in the script** — `run_check`
     /// prints to a terminal and the program ends (`panel.sh:583`); there is no
     /// panel up and so no faceplate to write. §11 put the same report on a
     /// screen, and a screen in this port wears the plate.
+    ///
+    /// Which is why `--check` never prints this line and is not meant to: it
+    /// prints `Report.plainText`, the terminal report, and a terminal report has
+    /// no plate. The plate belongs to the screen version of the same twelve
+    /// rows, and the two are deliberately not the same output.
     ///
     /// The shape is the one the other three metas already have: a state word,
     /// then a count of the thing on screen. `SELF TEST` rather than `HEALTH
@@ -74,7 +79,7 @@ public enum Faceplate {
     ///
     /// The tally is at the tail for the same reason the volume is: it is the
     /// part that changes. Marks that are not there are not printed — a clean
-    /// machine gets `SELF TEST · 14 CHECKS` and nothing else, because listing
+    /// machine gets `SELF TEST · 12 CHECKS` and nothing else, because listing
     /// `0 ✗` is a way of raising the subject.
     public static func checkMeta(count: Int, warnings: Int, failures: Int) -> String {
         var text = "SELF TEST · \(count) \(count == 1 ? "CHECK" : "CHECKS")"

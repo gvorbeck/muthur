@@ -823,9 +823,13 @@ struct KeycapTests {
     }
 
     /// A cap that has to wrap has stopped being a legend (`player:2429`).
+    ///
+    /// **All three legends**, not just the playing one. The picker's row is the
+    /// one that grows — `BROWSE` (§14) went on it — and this is the only thing
+    /// standing between the next addition and a wrapped row.
     @Test("Each row fits the panel it is drawn on")
     func fits() {
-        for caps in Readout.legend {
+        for caps in Readout.legend + Readout.pickerLegend + Readout.checkLegend {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
             let width = caps.reduce(0) { total, cap in

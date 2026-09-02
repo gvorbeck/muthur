@@ -36,7 +36,7 @@ import Foundation
 ///    currently opening, which is nearly true, and it is what a person watching
 ///    the panel has always seen.
 /// 2. **`SOURCE` is not cut here** and it is cut on the now-playing panel
-///    (`player:2330` fits it to 52; `player:1169` does not). A zip with a very
+///    (`player:2329` fits it to 52; `player:1169` does not). A zip with a very
 ///    long name overruns this line and no other.
 /// 3. **`head` is computed and never used** (`player:1160`). `trackbar` works it
 ///    out again from the same two numbers a line later. Dead, and left where it

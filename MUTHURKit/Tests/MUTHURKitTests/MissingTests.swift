@@ -166,15 +166,31 @@ struct MissingTests {
 
     /// **Not having a drive is not a warning worth escalating.** Most Macs have
     /// not had one for a decade: the check says so in one line and moves on, and
-    /// none of the three drive outcomes changes the exit code (`panel.sh:596`).
-    @Test("No drive, no disc and no drutil are all one line and exit zero")
+    /// none of the drive outcomes changes the exit code (`panel.sh:596`).
+    ///
+    /// **Four outcomes now, not three, and the assertion is what it always
+    /// meant.** §1.3 split the media case in two — a disc the disc source opened
+    /// is the script's `ok` (`player:396`), media it will not open stays a warn
+    /// — so this asserts the thing that has not moved: the drive cannot fail.
+    @Test("No drive, no disc, no drutil and a disc that will not open all exit zero")
     func theDriveNeverGatesAnything() throws {
-        for drutil in [nil, "  Type: No Media Inserted\n", "  Type: CD-ROM\t  Name: /dev/disk4\n"] {
+        let drives: [(drutil: String?, disc: DiscFinder.Found?)] = [
+            (nil, nil),
+            ("  Type: No Media Inserted\n", nil),
+            ("  Type: CD-ROM\t  Name: /dev/disk4\n", nil),
+            (
+                "  Type: CD-ROM\t  Name: /dev/disk4\n",
+                DiscFinder.Found(
+                    volume: URL(fileURLWithPath: "/Volumes/Deluxe"), device: "/dev/disk4",
+                    route: .cddafs, deviceConfirmed: false)
+            ),
+        ]
+        for drive in drives {
             for tools in [Set(["ffmpeg", "ffprobe"]), Set(["ffmpeg", "ffprobe", "drutil"])] {
                 let report = Diagnostics.run(
-                    DiagnosticsTests.probes(tools: tools, drutil: drutil))
+                    DiagnosticsTests.probes(tools: tools, drutil: drive.drutil, disc: drive.disc))
                 let row = try #require(DiagnosticsTests.row(report, "optical drive"))
-                #expect(row.mark == .warn, "the drive escalated to \(row.mark)")
+                #expect(row.mark != .fail, "the drive escalated to \(row.mark)")
                 #expect(report.exitCode == 0)
                 #expect(report.verdict.hasPrefix("I CAN PLAY A RECORD"))
                 // One line. Not a paragraph about buying an enclosure.

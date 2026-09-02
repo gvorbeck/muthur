@@ -1,7 +1,9 @@
 import AVFoundation
+import AppKit
 import MUTHURKit
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// §10's half of the event loop: what the panel is showing and what a key press
 /// does to it.
@@ -355,6 +357,44 @@ final class PanelModel {
         else { return }
         let entry = entries[pickerCursor]
         open(source: entry.url, kind: entry.kind)
+    }
+
+    /// `BROWSE` — a record from anywhere, on the same rails as one from the list.
+    ///
+    /// **The scan is not what is wrong with the picker; it is what is limited
+    /// about it.** `scan_sources` looks one level down `MUTHUR_DIRS` and nowhere
+    /// else (`player:1036`), which is right nearly always and useless for the
+    /// album on the external drive, the one two folders deep, and — since D47 —
+    /// the archive whose central directory would not open. The script has no
+    /// answer to any of those but "export a different `PLAYER_DIRS` and start
+    /// again", because a TUI over ssh has no file chooser to reach for. A window
+    /// does, so the list stays the default and this is the escape hatch.
+    ///
+    /// It goes through `SourceOpener.resolve` and `open(source:kind:)`, which is
+    /// exactly what `openPicked` does with a row — one way in, so a folder
+    /// chosen here cannot behave differently from the same folder found by the
+    /// scan. ⌘O is this method too.
+    func browse() {
+        let panel = NSOpenPanel()
+        panel.message = "A folder of tracks, or a zip of one."
+        panel.prompt = "Play"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.folder, .zip]
+        // Cancelling is not a refusal to be reported. The script's picker leaves
+        // by `screen_off; exit 0` (`player:3532`); here the picker is simply
+        // still up, which is the same nothing-happened in a window.
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let (resolved, kind) = try SourceOpener.resolve(path: url.path)
+            open(source: resolved, kind: kind)
+        } catch {
+            // `die "not a zip or a folder: %s"` (`player:3524`), in the panel's
+            // own voice rather than an alert — the same place every other
+            // refusal to open a source is already printed.
+            die("\(error)")
+        }
     }
 
     func pickerClick(row: Int) {

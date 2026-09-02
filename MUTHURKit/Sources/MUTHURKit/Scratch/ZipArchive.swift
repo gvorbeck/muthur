@@ -59,6 +59,43 @@ public struct ZipArchive: Sendable {
     /// Asked before anything is written, so the refusal costs nothing.
     public var isEncrypted: Bool { entries.contains(where: \.isEncrypted) }
 
+    /// Whether there is anything in here §3 would play. §1.2, and D47.
+    ///
+    /// The picker's whole rule for a folder is `audio_count > 0`
+    /// (`player:1039`), and this is that rule asked of an archive. It is asked
+    /// of the **central directory** and of nothing else: a name and a member
+    /// type are already in hand once the archive is open, so the question costs
+    /// no bytes of entry data and nothing is written to disk to answer it.
+    ///
+    /// The definition of audio is `AudioFiles.extensions` — the same one the
+    /// folder rows count with and the same one `Record.read` will use on the
+    /// scratch directory afterwards. That agreement is the point: D7's lesson
+    /// was that a picker counting by a different rule from playback drops
+    /// albums that play perfectly.
+    public var holdsAudio: Bool { files.contains { ZipArchive.isAudioMember($0.name) } }
+
+    /// One member name, against the same rule `AudioFiles` applies to a path on
+    /// disk — extension only, case-insensitively, and **nothing hidden**.
+    ///
+    /// The hidden clause is not tidiness. `AudioFiles.scan` walks with
+    /// `.skipsHiddenFiles`, so after the unpack a `__MACOSX/._Song.flac` — which
+    /// is in almost every archive a Mac made — is not a track. An archive whose
+    /// only `.flac` is an AppleDouble stub would otherwise be offered as a
+    /// record and then open as nothing, which is the failure this rule exists to
+    /// prevent, arriving one step later.
+    ///
+    /// A member with no extension is not audio, which is the same answer
+    /// `AudioFiles.isAudio` gives a file with no extension. Neither is a claim
+    /// that every name has one.
+    static func isAudioMember(_ name: String) -> Bool {
+        let components = name.split(separator: "/", omittingEmptySubsequences: true)
+        guard let last = components.last else { return false }
+        guard !components.contains(where: { $0.hasPrefix(".") }) else { return false }
+        guard let dot = last.lastIndex(of: "."), dot != last.startIndex else { return false }
+        let ext = last[last.index(after: dot)...].lowercased()
+        return AudioFiles.extensions.contains(ext)
+    }
+
     // MARK: - Opening
 
     public init(url: URL) throws {

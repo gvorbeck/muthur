@@ -52,46 +52,23 @@ struct MUTHURApp: App {
                     .keyboardShortcut("k")
             }
             CommandGroup(after: .newItem) {
-                Button("Open Record…") { chooseRecord() }
+                Button("Open Record…") { model.browse() }
                     .keyboardShortcut("o")
                 Button("Collection…") { chooseCollection() }
             }
         }
     }
 
-    /// **⌘O, and the reason it has to exist here.** `EmptyPanelView` promises
-    /// this keystroke on the faceplate, and until now nothing bound it.
-    ///
-    /// The script never needs one: `pick_source` either hands back a record or
-    /// dies where it stands — `die "nothing to play…"` (`player:1114`) when the
-    /// scan came up empty, `screen_off; exit 0` (`player:3532`) when the user
-    /// walked away from the picker — and `open_source` runs before the first
-    /// frame is drawn (`player:3535`). There is no state in which that panel is
-    /// up with no record in it, so there is nothing for it to offer. **A window
-    /// cannot die on the user like that**: an app launched from the Dock with
-    /// an empty `~/Music` has to stay on screen and say something, which is why
-    /// `EmptyPanelView` exists at all and is marked there as a port invention.
-    /// Having invented the state, the port owes it a way out.
-    @MainActor
-    private func chooseRecord() {
-        let panel = NSOpenPanel()
-        panel.message = "A folder of tracks, or a zip of one."
-        panel.prompt = "Play"
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [.folder, .zip]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let (resolved, kind) = try SourceOpener.resolve(path: url.path)
-            model.open(source: resolved, kind: kind)
-        } catch {
-            // `die "not a zip or a folder: %s"` (`player:3524`), in the panel's
-            // own voice rather than an alert — the same place every other
-            // refusal to open a source is already printed.
-            model.die("\(error)")
-        }
-    }
+    // ⌘O is `PanelModel.browse()`, which is also the picker's `BROWSE` cap
+    // (§14). The chooser moved into the model when the cap arrived, so that the
+    // menu item and the keycap are not two file pickers that have to be kept
+    // agreeing with each other — they are one.
+    //
+    // The reason ⌘O exists at all is still `EmptyPanelView`: the script's
+    // `pick_source` either hands back a record or dies where it stands
+    // (`player:1114`, `player:3532`), so there is no state in which its panel is
+    // up with no record in it. A window cannot die on the user like that, and
+    // having invented that state the port owes it a way out.
 
     /// D5's file picker. There is no Settings screen yet — §11 and §13 are
     /// where one arrives — so the setting is a menu item until there is

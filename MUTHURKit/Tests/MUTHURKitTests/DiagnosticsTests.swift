@@ -16,6 +16,13 @@ struct DiagnosticsTests {
         tools: Set<String> = ["ffmpeg", "ffprobe", "drutil", "cdda2wav", "cdrecord"],
         environment: [String: String] = [:],
         drutil: String? = "  Type: CD-ROM\t\t  Name: /dev/disk4\n",
+        /// The disc §1.3 finds on that media. Consulted only after `drutil` has
+        /// said there is media at all, so a `drutil` above that reports an empty
+        /// bay makes this unreachable rather than contradictory.
+        disc: DiscFinder.Found? = DiscFinder.Found(
+            volume: URL(fileURLWithPath: "/Volumes/Deluxe"), device: "/dev/disk4",
+            route: .cddafs, deviceConfirmed: false
+        ),
         route: String? = "MacBook Pro Speakers",
         sleeveEnabled: Bool = true,
         useMusicBrainz: Bool = true,
@@ -27,6 +34,7 @@ struct DiagnosticsTests {
             environment: environment.merging(["MUTHUR_WORK": NSTemporaryDirectory()]) { a, _ in a },
             tool: { tools.contains($0) ? URL(fileURLWithPath: "/opt/homebrew/bin/\($0)") : nil },
             drutil: { drutil },
+            disc: { disc },
             outputRoute: { route },
             sleeveEnabled: sleeveEnabled,
             useMusicBrainz: useMusicBrainz,
@@ -203,19 +211,37 @@ struct DiagnosticsTests {
         #expect(!row.detail.contains("pattern"))
     }
 
-    // MARK: - The disc, which §1.3 has not built yet
+    // MARK: - The disc (§1.3)
 
-    /// **The rule this section is really testing.** §1.3 is deferred, and the
-    /// row does not go silent about it — a diagnostic that omits a subsystem it
-    /// cannot vouch for is worse than one that says it cannot tell.
-    @Test func aDiscInTheDriveIsSeenAndSaidToBeUnplayable() {
+    /// The script's own `ok` (`player:396`), which this row got back when §1.3
+    /// landed: there is media, the disc source opened it, and the row says
+    /// where. **It said `the disc source is not built yet` for as long as that
+    /// was true and then went on saying it** — a line only a machine with a disc
+    /// in the bay could catch lying, which is why it is pinned here.
+    @Test func aDiscTheDiscSourceFoundIsAnOkAndSaysWhereItIs() throws {
         let report = Diagnostics.run(DiagnosticsTests.probes())
-        let row = try? #require(DiagnosticsTests.row(report, "optical drive"))
-        #expect(row?.detail.contains("media: CD-ROM") == true)
-        #expect(row?.detail.contains("not built yet") == true)
-        // A disc it cannot play is a warning, not a failure: everything else on
-        // this machine still plays.
-        #expect(row?.mark == .warn)
+        let row = try #require(DiagnosticsTests.row(report, "optical drive"))
+        #expect(row.mark == .ok)
+        #expect(row.detail == "media: CD-ROM — mounted at /Volumes/Deluxe")
+        // Nothing about it promises less than it can do.
+        #expect(!row.detail.contains("cannot"))
+        #expect(report.exitCode == 0)
+    }
+
+    /// The other half of the same question, and **the reason the finder is asked
+    /// rather than the type string**: a real audio CD reports `CD-ROM` (§19 step
+    /// 1), so the same word covers both outcomes and only §1.3 can tell them
+    /// apart. Media nothing mounted as an audio CD is a warning — a data disc, a
+    /// DVD, or a disc that has not finished mounting.
+    @Test func mediaTheDiscSourceCannotOpenStaysAWarning() throws {
+        let report = Diagnostics.run(
+            DiagnosticsTests.probes(
+                drutil: "  Type: DVD-R\t\t  Name: /dev/disk4\n", disc: nil))
+        let row = try #require(DiagnosticsTests.row(report, "optical drive"))
+        #expect(row.mark == .warn)
+        #expect(row.detail.contains("media: DVD-R"))
+        #expect(row.detail.contains("--cd has nothing to open"))
+        // A disc it will not play is still not a reason to refuse to run.
         #expect(report.exitCode == 0)
     }
 

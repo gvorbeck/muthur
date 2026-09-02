@@ -323,6 +323,11 @@ struct PanelView: View {
         case .shuffle: model.toggleShuffle()
         case .repeatMode: model.cycleRepeat()
         case .rescan: break
+        // Not bound on the playing panel, and not because it could not be: `b`
+        // there would be a second way to change record while one is spinning,
+        // and the transport legend (§14) has no room to say so. The cap lives on
+        // the picker, where choosing a record is what you are already doing.
+        case .browse: break
         case .close: break
         case .quit: NSApplication.shared.terminate(nil)
         }
@@ -345,6 +350,7 @@ struct PanelView: View {
         case .selectDown: model.pickerStep(by: 1)
         case .jump: model.openPicked()
         case .rescan: model.rescan()
+        case .browse: model.browse()
         case .quit: NSApplication.shared.terminate(nil)
         default: break
         }
@@ -409,6 +415,7 @@ struct PanelView: View {
         case "k": model.pickerStep(by: -1)
         case "j": model.pickerStep(by: 1)
         case "r": model.rescan()
+        case "b": model.browse()
         case "q": NSApplication.shared.terminate(nil)
         default: return .ignored
         }

@@ -162,4 +162,77 @@ struct SourceScannerTests {
         #expect(entries.count == 1)
         #expect(entries[0].mark == "▤")
     }
+
+    // MARK: - Which archives are records (D47)
+
+    /// The reason the rule exists: `~/Downloads` is where zips go, and most of
+    /// them are not albums.
+    @Test func archiveWithoutAudioExcluded() throws {
+        let tmp = TempDirectory("scanner-zip-pdf")
+        try TestZip.write(
+            [
+                TestZip.Member("Rulebook.pdf", "%PDF"),
+                TestZip.Member("Errata.docx", "PK"),
+            ],
+            to: tmp.appending("Rules.zip")
+        )
+
+        #expect(SourceScanner.scan(directories: [tmp.url]).isEmpty)
+    }
+
+    /// One audio member is enough — the folder rule is `audio_count > 0`
+    /// (`player:1039`) and this is that rule, not a stricter one.
+    @Test func archiveWithOneAudioMemberKept() throws {
+        let tmp = TempDirectory("scanner-zip-mixed")
+        try TestZip.write(
+            [
+                TestZip.Member("Album/cover.jpg", "jpeg"),
+                TestZip.Member("Album/notes.txt", "hello"),
+                TestZip.Member("Album/01 Track.FLAC", "audio"),
+            ],
+            to: tmp.appending("Album.zip")
+        )
+
+        let entries = SourceScanner.scan(directories: [tmp.url])
+        #expect(entries.count == 1)
+        #expect(entries[0].label == "Album.zip")
+    }
+
+    /// The AppleDouble case. `AudioFiles.scan` walks with `.skipsHiddenFiles`,
+    /// so `__MACOSX/._Song.flac` is not a track once it is on disk; an archive
+    /// holding only those would open as an empty record.
+    @Test func appleDoubleStubIsNotAudio() throws {
+        let tmp = TempDirectory("scanner-zip-appledouble")
+        try TestZip.write(
+            [
+                TestZip.Member("__MACOSX/._Song.flac", "stub"),
+                TestZip.Member("readme.txt", "hello"),
+            ],
+            to: tmp.appending("Ghost.zip")
+        )
+
+        #expect(SourceScanner.scan(directories: [tmp.url]).isEmpty)
+    }
+
+    /// A `.zip` whose central directory will not read is not offered. Not a
+    /// judgement about the file — the picker lists what will play, and this
+    /// will not.
+    @Test func unreadableArchiveExcluded() throws {
+        let tmp = TempDirectory("scanner-zip-broken")
+        try Data("this is not an archive".utf8).write(to: tmp.appending("Broken.zip"))
+
+        #expect(SourceScanner.scan(directories: [tmp.url]).isEmpty)
+    }
+
+    /// The filter runs after the `LC_ALL=C` sort, so dropping a row cannot
+    /// reorder the ones that stay.
+    @Test func droppingArchivesKeepsOrder() throws {
+        let tmp = TempDirectory("scanner-zip-order")
+        try TestZip.write([TestZip.Member("01.flac", "audio")], to: tmp.appending("Alpha.zip"))
+        try TestZip.write([TestZip.Member("doc.pdf", "%PDF")], to: tmp.appending("Beta.zip"))
+        try TestZip.write([TestZip.Member("01.mp3", "audio")], to: tmp.appending("Gamma.zip"))
+
+        let entries = SourceScanner.scan(directories: [tmp.url])
+        #expect(entries.map(\.label) == ["Alpha.zip", "Gamma.zip"])
+    }
 }
