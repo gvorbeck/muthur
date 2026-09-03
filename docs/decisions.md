@@ -28,7 +28,7 @@ Source references are `player:NNNN` for
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-fifty-six are settled. Recorded here with the answer so that a departure from
+fifty-seven are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -88,7 +88,13 @@ for a tenth of a second — each recorded with the mechanism it chose and the
 cheaper ones it turned down. **D55** is the chassis: four screws on screen
 instead of two under the title bar, at four angles that are constants rather
 than dice. **D56** is the sleeve under the pointer, which is the only one of the
-five that takes an effect *off*.
+five that takes an effect *off*. **D57** goes back to §14's ground — the third
+after D45 and D49 with no `player` line behind it — and it is the one this list
+was always going to need: the script's picker runs once and `q` ends the program,
+because a terminal you can re-run does not need a way back and a window does.
+It is also the second entry, after D49, that comes from something already built
+being *wrong* rather than missing: ⌘O was reachable mid-record the whole time,
+and being invisible and unable to reach the drive is what made it not a door.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1773,6 +1779,120 @@ completion handler, so the veils come back over a cover that has finished fading
 instead of snapping onto one half way. The second picture costs a second image in
 memory and no second trip to the file: the true cover and the treated one are the
 same bytes, read once and quantised twice as far.
+
+---
+
+**D57 — `E EJECT`: the way back to the start screen. No counterpart in the
+script.** → §14, §10, §6.1
+
+**There is no `player` line behind this one and none is claimed.** The nearest
+thing is the shape of the launch itself:
+
+    scan_sources
+    pick_source || { screen_off; exit 0; }
+
+— `player:3531`, `player:3532`. The picker runs **once**, before `open_source`
+and before a frame is drawn, and nothing in the program ever goes back to it. `q`
+does not return there either; it ends the program (`player:2687`'s loop falls out
+and `cleanup` runs on the way through `EXIT`). That is not an omission in the
+script and it should not be read as one: **a terminal program does not need a way
+back, because you just run it again.** The way from one record to the next in
+bash is `q`, then `player`, and the second half of that costs nothing — the shell
+you typed it in is still sitting there.
+
+**A window has no second half.** Quit MUTHUR and you are looking at the Dock, and
+what you have to do to hear a different record is launch the whole program again
+— which on this app means the boot sequence, the drive being asked, and the
+scratch sweep, for the sake of changing a record. So the port needs a door the
+script never needed, for exactly the reason D36 needed one: the state is a
+*window*, and a window is not allowed to end the conversation just because the
+original could.
+
+**What was already there, and why it was not enough.** ⌘O has been bound to
+`PanelModel.browse()` since D36 (`App/MUTHURApp.swift:55`) and is not gated on
+what is on screen, so a file chooser was already reachable with a record
+playing. Two things wrong with it, and they are the whole defect:
+
+- **Nothing on the panel says it exists.** The keycap rows are this program's
+  statement about what its keys do, and ⌘O is on neither of them. A binding that
+  only a person who has read `MUTHURApp.swift` knows about is not a way out, it
+  is a fact about the source.
+- **It is the wrong door.** `browse()` goes straight to `NSOpenPanel`, which
+  reaches folders and zips and nothing else — so **the disc in the drive could
+  not be reached at all without quitting.** The one source that has no path to
+  type into a file chooser is the one D50 made the start screen be about.
+
+⌘O stays. It is the keystroke a Mac user reaches for regardless, and it is still
+the shortest way from the dead-end panel to a named folder. `E` is the other
+thing: it puts the record down and gives you back the screen the program starts
+on, disc and all.
+
+**`E`, on the second row.** `N`, `P`, `S`, `R` and `Q` were taken, and *eject* is
+already this program's word for what the key does — the vocabulary is `player`'s
+even where the behaviour is not. Placement was measured rather than eyeballed,
+by the arithmetic `KeycapTests.fits` uses: of the 69 columns the playing legend's
+first row stands in **67** and its second in **35**, so the transport row had two
+columns spare and `E EJECT` wants nine. The second row goes to **47**, and it is
+the right row on its own merits — the first is what you do *inside* a record and
+the second is what you do *to* one. `Q` stays last, where the hand already looks
+for it, which is the picker row's rule from D50 applied again.
+
+**Bound during playback, not only at the end.** The obvious smaller version of
+this is a key that lights up under `FINISHED`, and it is the wrong one: the
+moment you most want the next record is ninety seconds into the wrong one. It is
+live wherever the playing legend is drawn — which includes the empty panel after
+a refused source, where it is now the first cap on that screen that does
+something, and where it goes somewhere better than ⌘O does, because a bad path on
+the command line is exactly when you want to be shown what is actually in the
+drive.
+
+It is refused in one place: **while a source is coming open**. There is no record
+to take off, `load_stage` draws no legend to press it on (`player:1162`), and the
+opener would arrive a moment later carrying the record you had just declined.
+
+**What returning has to do, and the order it does it in.** Stop the deck, keep
+the promise about the disk, forget the record, ask the drive again:
+
+- **The deck is emptied and not merely stopped.** `PlaybackEngine.eject()` is
+  `shutdown` plus the rows, and the difference matters because something is still
+  reading: the panel asks for `state` twenty times a second, and a deck that has
+  been emptied and still answers PLAYING on row 4 of a record nobody can see is
+  the panel lying about the one thing it exists to report. The **gain does not
+  go** — volume and mute are the listener's setting and survive a quit (D1), so
+  they survive a record. Shuffle and repeat do go, because the next `load` would
+  have reset them anyway.
+- **The scratch directory is deleted, by the same teardown the exit path uses**
+  — `player:312`'s promise does not have an exception for records you got bored
+  of, and a zip left unpacked in `~/.cache` because you pressed `E` instead of
+  `Q` is a slow leak that only shows up as a full disk. The **order is
+  `cleanup`'s**: the deck lets go of the files before the directory under them
+  goes (`player:297`). Since the deck stops across an actor hop and the screen
+  must change on the keypress, the directory being torn down is **carried into
+  the task** rather than looked up again on the other side of the `await` — a
+  record opened in the meantime would otherwise have its own scratch deleted out
+  from under it. `tearDownScratch()` is now that carry plus one line.
+- **`pickSource()` runs on the way back**, which is the whole reason to return to
+  the picker rather than to a blank panel: it re-asks `DiscFinder`, so a disc put
+  in while the last record was playing is on the screen you land on. `RESCAN` is
+  there if it was put in a moment later.
+
+**A record that runs out does not do this by itself. Decided, not defaulted.**
+The alternative was tested against the panel's own manners and lost: `FINISHED`
+is a reading, and a screen that replaces the reading with a different screen has
+taken away the answer to *what did I just listen to* — the album is still named,
+the track list is still there, both meters are parked at full (§6.2), and all of
+that is information somebody is plausibly still looking at. It would also make
+the panel do something nobody pressed a key for, on an instrument whose whole
+argument is that everything on it is either a reading or a switch. **The record
+stays up and the key is the way off it**, which is also what the script does with
+the two seconds it has before `q`.
+
+**The end-of-album line is left as the script wrote it** —
+`▪ END OF ALBUM — PRESS Q TO QUIT, ⏎ TO PLAY A TRACK` (`player:3497`). Adding `E`
+to it was considered and declined: it is `player`'s sentence, the cap two rows
+below it is already lit and says `EJECT`, and a status line that grows a clause
+every time a key is added stops being the machine answering and becomes a second
+legend.
 
 ---
 

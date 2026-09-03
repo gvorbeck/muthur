@@ -635,6 +635,70 @@ final class PanelModel {
         }
     }
 
+    /// `E` — the record comes off and the start screen comes back (**D57**).
+    ///
+    /// **Nothing in `player` does this**, and the reason it does not is worth
+    /// keeping in front of whoever reads this next: `pick_source` runs once
+    /// (`player:3531`) and `q` ends the program (`player:3532`), so the way back
+    /// to the picker in a terminal is to type `player` again. A window has no
+    /// again — quit it and you are looking at the Dock. So this is the port
+    /// owing an exit to a state it invented, which is D36's argument about ⌘O
+    /// made a second time and answered on the panel this time rather than in a
+    /// menu nobody can see.
+    ///
+    /// **The screen changes now and the disk is cleaned up in a moment**, in
+    /// that order and for the reason `cleanup` gives: the deck lets go of the
+    /// files before the directory under them goes (`player:297`). Everything the
+    /// panel draws is cleared on this side of the `await` so the key feels like
+    /// a key; the scratch directory is carried into the `Task` so that a record
+    /// opened in the meantime cannot have its own directory deleted out from
+    /// under it.
+    ///
+    /// Refused only while a source is coming open — there is no record to take
+    /// off, the legend is not drawn (`player:1162`), and the opener would arrive
+    /// a moment later with the record we had just declined to have.
+    func eject() {
+        guard !isLoading else { return }
+
+        let spinning = scratch
+        scratch = nil
+
+        sleeveWork?.cancel()
+        sleeveWork = nil
+        pendingSleeve?.cancel()
+        pendingSleeve = nil
+
+        record = nil
+        header = nil
+        titleSource = nil
+        sleeve = nil
+        columns = TrackColumns(title: PanelGrid.textWidth, artist: 0)
+        sourceKind = .folder
+        stage = nil
+        loading = nil
+        resume = nil
+        offer = nil
+        cursor = Cursor()
+        lastPlayingRow = -1
+        pickerStatus = nil
+        // The scales are let go of here for the same reason `adopt` lets go of
+        // them: a deck with nothing on it knows nothing about the last record
+        // (D33).
+        analyser.newRecord()
+        nowPlaying.clear()
+
+        // And the drive is asked again on the way back, which is the whole point
+        // of coming back rather than quitting: a disc put in while the last
+        // record was playing is on the screen you land on.
+        pickSource()
+
+        Task {
+            await engine.eject()
+            await refresh()
+            if let spinning { tearDown(spinning) }
+        }
+    }
+
     func toggleShuffle() { Task { await engine.toggleShuffle(); await refresh() } }
     func cycleRepeat() { Task { await engine.cycleRepeat(); await refresh() } }
 
@@ -755,6 +819,17 @@ final class PanelModel {
     /// The promise this program makes about your disk (`player:312`).
     private func tearDownScratch() {
         guard let scratch else { return }
+        self.scratch = nil
+        tearDown(scratch)
+    }
+
+    /// The same promise, kept about a directory this model has already let go
+    /// of. `eject` has to take the record off the screen the instant the key is
+    /// pressed and delete the directory a moment later, once the deck has
+    /// stopped reading out of it — and in the gap between those two, `scratch`
+    /// may already belong to the *next* record. So the one being torn down is
+    /// carried rather than looked up again.
+    private func tearDown(_ scratch: Scratch) {
         let keep = Scratch.keepRequested(
             environment: ProcessInfo.processInfo.environment
         )
@@ -763,6 +838,5 @@ final class PanelModel {
                 Data("muthur: scratch kept at \(kept.path)\n".utf8)
             )
         }
-        self.scratch = nil
     }
 }

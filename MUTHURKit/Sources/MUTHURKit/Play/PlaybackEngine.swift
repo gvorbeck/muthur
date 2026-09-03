@@ -246,6 +246,33 @@ public actor PlaybackEngine {
     /// here because the process is leaving and nobody is loading anything next.
     public func shutdown() { teardown() }
 
+    /// The record comes off and the deck stays (D57).
+    ///
+    /// `shutdown` leaves the record where it is because nothing is going to read
+    /// it again; here something is — the panel goes on asking for `state` twenty
+    /// times a second — and a deck that has been emptied and still reports
+    /// PLAYING on row 4 of a record nobody can see is the panel lying about the
+    /// one thing it exists to report. So the rows go with the graph.
+    ///
+    /// **The gain does not.** Volume and mute are the listener's setting and not
+    /// the record's; they survive a quit (D1), so they certainly survive taking
+    /// a record off. Shuffle and repeat go, because `load` would have reset them
+    /// for the next record anyway and there is no next record to defer it to.
+    public func eject() {
+        teardown()
+        rows = []
+        urls = []
+        starts = []
+        recordSeconds = 0
+        transport = Transport(count: 0)
+        currentRow = 0
+        currentVisit = 0
+        feedRow = 0
+        feedVisit = 0
+        mode = .stopped
+        status = nil
+    }
+
     private func teardown() {
         if running {
             listener?.untap(player)

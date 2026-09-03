@@ -826,9 +826,14 @@ struct KeycapTests {
     ///
     /// **Every legend**, not just the playing one — and the picker has two
     /// shapes since **D50** (a disc in the bay, or an empty one), so both are
-    /// measured. The picker's row is the one that grows: `BROWSE` (§14) went on
-    /// it, and this is the only thing standing between the next addition and a
-    /// wrapped row.
+    /// measured. This is the only thing standing between the next addition and a
+    /// wrapped row, and it has now caught two: `BROWSE` (§14) on the picker's
+    /// row, and `EJECT` (**D57**) on the playing one.
+    ///
+    /// **Where `EJECT` went was decided here rather than by eye.** Of the 69
+    /// columns the playing legend's first row stands in 67 and its second in 35,
+    /// so the transport row had two columns spare and the cap wanted nine. The
+    /// second row is 47 now.
     @Test("Each row fits the panel it is drawn on")
     func fits() {
         let legends =
@@ -883,5 +888,44 @@ struct KeycapTests {
         // `RESCAN` survives an empty bay because an empty bay is exactly when it
         // means something: it is how a disc put in after launch gets noticed.
         #expect(empty.contains { $0.presses.contains(.rescan) })
+    }
+
+    /// **D57.** The way off a record is on the playing panel, and it is on the
+    /// second row because the first has two spare columns of sixty-nine and the
+    /// cap needs nine.
+    @Test("EJECT is on the playing legend, on the row with room for it")
+    func ejectIsOnTheSecondRow() {
+        #expect(!Readout.legend[0].contains { $0.presses.contains(.eject) })
+        #expect(Readout.legend[1].map(\.label) == ["SHUFFLE", "REPEAT", "EJECT", "QUIT"])
+        // `Q` stays last, where the hand already looks for it.
+        #expect(Readout.legend[1].last?.presses == [.quit])
+    }
+
+    /// The keys are what the caps claim to be, so two caps claiming the same one
+    /// is a legend that is wrong about the keyboard rather than a legend that is
+    /// crowded. This is the assertion `EJECT` had to get past — `N`, `P`, `S`,
+    /// `R` and `Q` were all spoken for.
+    @Test("No two caps on a legend claim the same key")
+    func distinctKeys() {
+        for legend in [
+            Readout.legend, Readout.pickerLegend(hasDisc: true),
+            Readout.pickerLegend(hasDisc: false), Readout.checkLegend,
+        ] {
+            let keys = legend.flatMap { $0 }.map(\.key)
+            #expect(Set(keys).count == keys.count)
+        }
+    }
+
+    /// Nothing offers a way back to a screen you are already on. The picker *is*
+    /// the start screen, and the check goes over whatever was showing rather
+    /// than replacing it, so neither has anything to eject.
+    @Test("EJECT is on the playing legend and nowhere else")
+    func ejectIsOnlyOnThePanel() {
+        for legend in [
+            Readout.pickerLegend(hasDisc: true), Readout.pickerLegend(hasDisc: false),
+            Readout.checkLegend,
+        ] {
+            #expect(!legend.flatMap { $0 }.contains { $0.presses.contains(.eject) })
+        }
     }
 }

@@ -62,6 +62,51 @@ struct PlaybackEngineTests {
         #expect(await engine.state.mode == .stopped)
     }
 
+    // MARK: - D57 Taking the record off
+
+    /// **The deck stops describing a record it no longer has.** `shutdown` may
+    /// leave the rows behind because nothing reads them again; `eject` may not,
+    /// because the panel goes on asking twenty times a second and would draw
+    /// PLAYING over a screen with no record on it.
+    @Test("Ejecting empties the deck and leaves it able to take another record")
+    func ejectingEmptiesTheDeck() async throws {
+        let folder = try ToneFolder()
+        let engine = PlaybackEngine(offline: true)
+        try await engine.load(tones([4, 4], in: folder))
+        await engine.next()
+        #expect(await engine.state.mode == .playing)
+
+        await engine.eject()
+
+        let empty = await engine.state
+        #expect(empty.mode == .stopped)
+        #expect(empty.row == 0)
+        #expect(empty.recordDuration == 0)
+        #expect(empty.trackDuration == 0)
+        #expect(empty.status == nil)
+
+        // And it is a deck, not a corpse: the next record goes on and plays.
+        try await engine.load(tones([1, 1], in: folder))
+        #expect(await engine.state.mode == .playing)
+    }
+
+    /// The gain is the listener's and not the record's — it survives a quit
+    /// (D1), so it certainly survives a record coming off.
+    @Test("Ejecting keeps the volume where it was")
+    func ejectingKeepsTheGain() async throws {
+        let folder = try ToneFolder()
+        let engine = PlaybackEngine(offline: true)
+        await engine.setVolume(0.4)
+        await engine.toggleMute()
+        try await engine.load(tones([2], in: folder))
+
+        await engine.eject()
+
+        let state = await engine.state
+        #expect(state.volume == 0.4)
+        #expect(state.muted)
+    }
+
     // MARK: - §6.1 The transport, through the engine
 
     /// The row is not assumed anywhere — it is read back off the timeline, which

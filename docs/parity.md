@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All fifty-six are settled; they
+  the reasoning and the decision it came from. All fifty-seven are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -49,12 +49,36 @@ part worth porting.
 
 ## Status
 
-**281 of 285 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**282 of 286 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 10 of 33). Re-derived by counting the files:
-277 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
+278 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
 
-**Nothing moved for the tube, and that is the finding, not an omission.** Five
+**One box, new and ticked, and the denominator moved for the fifth time — the
+fourth of them upward.** 285 → 286, for the only thing that has ever been allowed
+to move this number up: a requirement that was not there before. **There was no way off a
+record.** A record that had finished stayed finished, a record playing could only
+be quit, and the one binding that did reach past it — ⌘O, live mid-record since
+**D36** — is on no keycap and opens a file chooser, so the disc in the drive was
+unreachable without quitting the program. `E EJECT` is that box (§14), and the
+key is on §6.1's table beside D1's, marked new the way D1's are and adding no box
+there. **`player` has nothing behind it and none is claimed**: `pick_source` runs
+once before the first frame (`player:3531`) and `q` ends the run, because a
+terminal you can retype does not need a way back and a window does — written up
+as **D57**, which is the third entry after D45 and D49 with no script line under
+it and the second, after D49, that comes of something already built being wrong
+rather than missing. The cap went on the second legend row because that is where
+it fits — 67 of 69 columns on the transport row against 35 on the row below,
+which goes to 47, measured by `KeycapTests.fits` and not by eye. Pressing it
+stops the deck, deletes the scratch directory down the same path `q` uses
+(`player:312`, in `cleanup`'s order at `player:297`), and asks the drive again on
+the way back, so the disc put in mid-record is on the screen you land on. **A
+finished record does not do any of this by itself, and that is a decision rather
+than an omission**: `FINISHED` is a reading, and taking the reading away
+unprompted would be the panel doing something nobody pressed a key for.
+
+**Before that: nothing moved for the tube, and that is the finding, not an
+omission.** Five
 visual changes landed — all four screws on screen at four written-down angles, a
 band that falls down the raster, a wordmark that tears for a tenth of a second,
 and a sleeve that shows the artwork it really came with while the pointer is on
@@ -276,20 +300,22 @@ cleanly should have. `--no-mb` landed after it and ticks the fourteenth, again
 adding nothing: the requirement was already written, and what was missing was
 the wire from the flag to the opener.
 
-**The rule, restated so it keeps working.** The denominator has moved four times.
+**The rule, restated so it keeps working.** The denominator has moved five times.
 286 → 287, when D44 added §4.3's `.TOC.plist` reader — a requirement this
 document did not previously have, discovered by putting a disc in the drive. Then
 287 → 289, for D47's archive rule and §14's `BROWSE`, both found the same way:
 by opening the picker on this machine and reading what was in it. Then **289 →
 285, the first fall**: D50 took six requirements out of §1.2 and D51 put two into
-§6.0a. **A new requirement is the only thing that may move it up, and a
+§6.0a. Then 285 → 286, for D57's `E EJECT` — found the third way, by using the
+window rather than by reading the script or the drive: there was no way off a
+record. **A new requirement is the only thing that may move it up, and a
 requirement deliberately withdrawn with its reasoning written down is the only
-thing that may move it down** — all four movements were one of those. If it moves
+thing that may move it down** — all five movements were one of those. If it moves
 again and no box was added for a behaviour newly discovered to be required, or
 none removed by a numbered decision, that is drift — a miscount, a box that got
 split, a box quietly reworded into two — and it should be found and reversed
 rather than absorbed. **Moving a box to another file is not a movement**, which
-is the fifth thing that could have happened to this figure and did: the count is
+is the one other thing that has happened to this figure: the count is
 now a sum across `parity.md` and `decisions.md`, and it is the same number it was
 before the sum had two terms in it. Both figures here were re-derived by counting
 the files, not carried forward from the last edit.
@@ -1757,6 +1783,7 @@ measurement.
 | `q` | quit |
 | `-` `=` | volume down / up — **new (D1)** |
 | `m` | mute / unmute — **new (D1)** |
+| `e` | take the record off, back to the start screen — **new (D57)** |
 
 - [x] All of the above (`player:2687`). Bound in `PanelView.handle` and
       `PanelView.letter`; the arrows and the vi pair go to the same call so there
@@ -2744,6 +2771,34 @@ look for a line in the script to justify any of it; there is none.
       legend was re-measured against the 69-column budget and has two forms now,
       45 columns with a disc in the bay and 34 without; `KeycapTests.fits`
       measures both, along with the playing and check rows.
+- [x] **`E EJECT` on the playing panel — the way back to the start screen.** A
+      new box on `BROWSE`'s precedent, adding a requirement rather than
+      inheriting one, so it moves the denominator again (see Status). The script
+      needs no such thing: `pick_source` runs once before the first frame
+      (`player:3531`) and `q` ends the program, because the way from one record
+      to the next in a terminal is to type `player` again. **A window has no
+      again** — quit and you are looking at the Dock, and hearing a different
+      record costs the boot sequence, the drive and the scratch sweep. Written up
+      as **D57**, which also records what was already there and why it was not
+      enough: ⌘O has been live mid-record since **D36**, but no keycap names it
+      and it opens `NSOpenPanel`, so **the disc in the drive was the one source
+      unreachable without quitting** — the source D50 made the start screen be
+      about. ⌘O stays; it is still the shortest way to a named folder.
+
+      `E` was the free letter (`N P S R Q` were spoken for) and *eject* is the
+      program's own word for it. It is on the **second** legend row, measured
+      rather than guessed: the transport row stands in 67 of the 69 columns and
+      the row below it in 35, which goes to 47 — `KeycapTests.fits` measures both
+      alongside the picker's two forms. Bound during playback and not only under
+      `FINISHED`, since the moment you most want the next record is ninety
+      seconds into the wrong one; refused only while a source is coming open,
+      where there is no record to take off and `player:1162` draws no legend
+      anyway. Pressing it stops the deck, tears down the scratch directory by the
+      same path `q` uses — `player:312`'s promise has no exception for records
+      you got bored of, in `cleanup`'s order (`player:297`) — and calls
+      `pickSource()` on the way back, so **a disc put in while the last record
+      was playing is on the screen you land on**. A record that runs out does not
+      do this by itself: `FINISHED` is a reading, and the key is the way off it.
 - [x] Reduce Motion and Reduce Transparency honoured — see §10. Transparency
       drops the veils; Motion has nothing to act on, because everything that
       moves on this panel is a reading and not an animation.

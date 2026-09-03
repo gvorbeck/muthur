@@ -395,6 +395,10 @@ struct PanelView: View {
         // and the transport legend (§14) has no room to say so. The cap lives on
         // the picker, where choosing a record is what you are already doing.
         case .browse: break
+        // The way back to the start screen, and it is bound here rather than
+        // only under `FINISHED` on purpose (D57): a record you have decided
+        // against ten seconds in is exactly when you want the next one.
+        case .eject: model.eject()
         case .close: break
         case .quit: NSApplication.shared.terminate(nil)
         }
@@ -502,6 +506,7 @@ struct PanelView: View {
         case "p": perform(.previous)
         case "s": perform(.shuffle)
         case "r": perform(.repeatMode)
+        case "e": perform(.eject)
         // Bound only while there is an offer to take (`player:2720`). A key that
         // does nothing most of the time is worse than no key at all, so it is
         // the offer on screen that makes it live.

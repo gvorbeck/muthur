@@ -106,6 +106,11 @@ public enum Readout {
         /// search path or nothing, because a TUI over ssh has no file chooser to
         /// offer. A window does.
         case browse
+        /// Take the record off and go back to the start screen (§14, **D57**).
+        /// New, and with nothing behind it in the script: `pick_source` runs
+        /// once and `q` ends the program (`player:3531`), so a terminal never
+        /// needed a way back — you type `player` again. A window has no again.
+        case eject
         /// Off the check screen and back to the panel (§11). New — `--check`
         /// leaves by ending the program (`player:531`), which a window cannot
         /// do.
@@ -137,6 +142,17 @@ public enum Readout {
     /// Volume and mute are not on it. The script had neither, and the row is
     /// already the width of the panel — a legend that has to wrap has stopped
     /// being a legend. §14's transport takes the same view.
+    ///
+    /// **`E EJECT` is on the second row and not the first** (D57). The first is
+    /// the transport and measures 67 of the 69 columns, which is no room at all;
+    /// the second is what you do *to* the record rather than inside it, which is
+    /// where taking it off belongs anyway. `E` was the free letter — `N P S R Q`
+    /// are spoken for — and *eject* is the program's own word for the thing the
+    /// key does. Measured with the rest by `KeycapTests.fits`: the second row
+    /// goes 35 → 47.
+    ///
+    /// **`Q` stays last**, where the hand already looks for it, on the picker
+    /// row's precedent.
     public static let legend: [[Cap]] = [
         [
             Cap("␣", "PLAY", .play),
@@ -149,6 +165,7 @@ public enum Readout {
         [
             Cap("S", "SHUFFLE", .shuffle),
             Cap("R", "REPEAT", .repeatMode),
+            Cap("E", "EJECT", .eject),
             Cap("Q", "QUIT", .quit),
         ],
     ]
