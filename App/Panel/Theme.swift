@@ -114,6 +114,16 @@ enum Theme {
         Numerals(rawValue: ProcessInfo.processInfo.environment["MUTHUR_NUMERALS"] ?? "")
         ?? .type
 
+    /// `MUTHUR_CRT` — whether the tube is allowed to be failing as well as old
+    /// (D52). The read is in the kit, with the rest of the variables, because that
+    /// is where `--help`'s suite looks for them; this is the one place the panel
+    /// asks.
+    ///
+    /// Unlike the three above it, this one is documented: the others are here to
+    /// be looked at during the build and this is a switch somebody watching an
+    /// hour of a record might actually want.
+    static let faults = Tube.faultsAllowed()
+
     /// **The resting level, after nine months on.**
     ///
     /// Not a filter over the panel — the chrome's own colours, taken down and
@@ -296,6 +306,28 @@ enum Theme {
     /// track list paying for it — the fall-off starts outside the column the
     /// panel is set in, so what the vignette darkens is glass and not type.
     static var vignetteClear: Double { 0.62 }
+
+    /// The deflection fault: how bright the band that walks down the raster gets
+    /// at its middle, and how deep it is.
+    ///
+    /// **This is the number the whole effect lives or dies on.** It is added, not
+    /// painted — the same rule as `Bloom` and `Sheen` — so the band lifts the
+    /// glass rather than tinting it, and at three and a half percent it is at the
+    /// limit of what can be seen at all on a dark panel. Anything you can read a
+    /// title through more slowly is too much; the requirement is that the tube
+    /// looks unwell, not that the text does.
+    ///
+    /// Five lines deep, and soft at both ends, because a band with an edge is a
+    /// rectangle sliding down the window. A hum bar has no edges.
+    static var sweep: Double { 0.035 }
+    static var sweepDepth: CGFloat { cell.height * 5 }
+
+    /// How long the glass takes to come off the sleeve, and to go back on (D56).
+    ///
+    /// Long enough not to be a switch, short enough that it is not something you
+    /// wait through. Both directions the same: an asymmetric fade reads as the
+    /// panel having an opinion about which state it prefers.
+    static var reveal: Double { 0.28 }
 
     // MARK: - The box
 

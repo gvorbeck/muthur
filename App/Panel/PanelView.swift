@@ -16,6 +16,21 @@ struct PanelView: View {
     @FocusState private var focused: Bool
     @State private var wheel: Any?
 
+    @Environment(\.accessibilityReduceMotion) private var still
+    /// Whether this window is actually on somebody's screen. See `faulting`.
+    @State private var onscreen = NSApplication.shared.occlusionState.contains(.visible)
+
+    /// The pointer on the cover, and how far the truth has come up (D56). Three
+    /// pieces of state for one gesture, and the third is the one that is not
+    /// obvious: `reveal` is the animated number, `over` is where the pointer
+    /// actually is, and `revealing` says the veils still need a hole in them —
+    /// which stays true for the whole of the fade *out*, because dropping the
+    /// mask the instant the pointer leaves would put every veil back in one frame,
+    /// which is the snap this is meant not to have.
+    @State private var over = false
+    @State private var reveal = 0.0
+    @State private var revealing = false
+
     var body: some View {
         Chassis { screen }
             .frame(minWidth: Theme.panelWidth, minHeight: Grid.rows(28))
@@ -28,6 +43,44 @@ struct PanelView: View {
             }
             .onDisappear { stopWheel() }
             .onKeyPress(phases: [.down, .repeat]) { press in handle(press) }
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: NSApplication.didChangeOcclusionStateNotification)
+            ) { _ in
+                onscreen = NSApplication.shared.occlusionState.contains(.visible)
+            }
+    }
+
+    // MARK: - Whether the tube is allowed to misbehave (D52)
+
+    /// Four gates, and every one of them can close on its own.
+    ///
+    /// `Theme.faults` is `MUTHUR_CRT`; `still` is Reduce Motion, which
+    /// `docs/spec.md:127` requires to be honoured and which is a person saying the
+    /// same thing as the variable with more authority. The other two are about
+    /// work rather than taste: a stopped record has nothing to be a symptom of,
+    /// and a window behind another window is the case `player:2643` already
+    /// worries about — effort spent on a picture nobody can see is not saved, it
+    /// is queued, and it comes back as catch-up lag. Both faults are driven by
+    /// `.task(id:)`, so a closed gate does not slow them down, it cancels them.
+    private var faulting: Bool {
+        Theme.faults && !still && onscreen && model.state.mode == .playing
+    }
+
+    /// The pointer arriving on the cover and leaving it.
+    ///
+    /// The completion is what keeps the mask alive until the fade has finished,
+    /// and it asks `over` rather than trusting its own argument — a pointer that
+    /// left and came back inside a quarter of a second would otherwise have the
+    /// first exit's completion turn the hole off underneath the second entry.
+    private func hover(_ inside: Bool) {
+        over = inside
+        if inside { revealing = true }
+        withAnimation(.easeInOut(duration: Theme.reveal)) {
+            reveal = inside ? 1 : 0
+        } completion: {
+            if !over { revealing = false }
+        }
     }
 
     /// Everything inside the glass: the burn under the panel, the panel, the
@@ -59,7 +112,8 @@ struct PanelView: View {
                     Color.clear.frame(width: Theme.sleeveGutter)
                     SleeveView(
                         sleeve: sleeve, treatment: model.sleeveTreatment,
-                        edge: model.sleeveEdge, side: side
+                        edge: model.sleeveEdge, side: side,
+                        reveal: reveal, hover: hover
                     )
                     // Row 3: the cover starts level with the album title.
                     .padding(.top, Grid.rows(PanelGrid.sleeveRow - 1))
@@ -73,12 +127,24 @@ struct PanelView: View {
         .padding(.vertical, Theme.blank)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.ground)
-        .overlay { ScreenEffects() }
+        // The veils, and the one rectangle they are told to leave alone. The
+        // anchor comes up from the cover itself and is resolved here, in the
+        // overlay's own space, which is why this is `overlayPreferenceValue` and
+        // not `overlay`: the sleeve's square is arithmetic that only exists inside
+        // the reader above, and the glass is drawn outside it.
+        .overlayPreferenceValue(SleeveBounds.self) { anchor in
+            GeometryReader { proxy in
+                ScreenEffects(
+                    sweeping: faulting,
+                    hole: revealing
+                        ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil)
+            }
+        }
     }
 
     private func panel(rows: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-                FaceplateView(meta: model.faceplateMeta)
+                FaceplateView(meta: model.faceplateMeta, glitching: faulting)
                 PanelBlank()
 
                 // No fixed height, unlike the picker: how tall this screen is

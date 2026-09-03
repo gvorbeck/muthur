@@ -4,10 +4,20 @@ import SwiftUI
 /// The tube, and the thing it is mounted in (`docs/spec.md:96`).
 ///
 /// Everything here is **atmosphere, not a filter**: it is the same picture with
-/// the screen it is on drawn round it, and nothing in it moves. A CRT that
-/// flickers is a CRT in a film; a CRT you have been sitting in front of for nine
-/// months does not flicker, it just sits there being slightly uneven and
-/// slightly burnt.
+/// the screen it is on drawn round it. A CRT that flickers is a CRT in a film; a
+/// CRT you have been sitting in front of for nine months does not flicker, it just
+/// sits there being slightly uneven and slightly burnt.
+///
+/// **This file used to say "and nothing in it moves", and that is now wrong on
+/// purpose (D52).** The tube is old *and slightly failing*, which is one more
+/// thing than it was and not two: a deflection fault that walks a soft band down
+/// the raster every several seconds, and a wordmark that tears for a tenth of a
+/// second every minute or so. The distinction the old sentence was defending still
+/// holds and is the reason those are the only two — an effect that runs
+/// continuously is a filter, and a fault you see four times an hour is a fault.
+/// Both are gated on the record playing, on the window being on screen, on Reduce
+/// Motion being off and on `MUTHUR_CRT` not being `0`; the schedule they run to
+/// is `Tube`, in the kit, so it can be asserted instead of watched.
 ///
 /// Two looks were built and neither won whole (D28). The deep one had the better
 /// glass and took the type down with it; the shallow one had the better type and
@@ -172,20 +182,73 @@ struct BurnIn: View {
 
 // MARK: - The glass
 
-/// Scanlines, unevenness, vignette and sheen, in that order, over everything.
+/// The one rectangle the tube is told to leave alone, and how far open it is
+/// (D56).
+///
+/// Two numbers rather than a `Bool` because the opening has to be gradual. A veil
+/// that switches off the moment the pointer crosses the edge of the sleeve is a
+/// light coming on; what is wanted is the glass being taken away, which takes a
+/// quarter of a second in both directions.
+struct Hole: Equatable {
+    let rect: CGRect
+    /// 0 is the veil untouched, 1 is nothing over that rectangle at all.
+    let open: Double
+}
+
+extension View {
+    /// Lift a veil off one rectangle **before** it is blended, never after.
+    ///
+    /// The order is the whole of it. Every veil in this file ends in a blend mode
+    /// that composites it against the panel underneath, and masking the blended
+    /// result would isolate it into its own group — where `.multiply` has nothing
+    /// but transparency to multiply with and the veil turns into an opaque smear.
+    /// Masked first, the blend still meets the panel; the mask has only decided
+    /// how much veil there was to blend.
+    @ViewBuilder
+    func punched(by hole: Hole?) -> some View {
+        if let hole {
+            mask {
+                Rectangle()
+                    .overlay(alignment: .topLeading) {
+                        Rectangle()
+                            .frame(width: hole.rect.width, height: hole.rect.height)
+                            .offset(x: hole.rect.minX, y: hole.rect.minY)
+                            .opacity(hole.open)
+                            .blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+            }
+        } else {
+            self
+        }
+    }
+}
+
+/// Scanlines, unevenness, vignette, sheen and the drifting band, in that order,
+/// over everything.
 ///
 /// Honours Reduce Transparency by simply not being there — every one of these is
 /// a veil over the content, which is precisely what that setting is asking about.
 struct ScreenEffects: View {
+    /// Whether the deflection fault is allowed to run at all: the record playing,
+    /// the window on screen, Reduce Motion off, `MUTHUR_CRT` not `0`.
+    var sweeping = false
+    /// The sleeve, while the pointer is on it (§5, D56). **The band is in the
+    /// list**: a scan line still crossing the cover would mean the cover is still
+    /// behind glass, and then it is not the true artwork, it is the artwork with
+    /// one effect left on.
+    var hole: Hole?
+
     @Environment(\.accessibilityReduceTransparency) private var flat
 
     var body: some View {
         if !flat {
             ZStack {
-                Scanlines()
-                UnevenPhosphor()
-                Vignette()
-                Sheen()
+                Scanlines(hole: hole)
+                UnevenPhosphor(hole: hole)
+                Vignette(hole: hole)
+                Sheen(hole: hole)
+                ScanSweep(running: sweeping, hole: hole)
             }
             .allowsHitTesting(false)
         }
@@ -200,6 +263,8 @@ struct ScreenEffects: View {
 /// bow is largest at the top and bottom edges and nothing at all across the
 /// middle, which is where a real tube's is and where the eye looks for it.
 struct Scanlines: View {
+    var hole: Hole?
+
     var body: some View {
         Canvas { context, size in
             let pitch = Theme.scanPitch
@@ -218,6 +283,7 @@ struct Scanlines: View {
                 y += pitch
             }
         }
+        .punched(by: hole)
         .blendMode(.multiply)
     }
 }
@@ -228,6 +294,8 @@ struct Scanlines: View {
 /// itself on every window resize is an effect; a tube with a dull patch in the
 /// same corner it has always had one is a tube.
 struct UnevenPhosphor: View {
+    var hole: Hole?
+
     var body: some View {
         Canvas { context, size in
             var seed: UInt64 = 0x4D55_5448_5552
@@ -249,6 +317,7 @@ struct UnevenPhosphor: View {
                         center: centre, startRadius: 0, endRadius: radius))
             }
         }
+        .punched(by: hole)
         .blendMode(.multiply)
     }
 }
@@ -260,6 +329,8 @@ struct UnevenPhosphor: View {
 /// until it is outside the column the panel is set in is a tube. What it darkens
 /// is glass, not type.
 struct Vignette: View {
+    var hole: Hole?
+
     var body: some View {
         GeometryReader { geometry in
             RadialGradient(
@@ -272,14 +343,17 @@ struct Vignette: View {
                 startRadius: 0,
                 endRadius: max(geometry.size.width, geometry.size.height) * 0.72
             )
-            .blendMode(.multiply)
         }
+        .punched(by: hole)
+        .blendMode(.multiply)
     }
 }
 
 /// One weak reflection off the front of the glass, top-left, because that is
 /// where the overhead light is. Added, not painted: glass does not tint.
 struct Sheen: View {
+    var hole: Hole?
+
     var body: some View {
         LinearGradient(
             gradient: Gradient(stops: [
@@ -288,7 +362,90 @@ struct Sheen: View {
             ]),
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
+        .punched(by: hole)
         .blendMode(.plusLighter)
+    }
+}
+
+/// The fault the tube has developed: one soft band, falling (D53).
+///
+/// A deflection or supply fault on a real set walks a bar down the raster at the
+/// beat between the mains and the field rate, and it is the least dramatic failure
+/// a CRT has — you notice it at the end of an evening, not at the start of one.
+/// That is the whole brief: **it must never be the reason a title took longer to
+/// read**. So it is added rather than painted, at `Theme.sweep`, over five lines,
+/// soft at both ends.
+///
+/// **One layer that translates, and nothing else repaints.** The panel is already
+/// redrawing at the analyser's rate off an FFT tap, and a band drawn *into* that
+/// pass would have made every frame of it more expensive for the whole of the
+/// record. This is a gradient of its own with an animated offset: Core Animation
+/// moves it, the panel underneath never hears about it, and between passes there
+/// is not so much as a timer — the schedule is a task that sleeps.
+///
+/// It runs only while there is something playing and the window is on screen. Both
+/// are the same argument the 20 Hz ticker makes at `player:2643`: work done for a
+/// window nobody is looking at is not free, it is queued.
+struct ScanSweep: View {
+    var running = false
+    var hole: Hole?
+    /// Production leaves this nil and takes the system generator, the way
+    /// `PlaybackEngine.load(_:source:seed:)` does. A number is for a suite, or for
+    /// standing two windows side by side and having them fault in step.
+    var seed: UInt64?
+
+    /// Where the band is: false is just above the top edge, true is just past the
+    /// bottom. Both positions are outside the glass, so the rest between passes
+    /// needs no opacity of its own — the chassis clips it.
+    @State private var fallen = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: Theme.amber(.lit).opacity(Theme.sweep), location: 0.5),
+                    .init(color: .clear, location: 1),
+                ]),
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: Theme.sweepDepth)
+            .offset(y: fallen ? geometry.size.height : -Theme.sweepDepth)
+        }
+        .punched(by: hole)
+        .blendMode(.plusLighter)
+        .task(id: running) { await fall() }
+    }
+
+    /// Rest, fall, rest, fall — and the rests are the part that matters.
+    ///
+    /// The snap back to the top happens at the *start* of a rest rather than at
+    /// the end of a fall, so there are whole seconds between the unanimated write
+    /// and the animated one. Done in the other order the two land in the same
+    /// frame and SwiftUI has every right to animate the return journey, which
+    /// looks like the band going back up for another go.
+    private func fall() async {
+        guard running else { return }
+        var tube = Tube(seed: seed)
+        var snap = Transaction()
+        snap.disablesAnimations = true
+
+        while !Task.isCancelled {
+            let sweep = tube.nextSweep()
+            withTransaction(snap) { fallen = false }
+            guard await rest(sweep.rest) else { return }
+            withAnimation(.linear(duration: sweep.travel)) { fallen = true }
+            guard await rest(sweep.travel) else { return }
+        }
+    }
+
+    private func rest(_ seconds: Double) async -> Bool {
+        do {
+            try await Task.sleep(for: .seconds(seconds))
+            return !Task.isCancelled
+        } catch {
+            return false
+        }
     }
 }
 
@@ -301,10 +458,19 @@ struct Sheen: View {
 /// bulkhead. The corners are the deep tube's, generously rounded, because that is
 /// the shape of the glass the bevel is holding.
 ///
-/// The inset is not styling. The chassis ignores the safe area on purpose, so the
-/// surround is the only thing holding the faceplate clear of the title bar; at
-/// four points — which is what a screen meant to be nearly all screen wanted —
-/// the wordmark was cut in half.
+/// The inset is not styling. It is the surround the screws are set in, and it is
+/// what holds the faceplate off the glass; at four points — which is what a screen
+/// meant to be nearly all screen wanted — the wordmark was cut in half.
+///
+/// **Three edges bleed, the top does not** (D55). A chassis that stopped at the
+/// safe area on all four sides would be a picture of a chassis, floating with a
+/// margin round it; a chassis that ignores it on all four is what was here, and
+/// it put the top pair of screws underneath the title bar, where a screw is not
+/// a screw.
+/// So the top edge is the one that gives: the window's own top inset holds it
+/// down, and the surround then holds the wordmark clear of it exactly as it always
+/// did. The alternative was to pad the top by however tall a title bar is, which
+/// is a number this program does not know and macOS is free to change.
 struct Chassis<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -335,31 +501,59 @@ struct Chassis<Content: View>: View {
                     Screws(inset: inset)
                 }
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(.all, edges: [.horizontal, .bottom])
     }
 }
 
 /// Four of them, which is how many it takes.
+///
+/// **Four angles, and they are written down** (D55). Nobody drives four slotted
+/// screws home and lands them all on the same degree — each one stops where its
+/// thread stops it — and the two loops that used to compute all four heads from
+/// one expression gave the game away: a panel whose fasteners agree perfectly
+/// was printed, not assembled.
+///
+/// Constants rather than a draw from a generator, and that is not laziness. This
+/// canvas is re-run on every resize and every time the window changes backing
+/// scale, so a random tilt would be a screw that turns itself while you drag the
+/// corner of the window. Read once, that is uncanny; read twice, it is a bug
+/// report. A screw is allowed to be crooked and is not allowed to move.
+///
+/// The spread is about a dozen degrees either side of where the single angle used
+/// to be. Enough to notice with two of them in view at once, not enough to read as
+/// a head somebody has chewed with the wrong driver.
 private struct Screws: View {
     let inset: CGFloat
+
+    /// Clockwise from the top left: which end of each axis the screw sits at, and
+    /// how far off level its slot came to rest.
+    private static let corners: [(x: CGFloat, y: CGFloat, tilt: Angle)] = [
+        (0, 0, .degrees(-27)),
+        (1, 0, .degrees(-4)),
+        (1, 1, .degrees(-19)),
+        (0, 1, .degrees(-11)),
+    ]
 
     var body: some View {
         Canvas { context, size in
             let r = inset * 0.28
             let margin = inset / 2
-            for x in [margin, size.width - margin] {
-                for y in [margin, size.height - margin] {
-                    let box = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-                    context.fill(Path(ellipseIn: box), with: .color(Theme.screwHead))
-                    context.stroke(
-                        Path(ellipseIn: box), with: .color(.black.opacity(0.55)),
-                        lineWidth: 0.75)
-                    var slot = Path()
-                    slot.move(to: CGPoint(x: x - r * 0.6, y: y + r * 0.18))
-                    slot.addLine(to: CGPoint(x: x + r * 0.6, y: y - r * 0.18))
-                    context.stroke(
-                        slot, with: .color(.black.opacity(0.7)), lineWidth: r * 0.32)
-                }
+            for corner in Self.corners {
+                let x = margin + corner.x * (size.width - margin * 2)
+                let y = margin + corner.y * (size.height - margin * 2)
+                let box = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
+                context.fill(Path(ellipseIn: box), with: .color(Theme.screwHead))
+                context.stroke(
+                    Path(ellipseIn: box), with: .color(.black.opacity(0.55)),
+                    lineWidth: 0.75)
+                let reach = CGPoint(
+                    x: cos(corner.tilt.radians) * r * 0.6,
+                    y: sin(corner.tilt.radians) * r * 0.6)
+                var slot = Path()
+                slot.move(to: CGPoint(x: x - reach.x, y: y - reach.y))
+                slot.addLine(to: CGPoint(x: x + reach.x, y: y + reach.y))
+                context.stroke(
+                    slot, with: .color(.black.opacity(0.7)), lineWidth: r * 0.32)
             }
         }
         .allowsHitTesting(false)

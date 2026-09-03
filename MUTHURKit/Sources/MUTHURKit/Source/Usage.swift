@@ -113,6 +113,10 @@ public enum Usage {
               MUTHUR_NO_MB       set to never ask MusicBrainz about a disc
               MUTHUR_DEV         cdrecord device for CD-Text (default: whichever the drive answers to)
               MUTHUR_COLLECTION  the catalogue CSV the shelf is read out of
+              MUTHUR_CRT         set to 0 to hold the tube still: no drifting scan
+                                 band, no wordmark glitch. The screws, the chassis
+                                 and the true sleeve under the pointer stay either
+                                 way. Reduce Motion does this on its own.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_STATE_HOME     where the resume file lives
 

@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All fifty-one are settled; they
+  the reasoning and the decision it came from. All fifty-six are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -54,7 +54,25 @@ counted; it stands separately at 10 of 33). Re-derived by counting the files:
 277 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
 
-**Neither figure moved when the document split into three.** The count is of
+**Nothing moved for the tube, and that is the finding, not an omission.** Five
+visual changes landed — all four screws on screen at four written-down angles, a
+band that falls down the raster, a wordmark that tears for a tenth of a second,
+and a sleeve that shows the artwork it really came with while the pointer is on
+it — and not one of them is a box. None has a counterpart in `player`, so none
+can be a parity requirement; the requirement lives in `spec.md`'s visual
+direction, where the chassis, the sleeve and *the tube is old and slightly
+failing* now say so. **The count that moved is the decisions: fifty-one to
+fifty-six**, D52–D56, and D52 is the first entry here that overrules something
+this repository had already decided rather than something the script did — D28's
+*nothing in it moves*, and the same sentence in `Phosphor.swift`'s header, both
+amended in place rather than left disagreeing with the code. The two faults are
+seeded (`Tube(seed:)`, on `PlaybackEngine.load`'s precedent) so their intervals
+are asserted rather than eyeballed, and gated four ways: playing, on screen, not
+Reduce Motion, and `MUTHUR_CRT` ≠ 0 — the new switch, documented in
+`Usage.swift` beside the others and covered by `UsageTests` like the others.
+Screws and sleeve are not gated: they are the chassis, not a fault.
+
+**Neither figure moved when the document split into three, either.** The count is of
 requirements, and a requirement does not stop being one by changing file — which
 is why it is now stated as a sum with `decisions.md` in it rather than as one
 `grep` of one file. The four in `decisions.md` are D8's, on MU/TH/UR as a voice;

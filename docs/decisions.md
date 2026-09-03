@@ -28,7 +28,7 @@ Source references are `player:NNNN` for
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-forty-eight are settled. Recorded here with the answer so that a departure from
+fifty-six are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -72,7 +72,23 @@ of §14 after D45, and it is the only decision in this list that *removes* a
 requirement: `spec.md` asks for the cover in the Dock, the cover was in the Dock,
 and it has been taken out — because the ⌘⇥ switcher turned out to draw from the
 same tile, and between a Dock that shows the record and a Dock you can find the
-app in, the app wins.
+app in, the app wins. **D50** is the largest single subtraction in this list —
+the picker's source scan, deleted rather than ported, because on macOS reading
+two directories uninvited costs two TCC prompts and an ad-hoc signature brings
+them back on every build. **D51** is the opposite motion and the only entry that
+closes a gap *toward* the script: nothing in `player` ever puts a record on and
+waits, and this port did, until `load` was made to start it. **D52–D56 came out
+of the tube itself**, and they are the first ones with no `player` behind them
+at all — §14 had none either, but these also overrule something this repository
+had already written down. D52 is the overrule: the tube is now allowed to be
+slightly *failing* and not merely old, which retires one clause of D28 and one
+sentence of `Phosphor.swift`'s header. **D53 and D54** are the two faults that
+budget buys — a band falling down the raster, and the wordmark losing its line
+for a tenth of a second — each recorded with the mechanism it chose and the
+cheaper ones it turned down. **D55** is the chassis: four screws on screen
+instead of two under the title bar, at four angles that are constants rather
+than dice. **D56** is the sleeve under the pointer, which is the only one of the
+five that takes an effect *off*.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -605,6 +621,11 @@ is drawn from shapes and never imported as a picture.
 Note that this is the one place the dots win. Everywhere else they lost, which is
 D28's other half.
 
+**And the name is now allowed to fail with the rest of the tube (D54).** It is
+made of the same light as the track titles, which was the whole argument above —
+so when the tube loses its line, the name loses it too. A nameplate could not
+have done that either.
+
 **D28 — the glass is the deep one and the text is the bright one.** → §10, §5.4
 
 Two complete looks were built and each was internally consistent and wrong in one
@@ -638,6 +659,15 @@ are drawn in a `Canvas`**, so the columns land in the same place and neither can
 be truncated — which was the point of dotting the faceplate in the first place,
 and it turns out the guarantee was bought by drawing, not by the dots (§10,
 `FaceplateView`).
+
+**One clause of this is superseded by D52.** The veils were settled here as a
+still picture — `Phosphor.swift` said so in as many words, *atmosphere, not a
+filter, and nothing in it moves* — and two of them now move. What D28 actually
+decided is untouched: the glass still goes around the text, `Theme.vignetteClear`
+still starts the fall-off outside the column the panel is set in, and readability
+still wins every time. The falling band and the wordmark's tear are held to that
+same bar rather than exempted from it, which is why one is 3.5% of a lit amber
+and the other is over before you are sure it happened.
 
 **D29 — the curvature is the glass's, not the text's.** → §10
 
@@ -1592,6 +1622,157 @@ to call. A record opened at a saved position therefore starts from the top *and
 can be resumed with one key*, which is what the script does. Flagged here rather
 than changed, because applying it silently would be a divergence wearing a
 parity fix's clothes.
+
+---
+
+**D52 — the tube is allowed to be failing, not just old.** → §10
+
+`Phosphor.swift` opened with a rule of its own: the effects are atmosphere and
+not a filter, **and nothing in it moves**. Two of them now move. This is an
+overrule made with that paragraph in front of us, and the paragraph was rewritten
+rather than left to disagree with the code beneath it — a rule the file does not
+keep is worse than no rule.
+
+**It is one more thing, not two.** The tube was old: uneven coating, a vignette, a
+sheen, burn-in, a bowed raster. It is now old *and slightly failing* — a
+deflection fault that walks a soft band down the raster (D53) and a wordmark that
+tears for a tenth of a second every minute or so (D54). Both are faults of a
+**tube**. Neither says anything about the state of the deck, which is the line
+that keeps them honest on a panel whose entire job is to report state, and it is
+also why the third obvious glitch vocabulary — characters briefly resolving to
+something that is not the word — never got built.
+
+**Four gates, and any one of them holds both still.** They run only while a record
+is playing: a silent machine that twitches is a broken machine, and a paused one
+is waiting rather than failing. They stop when the window is not on screen
+(`NSApplication.occlusionState`), because an effect nobody is looking at is a
+timer nobody is looking at. Reduce Motion stops them, per the spec's restraint
+rules. And `MUTHUR_CRT=0` stops them for anyone who wants the tube steady without
+turning the whole system's animation off — documented in `Usage.swift` with the
+rest of the switches. The screws, the chassis and the true sleeve under the
+pointer are not faults and are not gated by any of it.
+
+**The schedules come from `Tube`, which lives in the kit and takes an optional
+seed** — the precedent is `PlaybackEngine.load(seed:)`, and there are two reasons
+rather than one. A random interval that cannot be seeded cannot be asserted, and
+`UsageTests` scans only `Sources/MUTHURKit` for `MUTHUR_*` literals, so a switch
+read from the app target would be a switch the help could not be checked against.
+Production passes nil and takes the system generator.
+
+**The cost was measured, not assumed.** Release, a three-track album playing, a
+900×679 window, about fifty-five one-second samples of `top` per run, the two
+builds interleaved on the same machine: before, 14.08 / 14.25 / 14.93% of one
+core; after, 15.45 / 15.43 / 17.05%; the same shipping binary with `MUTHUR_CRT=0`,
+14.43 / 14.66 / 14.35% — which is the before, and is the switch doing exactly what
+it says. Both faults together cost roughly two and a half points of one core.
+
+**D53 — the falling band. One translating layer, not a repaint.** → §10
+
+A deflection fault, drawn as a soft gradient about five rows deep, at 3.5% of a
+lit amber, added with `plusLighter` so it lightens what it crosses and darkens
+nothing. It takes five to eight and a half seconds to fall, with two and a half
+to nine seconds of nothing between passes. **The gaps are the point**: a band on a
+fixed timer is a barber's pole, and the eye locks onto it within a minute. Drawn
+from `Tube`, so the intervals are assertable rather than eyeballed.
+
+**One layer over the whole window, translated.** The panel already redraws with the
+analyser's FFT tap, and a band that made the panel repaint itself would have put
+the fault's cost on top of the instrument's. This is a single view whose `offset`
+is animated from above the top edge to below the bottom one; the compositor moves
+it and nothing underneath is asked to draw again. That is what D52's measurement
+is showing.
+
+`.task(id:)` starts and stops it, so when the gates close mid-fall the animation
+is left to finish rather than cut. It ends off the bottom edge either way, which
+is the one place a band can leave without being seen to.
+
+**D54 — the wordmark tears. A slice offset, not a colour split.** → §10
+
+Three glitch vocabularies were available and two of them are wrong here. **An RGB
+split** needs three channels to pull apart; this panel is one colour by rule, so
+the split would not read as a fault in the machine, it would read as a different
+machine. **Character corruption** — the badge briefly spelling something that is
+not the name — is a lie about state on a panel whose job is not to lie about
+state, and on eight glyphs at that pitch it is far too legible to be a
+hundredth-of-a-second event: you would read the wrong word and believe it. **A
+horizontal slice offset** says *the beam did not get back to the left edge in
+time*, which is a thing a failing tube does and is not a claim the program is
+making. That is the one that ships.
+
+Two to four slices, each six to eighteen percent of the badge's height, each
+displaced up to three dots — about half a character — held for seven to seventeen
+hundredths of a second, once every twenty-two to eighty seconds. Long enough to
+have happened, short enough that you are not sure it did.
+
+**It cannot move the layout.** The tear happens inside the same fixed-width canvas
+`WordmarkView` already had, drawn band by band with the badge clipped to each, so
+the rule and the faceplate meta beside it never hear about it (`panel.sh:257`).
+The slices arrive sorted and may still overlap, so the bands are walked with a
+cursor and each takes only what is left below the last — two bands over the same
+rows would draw the badge twice there, which reads as a ghost and not as a tear.
+And none of it is animated: a tear that eases in is a transition, and the point of
+this one is that it was over before you looked up.
+
+**D55 — the chassis keeps its top edge, and no two screws sit at the same
+angle.** → §10
+
+The chassis called `.ignoresSafeArea()` on all four edges and put each screw at
+half the surround in from its corner, which meant the top pair lived under the
+title bar. **A fixing you cannot see is not a fixing** — the panel was mounted in
+nothing at the top and screwed down at the bottom.
+
+Three mechanisms were on the table. Padding the top by a title bar's height needs
+a number this program does not know and macOS is free to change, and it would be
+wrong on the day it changed. `.windowStyle(.hiddenTitleBar)` would have given the
+whole window back and put the traffic lights on the brushed face of the chassis,
+floating over it with no bezel of their own. What ships is the third: **the top
+edge is the one that gives.** `edges: [.horizontal, .bottom]` bleeds the other
+three, the window's own top inset holds the chassis down, and the surround then
+holds the wordmark clear of the title bar exactly as it always did. One
+expression, no constant in it, and it holds on resize because it is the safe area
+doing the work rather than arithmetic about it. Checked at the smallest window the
+app allows — 571×588, where the OS clamp bites before the declared minimum does —
+and at 1920×1055, the whole screen: four screws on screen and the wordmark clear
+at both ends.
+
+**The angles are constants, and that is not laziness.** The screw canvas is re-run
+on every resize and every change of backing scale, so a tilt drawn from a
+generator would be a screw that turns itself while you drag the corner of the
+window: uncanny once, a bug report twice. Four written-down angles, about a dozen
+degrees either side of where the single one used to be — enough to notice with two
+in view, not enough to read as a head somebody has chewed with the wrong driver.
+**A screw is allowed to be crooked and is not allowed to move.**
+
+**D56 — the sleeve tells the truth under the pointer.** → §10, §5.4
+
+The cover on the panel is quantised to the phosphor ramp and then has every veil
+in `ScreenEffects` drawn over it, which is correct — it is on the tube, and
+everything on the tube is. It also means the artwork the record actually came with
+is never visible in this program at all. Hovering the cover brings the true decode
+up on a cross-fade and **takes the veils off with it, the falling band included**:
+a true form under a scan line is not a true form.
+
+The hole is punched in each veil's own mask rather than in the assembled stack.
+That ordering is forced — `.mask` has to be applied *before* `.blendMode`, or the
+blend is isolated into its own compositing group and `.multiply` has nothing left
+to multiply against but transparency.
+
+**Where the hole goes comes from a preference anchor, not from `@State`.** The
+obvious route — measure the picture, keep the rect, read it back next frame — is
+the one `rowsToAnalyser` already has a paragraph about not taking: the write lands
+after the pass that wanted it. `.anchorPreference` on the picture and
+`.overlayPreferenceValue` on the container resolve in the same pass, which makes
+it the right tool and not merely the tidier one. It is reported from the picture
+rather than from the square it is laid in, so hovering the empty band beside a
+cover that is not square does nothing.
+
+The fade is 0.28s each way and the mask outlives it. Three pieces of state rather
+than one — whether the pointer is on the cover, how far the truth has come up, and
+whether there is a hole to punch at all — the last cleared in the animation's
+completion handler, so the veils come back over a cover that has finished fading
+instead of snapping onto one half way. The second picture costs a second image in
+memory and no second trip to the file: the true cover and the treated one are the
+same bytes, read once and quantised twice as far.
 
 ---
 

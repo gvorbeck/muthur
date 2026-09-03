@@ -21,6 +21,9 @@ import SwiftUI
 /// mode word is not allowed to lose a letter (`panel.sh:257`).
 struct FaceplateView: View {
     let meta: String
+    /// Passed straight through to the wordmark: the faceplate itself has nothing
+    /// to say about whether the tube is behaving.
+    var glitching = false
 
     private var rule: Int {
         Faceplate.rule(meta: meta, plate: WordmarkView.columns)
@@ -30,7 +33,7 @@ struct FaceplateView: View {
         HStack(spacing: 0) {
             Spacer().frame(width: Grid.margin)
 
-            WordmarkView()
+            WordmarkView(glitching: glitching)
 
             // Drawn, not typed, for the same reason `Bezel` is: the glyph is a
             // heavy horizontal that fills its em box, and a rule made of them

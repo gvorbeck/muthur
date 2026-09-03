@@ -110,8 +110,19 @@ laboratory oscilloscopes and spectrum analysers.
   primary, used with restraint.
 - Subtle scanlines, a faint vignette, gentle screen curvature. Emphasis on
   _subtle_: atmosphere, not a filter applied on top.
+- **The tube is old _and slightly failing_** (D52). Not merely aged: a soft band
+  walks down the raster every several seconds, and the wordmark loses its line
+  for a tenth of a second every minute or so. Rare, faint, brief — thirty years
+  of service, not a machine coming apart. Neither fault may cost a character of
+  legibility and neither may move the layout.
 - Chunky beveled hardware panels around the screen area — the physical chassis
-  the CRT is mounted in.
+  the CRT is mounted in. **All four of its screws are on screen**, and no two sit
+  at the same angle — hand-tightened, by fixed constants and never at random: a
+  screw that finds a new angle on redraw reads as a bug rather than as a fixing.
+- **The sleeve tells the truth under the pointer.** Hovering the cover takes
+  every effect off it — the phosphor quantisation, the veils, the falling band —
+  and leaves the artwork the record actually came with. Off the cover it goes
+  back the way it came, on a fade and not a snap.
 - VU meters with real needle ballistics, not linear bars.
 - Segmented LED / nixie-style numerals for time and track numbers.
 - Tape-deck transport controls with mechanical weight to them.
@@ -124,8 +135,13 @@ that produced; drop the constraint where it only ever existed because of the
 terminal. The cover art in particular is no longer limited to a column range.
 
 **Restraint rules.** Readability wins over effect, every time. No gratuitous
-flicker or animated noise. Honor Reduce Motion and Reduce Transparency. The
-retro treatment has to survive being looked at for an hour of listening.
+flicker or animated noise — the two faults above are the entire budget for
+movement, and they are spent where they cost nothing to read. Both are gated:
+they run only while a record is playing and the window is on screen, Reduce
+Motion holds them still, and `MUTHUR_CRT=0` holds them still for anyone who
+wants the tube steady without turning the whole system's animation off. Honor
+Reduce Motion and Reduce Transparency. The retro treatment has to survive being
+looked at for an hour of listening.
 
 ## Open question — do not decide unilaterally
 
