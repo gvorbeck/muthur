@@ -31,6 +31,12 @@ struct PanelView: View {
     @State private var reveal = 0.0
     @State private var revealing = false
 
+    /// Where the deflection fault is right now, shared between the band
+    /// (`ScreenEffects`) and the bulge it drags through the panel (D61). One
+    /// instance for the window, owned here rather than by either view, since
+    /// both need to read the same fall in the same frame.
+    @State private var tubeFault = TubeFault()
+
     var body: some View {
         Chassis { screen }
             .frame(minWidth: Theme.panelWidth, minHeight: Grid.rows(28))
@@ -101,6 +107,11 @@ struct PanelView: View {
                             }
                         }
                 }
+                // The bulge, not the sleeve (D61): the cover is `SleeveView`,
+                // a sibling of this `Bloom`, not a child of it, so scoping the
+                // shader here is what keeps the sleeve at its true form (D56)
+                // without threading its reveal hole through a second effect.
+                .tubeBulge(fault: tubeFault, size: geometry.size, active: faulting)
 
                 // The sleeve, when there is one and there is room for one. Both
                 // halves of that are `SleeveFrame`'s answer, and a nil is a window
@@ -137,7 +148,8 @@ struct PanelView: View {
                 ScreenEffects(
                     sweeping: faulting,
                     hole: revealing
-                        ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil)
+                        ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil,
+                    fault: tubeFault)
             }
         }
     }
@@ -313,7 +325,7 @@ struct PanelView: View {
             GridRect(column: margin, row: track + 1, columns: panel, rows: 1),
             GridRect(column: margin, row: album + 1, columns: panel, rows: 1),
             GridRect(column: margin, row: analyser, columns: panel, rows: AnalyserColumns.rows),
-            GridRect(column: margin, row: keycaps, columns: 34, rows: 2),
+            GridRect(column: margin, row: keycaps, columns: 34, rows: 3),
         ]
     }
 
@@ -389,6 +401,11 @@ struct PanelView: View {
         case .previous: model.previous()
         case .shuffle: model.toggleShuffle()
         case .repeatMode: model.cycleRepeat()
+        // New (D58): the keys already existed (D1); only the cap is new. Same
+        // switch either way, which is the whole of what D30 asks for.
+        case .volumeDown: model.nudgeVolume(by: -0.05)
+        case .volumeUp: model.nudgeVolume(by: 0.05)
+        case .mute: model.toggleMute()
         case .rescan: break
         // Not bound on the playing panel, and not because it could not be: `b`
         // there would be a second way to change record while one is spinning,
@@ -513,10 +530,12 @@ struct PanelView: View {
         case "u": if model.offer != nil { model.takeOffer() } else { return .ignored }
         case "q": perform(.quit)
         // New (D1). The hardware volume keys stay the system's — macOS handles
-        // them above the app and they never arrive here.
-        case "-", "_": model.nudgeVolume(by: -0.05)
-        case "=", "+": model.nudgeVolume(by: 0.05)
-        case "m": model.toggleMute()
+        // them above the app and they never arrive here. `-` `=` `m` do, and go
+        // through `perform` like every other bound key now that they have a cap
+        // beside them too (D58).
+        case "-", "_": perform(.volumeDown)
+        case "=", "+": perform(.volumeUp)
+        case "m": perform(.mute)
         default: return .ignored
         }
         return .handled

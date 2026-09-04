@@ -312,15 +312,30 @@ enum Theme {
     ///
     /// **This is the number the whole effect lives or dies on.** It is added, not
     /// painted — the same rule as `Bloom` and `Sheen` — so the band lifts the
-    /// glass rather than tinting it, and at three and a half percent it is at the
-    /// limit of what can be seen at all on a dark panel. Anything you can read a
-    /// title through more slowly is too much; the requirement is that the tube
-    /// looks unwell, not that the text does.
+    /// glass rather than tinting it. Raised from D53's three and a half percent
+    /// to five (D61) — asked for, not found wanting on its own: three and a half
+    /// read as barely-there once the bulge below gave the fault a second, larger
+    /// thing happening at the same place, and the two needed to read as one
+    /// event rather than a strong warp with a weak light inside it. Anything you
+    /// can read a title through more slowly is still too much; the requirement
+    /// is that the tube looks unwell, not that the text does.
     ///
     /// Five lines deep, and soft at both ends, because a band with an edge is a
     /// rectangle sliding down the window. A hum bar has no edges.
-    static var sweep: Double { 0.035 }
+    static var sweep: Double { 0.05 }
     static var sweepDepth: CGFloat { cell.height * 5 }
+
+    /// The other half of the same fault (D61): the picture bulges where the
+    /// band is, rather than only lighting up there. Peak displacement, in
+    /// points, at the moment the band is centred on a row — kept to about a
+    /// character's width so a letter the bulge is passing through moves, it
+    /// does not tear.
+    static var warpAmplitude: CGFloat { cell.width * 0.9 }
+
+    /// How far above and below the band the bulge still reaches, to the same
+    /// "soft at both ends" shape `sweepDepth` draws the light in — the two
+    /// halves of D61 fade out together rather than one outrunning the other.
+    static var warpDepth: CGFloat { cell.height * 4 }
 
     /// How long the glass takes to come off the sleeve, and to go back on (D56).
     ///

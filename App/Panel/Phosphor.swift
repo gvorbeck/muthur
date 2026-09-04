@@ -1,4 +1,5 @@
 import MUTHURKit
+import Observation
 import SwiftUI
 
 /// The tube, and the thing it is mounted in (`docs/spec.md:96`).
@@ -222,6 +223,35 @@ extension View {
             self
         }
     }
+
+    /// Bulge the glass toward the deflection fault (D53), rather than only
+    /// lighting up where it is (D61).
+    ///
+    /// `fault` is the same object `ScanSweep` is animating `fallen` on, so the
+    /// two move on one transaction instead of two views each guessing where the
+    /// other currently is. `active` is `faulting` at the call site — the record
+    /// playing, the window on screen, Reduce Motion off, `MUTHUR_CRT` not `0` —
+    /// the same four gates D52 already settled, asked again here rather than
+    /// threaded through as a fifth argument to the shader.
+    @ViewBuilder
+    func tubeBulge(fault: TubeFault, size: CGSize, active: Bool) -> some View {
+        if active, size.width > 0, size.height > 0 {
+            let bandY = fault.fallen
+                ? size.height + Theme.sweepDepth / 2
+                : -Theme.sweepDepth / 2
+            distortionEffect(
+                ShaderLibrary.default.tubeBulge(
+                    .float2(size),
+                    .float(Float(bandY)),
+                    .float(Float(Theme.warpDepth)),
+                    .float(Float(Theme.warpAmplitude))
+                ),
+                maxSampleOffset: CGSize(width: Theme.warpAmplitude, height: Theme.warpAmplitude)
+            )
+        } else {
+            self
+        }
+    }
 }
 
 /// Scanlines, unevenness, vignette, sheen and the drifting band, in that order,
@@ -238,6 +268,11 @@ struct ScreenEffects: View {
     /// behind glass, and then it is not the true artwork, it is the artwork with
     /// one effect left on.
     var hole: Hole?
+    /// Where the fault actually is, shared with whoever is warping the picture
+    /// under it (D61). Owned by the caller, not here — `PanelView` reads the
+    /// same object to drive `tubeBulge(fault:size:active:)`, and a fault this
+    /// view kept to itself would have nothing for that to read.
+    var fault = TubeFault()
 
     @Environment(\.accessibilityReduceTransparency) private var flat
 
@@ -248,11 +283,24 @@ struct ScreenEffects: View {
                 UnevenPhosphor(hole: hole)
                 Vignette(hole: hole)
                 Sheen(hole: hole)
-                ScanSweep(running: sweeping, hole: hole)
+                ScanSweep(running: sweeping, hole: hole, fault: fault)
             }
             .allowsHitTesting(false)
         }
     }
+}
+
+/// The one continuously-moving number the band and the bulge it drags with it
+/// both read (D61). Neither owns it — `ScanSweep` writes it, from inside the
+/// same `fall()` loop D53 already ran, and anything else that wants to move in
+/// step with the fault reads the same instance rather than keeping a copy that
+/// could drift out of phase with it.
+@Observable
+final class TubeFault {
+    /// Where the band is: false is just above the top edge, true is just past
+    /// the bottom. Read by `ScanSweep`'s own offset and by `tubeBulge`'s Y
+    /// uniform — the same value, so the two are never two frames apart.
+    var fallen = false
 }
 
 /// The raster.
@@ -386,18 +434,20 @@ struct Sheen: View {
 /// It runs only while there is something playing and the window is on screen. Both
 /// are the same argument the 20 Hz ticker makes at `player:2643`: work done for a
 /// window nobody is looking at is not free, it is queued.
+///
+/// **Owns `fault.fallen` rather than a `@State` of its own kind, since D61.**
+/// `PanelView` warps the picture off the same value, so the write has to land
+/// somewhere a second view can read it — a private `@State` here would have
+/// been the band moving and the bulge finding out about it a frame late, if at
+/// all.
 struct ScanSweep: View {
     var running = false
     var hole: Hole?
+    var fault = TubeFault()
     /// Production leaves this nil and takes the system generator, the way
     /// `PlaybackEngine.load(_:source:seed:)` does. A number is for a suite, or for
     /// standing two windows side by side and having them fault in step.
     var seed: UInt64?
-
-    /// Where the band is: false is just above the top edge, true is just past the
-    /// bottom. Both positions are outside the glass, so the rest between passes
-    /// needs no opacity of its own — the chassis clips it.
-    @State private var fallen = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -410,7 +460,7 @@ struct ScanSweep: View {
                 startPoint: .top, endPoint: .bottom
             )
             .frame(height: Theme.sweepDepth)
-            .offset(y: fallen ? geometry.size.height : -Theme.sweepDepth)
+            .offset(y: fault.fallen ? geometry.size.height : -Theme.sweepDepth)
         }
         .punched(by: hole)
         .blendMode(.plusLighter)
@@ -432,9 +482,9 @@ struct ScanSweep: View {
 
         while !Task.isCancelled {
             let sweep = tube.nextSweep()
-            withTransaction(snap) { fallen = false }
+            withTransaction(snap) { fault.fallen = false }
             guard await rest(sweep.rest) else { return }
-            withAnimation(.linear(duration: sweep.travel)) { fallen = true }
+            withAnimation(.linear(duration: sweep.travel)) { fault.fallen = true }
             guard await rest(sweep.travel) else { return }
         }
     }

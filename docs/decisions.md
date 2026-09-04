@@ -28,7 +28,7 @@ Source references are `player:NNNN` for
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in `player` looks wrong, flag it rather than silently improve it. All
-fifty-seven are settled. Recorded here with the answer so that a departure from
+fifty-eight are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -95,6 +95,9 @@ because a terminal you can re-run does not need a way back and a window does.
 It is also the second entry, after D49, that comes from something already built
 being *wrong* rather than missing: ⌘O was reachable mid-record the whole time,
 and being invisible and unable to reach the drive is what made it not a door.
+**D58** is the third entry of that shape and the first to overrule a clause of
+D1 rather than something the script did: volume and mute get keycaps, which the
+legend's own width had been the reason to withhold.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1893,6 +1896,226 @@ to it was considered and declined: it is `player`'s sentence, the cap two rows
 below it is already lit and says `EJECT`, and a status line that grows a clause
 every time a key is added stops being the machine answering and becomes a second
 legend.
+
+---
+
+**D58 — VOL and MUTE get keycaps. Reversing a clause of D1, not of `player`.**
+→ §6.1, §6.1a
+
+**No `player` line stands behind this one either, for the reason D1's does not:
+the script has no volume at all.** What is reversed is a call this repository
+made about *itself* — `Readout.legend`'s own comment, since deleted, read "the
+script had neither, and the row is already the width of the panel — a legend
+that has to wrap has stopped being a legend." True of the row it was written
+about, and the wrong conclusion to draw from it: it kept two working keys off
+the one place the panel tells you what it can do, which is a worse fault than a
+legend three rows tall.
+
+**What went unnoticed for as long as it did.** `-`, `=` and `m` have been live
+since D1 — bound in `PanelView.letter`, persisted, shown back on the faceplate
+as `VOL 88` or `MUTE` — and none of it is discoverable without reading the
+source or this document. The faceplate answers *what is the level*; nothing on
+screen ever answered *how do I change it*. A cap that lights up and does nothing
+is the lie `player:2429`'s legend was built to avoid; a working key with no cap
+at all turned out to be the same lie from the other side.
+
+**The fix is the row it was refused for, not a squeeze into the row that had
+room.** `SHUFFLE REPEAT EJECT QUIT` stands at 47 of the panel's 69 columns —
+room enough, by eye, for the eight columns `-= VOL` wants. It is not room enough
+for both: `-= VOL` and `M MUTE` together bring that row to exactly 69, which is
+the identical complaint the deleted comment made about the legend as a whole,
+now made about one row of it. A third row, measured at 19 of 69 by
+`KeycapTests.fits`, keeps slack in every row on the panel rather than trading
+the slack in one row for none.
+
+**Placement is last, because the keys are.** `VOL` and `MUTE` sit after `QUIT`
+in reading order — the newest addition to the legend, following the row that
+already ends where the hand looks for `Q`. Nothing about §14's transport row
+changes; §6.1's table already listed these three keys as bound (marked new
+since D1), so this is a legend catching up to a table that was already right.
+
+**Both keys already went through `PanelView.perform` in spirit and not in
+practice — D30 asks for the letter.** `nudgeVolume` and `toggleMute` were called
+directly from `PanelView.letter`, bypassing the one switch every other bound key
+and cap shares. Giving them caps meant giving them `Readout.Press` cases first
+(`.volumeDown`, `.volumeUp`, `.mute`), and routing the keyboard through `perform`
+like everything else — not because the direct calls were broken, but because
+D30's whole claim is that a cap and the key beside it cannot drift apart if nothing
+reads the press except the one switch. `-=` is a rocker on that switch, the same
+shape as `←→` and `↑↓`, and repeats on a hold the same way; `M` is a single
+throw, on `S`/`R`/`E`/`Q`'s precedent — a held mute toggling twenty times a
+second is a coin being flipped, not a faster way to do anything.
+
+---
+
+**D59 — the phosphor treatment reads brightness as HSL lightness, not Rec. 709
+luma.** → §5.4
+
+`SleeveImage.quantise` turns a cover into a level on the panel's own ramp, and
+it was doing that by Rec. 709 luma — the standard weighting for turning colour
+into a single brightness figure, and wrong for this job in one specific way: a
+saturated colour with nothing in its green channel computes to a much lower
+number than it reads as. A magenta sleeve, full-strength red and blue and no
+green at all, comes out at a luma of 0.28 — nearer the bottom of an eight-stop
+ramp than the middle — and the whole cover rendered as almost nothing but the
+two darkest stops. That is not the dark-record-looks-dark case the comment
+beside the calculation was written to protect; it is a hole in what luma
+measures, hit by any hue that leans on the channel luma weights lightest.
+
+**Lightness — `(max + min) / 2` of the three channels — is the fix.** The same
+magenta reads as 0.5: the middle of the ramp, which is where a fully-saturated
+colour belongs next to a black or a white of the same channels. It costs
+nothing else the luma version had — it is still a single per-pixel number, still
+fed through the same 4×4 dither before quantising, and a genuinely dark record
+(low value on all three channels, not just the green one) still comes out dark,
+because lightness and luma agree whenever the channels are close to each
+other. The two formulas only disagree on saturated, off-green hues, which is
+exactly the case that was wrong.
+
+---
+
+**D60 — `Readout.mmss` folds hours back in above sixty minutes.** → §10
+
+`panel.sh:148` is `mmss()  { printf '%d:%02d' $(($1/60)) $(($1%60)); }` — no
+hour term, ever, on either the script's `mmss` or its hot-path twin `mmssv`.
+Run a record past the hour and the script prints the same three-digit minute
+count MU/TH/UR did: a three-hour-ten-minute album's total read `190:06` in
+both. Nothing was wrong here in the sense the rest of this file means it —
+the script does exactly this on purpose, on a terminal where nobody was ever
+going to mistake `190:06` for anything but a very long total. Asked for
+anyway, because a window is read at a glance the way a terminal counter is
+not, and `3:10:06` says *three hours ten* where `190:06` makes you do the
+division yourself.
+
+One function, both callers. `Readout.mmss` backs both the track counter and
+the album counter (`Readout.counter`), and the fix went into the one function
+rather than a second one bolted on beside it for totals only — a track long
+enough to hit the hour mark (a single-file side of a live set, say) gets the
+same treatment as a record, for the same reason. Hours and minutes are left
+unpadded the way minutes always were; only the fields to the right of the
+leftmost one pad, so `1:00:00` and `3:10:06` and the untouched `41:53` are
+all the same rule at different lengths.
+
+unpadded the way minutes always were; only the fields to the right of the
+leftmost one pad, so `1:00:00` and `3:10:06` and the untouched `41:53` are
+all the same rule at different lengths.
+
+---
+
+**D61 — the deflection fault (D53) bulges the panel it is crossing, and got
+five percent brighter to match.** → no counterpart; asked for directly.
+
+Asked for by name — a dying CRT, the band not just lighting the glass but
+pulling it as it passes. Two things this file already had settled stood in
+the way, and both needed answering before either shader went in the file.
+
+**D53 said "one layer that translates, and nothing else repaints."** That
+sentence protected the band from becoming a second source of per-frame layout
+work — the danger was the fault getting expensive enough that the schedule
+D52 built for it stopped being free. A `[[stitchable]]` distortion shader
+does not repaint anything the CPU has to lay out again: it runs on the GPU,
+per pixel, after SwiftUI has already decided where every character sits, so
+the guarantee D53 was actually protecting — cheap enough to run continuously
+without competing with the 20 Hz ticker (`player:2643`) — holds exactly as it
+did before. What D53's sentence did not anticipate was a second, independent
+mechanism reading the same fall and warping the layer *under* the band rather
+than repainting the band itself; that reading was narrower than the rule
+needed to be, so this is the rule's first amendment, not its first violation.
+
+**D29 said the curvature is the glass's, not the text's**, and rejected
+distorting the panel's lettering outright — asked, and answered, before the
+tube had anything in it that moved. That prohibition was about a permanent
+condition: every character bowed all the time would have broken the
+character-grid math the whole panel is laid out on, for a look that bought
+nothing once you had lived with it a minute. This is not that. The bulge is
+present for the width of one deflection fault — a soft few rows, a couple of
+seconds every several — and everywhere else on the screen the grid is exactly
+what D29 left it. Asked directly whether a title should be allowed to warp
+for that long, and told yes: the requirement is that the tube looks unwell,
+not that the text always stays perfectly still, and a letter passing through
+the fault moving slightly is the symptom, not the failure.
+
+**One fault, two effects, one shared number.** `ScanSweep`'s private
+`@State fallen` moved out into `TubeFault`, an `@Observable` class with a
+single `fallen: Bool` — the same value it always held, just no longer
+`ScanSweep`'s alone to know. `PanelView` owns one instance and hands it to
+both: `ScreenEffects` (unchanged otherwise) still drives the light band off
+it, and a new `tubeBulge(fault:size:active:)` reads the same object to place
+the shader's band-centre uniform. Both are driven from the one `withAnimation`
+in `ScanSweep.fall()` — not two timers agreeing by construction, one write
+two views react to on the one transaction, so the light and the warp cannot
+drift a frame apart from each other.
+
+**The push is a bump, not a step, and bows outward rather than sideways.**
+`t · e^(−t²)`, `t` the distance from the band's own centre line in units of
+`Theme.warpDepth`: zero exactly on the line, peaking a little off it in each
+direction, and negligible by the same depth `Theme.sweepDepth`'s gradient
+already fades out over — so the light and the warp read as one event
+finishing together rather than one outrunning the other. The horizontal
+component scales with distance from the middle column, so the picture bulges
+away from its own centre — a bubble — instead of sliding uniformly toward
+one edge, which would have read as a shear, the exact failure D53's "and
+nothing else repaints" was written against for the old single-layer version.
+
+**Excludes `SleeveView`, on D56's reasoning if not its mechanism.** The
+modifier is scoped to the panel's own subview inside `PanelView.screen`,
+never to the `HStack` that also holds the cover — no new plumbing of the
+sleeve's reveal-hole anchor into the shader, because the cover simply is not
+inside the view the shader is attached to. D56 kept the sleeve out of the
+scan band itself so the true artwork was never still-behind-glass while it
+was showing; the same conclusion applies here by the same logic, reached the
+cheap way rather than by threading a second exemption through the mechanism
+D56 built for the first one.
+
+**`Theme.sweep` moved from 0.035 to 0.05 — a request, not a finding.** The
+brighter band was asked for on its own; it happened to also matter more once
+the bulge gave the fault a second, larger thing happening in the same place,
+because two effects sharing an address need to read as one event rather than
+a strong warp with a faint light hidden inside it. Still five lines deep,
+still soft at both ends — only the middle number moved.
+
+---
+
+**D62 — the track list's duration column takes 5 as a floor, not an exact
+width.** → §10
+
+`player:2367` prints the per-row duration through a fixed `%5s`, and
+`PanelGrid.trackRowFurniture`'s `5` copied that width in good faith, back
+when `mmss` could not produce more than five characters either. It still
+cannot on the script's side — D60 only touched MU/TH/UR's `mmss`, and
+`panel.sh`'s own `mmss`/`mmssv` never gained an hour term — so a track past
+the hour mark (a live-set side long enough to be its own file, say) hit a
+width the column was never budgeted for and came out `1:04…`, silently
+losing the seconds off the end.
+
+Fixed where the discrepancy actually lives, not where it surfaced: D60 is
+right that a track long enough to hit the hour mark should read the same as
+a record's total, so the fix is not to re-cap `mmss` back down for the row
+that happens to be narrow. `TrackListView`'s duration field now sizes to
+`max(5, Columns.width(of:))` the formatted string rather than always
+exactly 5, so short durations lay out precisely as before — same five
+columns, same right edge every row shares — and only the rare hour-plus
+track spills past it. A truer picture than an ellipsis eating digits nobody
+asked to lose, and it costs nothing on the far more common case.
+
+Left `PanelGrid` and `TrackColumns`' shared 52-column title budget alone
+rather than widening the duration furniture and narrowing every row's title
+to match: that 52 is `player:2287`'s `NP_TITLE_W` verbatim, and every title
+in the list lining up at the same column is worth more than the few records
+that will ever have a track long enough to need the extra room.
+
+**Follow-up — the cursor plate stopped short of the same overflow.**
+`TrackRowView.body65` carried the reverse-video background on a `.frame`
+pinned to an *exact* 65 columns, the boundary this decision's own fix now
+sometimes runs past; a `.background` sized to that frame ends exactly where
+the frame does; and a duration wider than its old floor drew past it — the
+reverse bar covering the row up to the old edge and stopping, with digits
+of the very duration this decision exists to stop truncating left sitting
+outside the highlight. Same cause as the row itself, one layer further out,
+so the same cure: `.frame(width:)` became `.frame(minWidth:)`. Every other
+row's fields still sum to exactly 65, so `minWidth` reports the identical
+65 there that `width` did; only the row this decision widens grows the
+plate along with it.
 
 ---
 

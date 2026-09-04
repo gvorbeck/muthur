@@ -14,7 +14,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All fifty-seven are settled; they
+  the reasoning and the decision it came from. All sixty-two are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -49,14 +49,33 @@ part worth porting.
 
 ## Status
 
-**282 of 286 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**283 of 287 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 10 of 33). Re-derived by counting the files:
-278 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
+279 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
 
-**One box, new and ticked, and the denominator moved for the fifth time — the
-fourth of them upward.** 285 → 286, for the only thing that has ever been allowed
-to move this number up: a requirement that was not there before. **There was no way off a
+**One box, new and ticked, and the denominator moved for the sixth time — the
+fifth of them upward.** 286 → 287, on the same grounds as the last move: a
+requirement that was not there before. **The keys worked; nothing on the panel
+said so.** `-`, `=` and `m` have nudged the level and toggled mute since D1, and
+the faceplate has shown the result since the same decision — but the one place
+this program states what its keys do had neither, on the reasoning that the row
+was already the width of the panel. That reasoning held for the row it was
+about and did not extend to leaving two working keys undiscoverable, so `-= VOL`
+and `M MUTE` are now a third row, after the one `QUIT` ends — written up as
+**D58**, the third entry with no `player` line behind it and the first here to
+reverse a clause of an earlier decision (D1) rather than something the script
+did. `KeycapTests.fits` measures the new row at 19 of the panel's 69 columns; it
+would have reached exactly 69 folded into the row above, which is the same
+complaint the withdrawn reasoning made, now avoided rather than repeated.
+**Both keys go through `PanelView.perform` now, the same switch every other cap
+and key already shared (D30)** — before D58 they called the model directly,
+which cost nothing while there was no cap to drift out of step with, and would
+have cost exactly that the moment there was one.
+
+**Before that: one box, new and ticked, and the denominator moved for the fifth
+time — the fourth of them upward.** 285 → 286, for the same reason as D58 above:
+a requirement that was not there before. **There was no way off a
 record.** A record that had finished stayed finished, a record playing could only
 be quit, and the one binding that did reach past it — ⌘O, live mid-record since
 **D36** — is on no keycap and opens a file chooser, so the disc in the drive was
@@ -95,6 +114,13 @@ are asserted rather than eyeballed, and gated four ways: playing, on screen, not
 Reduce Motion, and `MUTHUR_CRT` ≠ 0 — the new switch, documented in
 `Usage.swift` beside the others and covered by `UsageTests` like the others.
 Screws and sleeve are not gated: they are the chassis, not a fault.
+
+**The falling band picked up a sixth visual change later, and it is still not
+a box.** D61 has the band bulge the panel as it crosses it rather than only
+lighting it, asked for directly and reusing the same four gates and the same
+`Tube` schedule D52–D56 already built — no new requirement in `spec.md`, no
+new switch, just the existing fault doing one more thing where it already
+was. Still nothing here for `player` to have an opinion on, so still no box.
 
 **Neither figure moved when the document split into three, either.** The count is of
 requirements, and a requirement does not stop being one by changing file — which
@@ -1611,7 +1637,9 @@ anything.
 - [x] **The treatment: phosphor.** The cover is quantised to the panel's own
       ramp with a 4×4 ordered dither, which is the halftone in a printed sleeve
       as much as it is a dither. A crisp JPEG beside an instrument is brighter
-      than the data on it, which is the one rule the palette has.
+      than the data on it, which is the one rule the palette has. Each pixel's
+      level comes from its HSL lightness, not Rec. 709 luma (**D59**) — luma's
+      heavy green weight read a green-less magenta as far darker than it looks.
 - [x] **And capped.** The sleeve's ramp is the panel's resampled to stop two
       steps below the brightest, so the cover can be as bright as the badge and
       no brighter (`Theme.sleeveRamp`). Eight levels either way: the ceiling is
@@ -1862,6 +1890,11 @@ Now Playing widget cannot, because it looks like a deck and a deck has a level.
       was nothing to turn down (`player:754`). The gain here is
       `engine.mainMixerNode.outputVolume`, so before it means the player node,
       and `PlaybackEngine.listen(_:)` is the one line §10 needed from `Play/`.
+- [x] **Changed from bash (D58).** On the keycap legend, not only the faceplate
+      and the key bindings — `-= VOL` and `M MUTE`, a third row after the one
+      `QUIT` ends. The keys and the faceplate readout are original to D1; only
+      the legend entry is new, closing the gap between a key that worked and a
+      key that could be found.
 
 ### 6.1b Shuffle — changed from bash (D4)
 

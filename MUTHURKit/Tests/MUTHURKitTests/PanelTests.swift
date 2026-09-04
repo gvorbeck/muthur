@@ -508,6 +508,13 @@ struct ReadoutTests {
         #expect(Readout.mmss(-4) == "0:00")
     }
 
+    @Test("An hour or more folds hours back in, padding minutes as well (D60)")
+    func mmssHours() {
+        #expect(Readout.mmss(3599) == "59:59")
+        #expect(Readout.mmss(3600) == "1:00:00")
+        #expect(Readout.mmss(11406) == "3:10:06")
+    }
+
     @Test("The track readout counts rows, and pads both of them")
     func trackLabel() {
         #expect(Readout.trackLabel(row: 0, of: 9) == "TRACK 01 OF 09")
@@ -813,27 +820,34 @@ struct SleeveFrameTests {
 @Suite("§10 — the keycaps")
 struct KeycapTests {
 
-    @Test("Both rows, and every cap on them says what it does")
+    @Test("All three rows, and every cap on them says what it does")
     func legend() {
-        #expect(Readout.legend.count == 2)
+        #expect(Readout.legend.count == 3)
         for cap in Readout.legend.flatMap({ $0 }) {
             #expect(!cap.presses.isEmpty, "\(cap.key) is a switch wired to nothing")
             #expect(!cap.label.isEmpty)
         }
     }
 
-    /// A cap that has to wrap has stopped being a legend (`player:2429`).
+    /// A cap that has to wrap has stopped being a legend (`player:2429`) — a row
+    /// of caps, that is; the legend as a whole wrapping to a third *row* is
+    /// D58's own trade, made because the alternative was a row with nothing
+    /// spare in it at all.
     ///
     /// **Every legend**, not just the playing one — and the picker has two
     /// shapes since **D50** (a disc in the bay, or an empty one), so both are
     /// measured. This is the only thing standing between the next addition and a
-    /// wrapped row, and it has now caught two: `BROWSE` (§14) on the picker's
-    /// row, and `EJECT` (**D57**) on the playing one.
+    /// wrapped row, and it has now caught three: `BROWSE` (§14) on the picker's
+    /// row, `EJECT` (**D57**) on the playing one, and `VOL`/`MUTE` (**D58**),
+    /// which is the one addition that took the wrap rather than fight for the
+    /// last columns of an existing row.
     ///
     /// **Where `EJECT` went was decided here rather than by eye.** Of the 69
     /// columns the playing legend's first row stands in 67 and its second in 35,
     /// so the transport row had two columns spare and the cap wanted nine. The
-    /// second row is 47 now.
+    /// second row is 47 now — the third, `VOL` and `MUTE` together, is 19: it
+    /// would have fit on the second at exactly 69 with nothing left over, which
+    /// is the same complaint that kept it off the legend in the first place.
     @Test("Each row fits the panel it is drawn on")
     func fits() {
         let legends =
@@ -849,12 +863,12 @@ struct KeycapTests {
         }
     }
 
-    /// `←→` and `↑↓` are two glyphs on one plate, which is a rocker and not a
-    /// button. Everything else is a single throw.
-    @Test("The rockers are the two with two ends, and they are the two that repeat")
+    /// `←→`, `↑↓` and `-=` are two glyphs on one plate each, which is a rocker
+    /// and not a button. Everything else is a single throw.
+    @Test("The rockers are the three with two ends, and they are the three that repeat")
     func rockers() {
         let rockers = Readout.legend.flatMap { $0 }.filter { $0.presses.count > 1 }
-        #expect(rockers.map(\.key) == ["←→", "↑↓"])
+        #expect(rockers.map(\.key) == ["←→", "↑↓", "-="])
         for cap in rockers {
             #expect(cap.presses.count == 2)
             #expect(cap.presses.allSatisfy(Readout.repeats))
@@ -866,7 +880,9 @@ struct KeycapTests {
 
     /// The legend is a picture of the keyboard, so anything the caps can ask for
     /// has to be something a key asks for too — and the other way round is not
-    /// required, because `u`, `m` and the volume pair are deliberately not on it.
+    /// required, because `u` is deliberately not on it, bound only while there is
+    /// an offer to take. `m` and the volume pair used to be the other exception;
+    /// D58 put them on the legend, so they are no longer one.
     @Test("Every press a cap can make is one the legend names")
     func wired() {
         let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
@@ -914,6 +930,17 @@ struct KeycapTests {
             let keys = legend.flatMap { $0 }.map(\.key)
             #expect(Set(keys).count == keys.count)
         }
+    }
+
+    /// **D58.** Volume and mute get a row of their own, after the row `QUIT`
+    /// ends rather than folded into it — the second row has room for them on
+    /// paper but not with anything spare, and a legend that wraps with slack in
+    /// it beats one that doesn't wrap and has none.
+    @Test("VOL and MUTE are the third row, after QUIT")
+    func volumeAndMuteAreTheThirdRow() {
+        #expect(Readout.legend[2].map(\.label) == ["VOL", "MUTE"])
+        #expect(Readout.legend[2][0].presses == [.volumeDown, .volumeUp])
+        #expect(Readout.legend[2][1].presses == [.mute])
     }
 
     /// Nothing offers a way back to a screen you are already on. The picker *is*

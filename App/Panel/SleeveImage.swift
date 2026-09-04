@@ -120,12 +120,15 @@ enum SleeveImage {
         for y in 0..<height {
             for x in 0..<width {
                 let o = y * bytesPerRow + x * 4
-                // Rec. 709, on the bytes as they come. No gamma correction and no
-                // black-point lift: a dark record is meant to look dark.
-                let luma =
-                    (0.2126 * Double(pixels[o]) + 0.7152 * Double(pixels[o + 1])
-                        + 0.0722 * Double(pixels[o + 2])) / 255
-                let nudged = luma * Double(steps - 1) + bayer[(y % 4) * 4 + (x % 4)]
+                // HSL lightness, not Rec. 709 luma: a magenta sleeve has no
+                // green in it at all, and luma's 0.7152 weight on that channel
+                // reads it as a luma of 0.28 — nearer the bottom of the ramp
+                // than the middle, for a colour that is not remotely dark. No
+                // gamma correction and no black-point lift beyond that: a
+                // record that is actually dark is still meant to look dark.
+                let r = Double(pixels[o]), g = Double(pixels[o + 1]), b = Double(pixels[o + 2])
+                let lightness = (max(r, g, b) + min(r, g, b)) / 2 / 255
+                let nudged = lightness * Double(steps - 1) + bayer[(y % 4) * 4 + (x % 4)]
                 let level = min(max(Int(nudged.rounded()), 0), steps - 1)
                 let stop = table[level]
                 pixels[o] = stop.0

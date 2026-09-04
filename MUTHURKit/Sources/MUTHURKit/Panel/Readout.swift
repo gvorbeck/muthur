@@ -7,12 +7,23 @@ import Foundation
 /// worded the way they are because of something that went wrong once.
 public enum Readout {
 
-    /// `mmssv` (`panel.sh:148`). Minutes are not padded; seconds always are.
-    /// A track is `3:07` and a record is `41:53`, and neither of them wants a
-    /// leading zero on the left of a colon.
+    /// `mmssv` (`panel.sh:148`), with hours folded back in above sixty minutes
+    /// (D60 — a divergence, not a fix: `panel.sh:148` is
+    /// `printf '%d:%02d' $(($1/60)) $(($1%60))` with no hour term at all, so the
+    /// script would print a three-hour record's total the same way this port
+    /// used to, `190:06`). Minutes and hours are not padded; seconds always are,
+    /// and so are minutes once there is an hour in front of them — a track is
+    /// `3:07`, a record under the hour is `41:53`, and a long one is `3:10:06`,
+    /// never `3:190:06` or `3:70:06`.
     public static func mmss(_ seconds: Int) -> String {
         let whole = max(0, seconds)
-        return String(format: "%d:%02d", whole / 60, whole % 60)
+        let hours = whole / 3600
+        let minutes = (whole % 3600) / 60
+        let secs = whole % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        }
+        return String(format: "%d:%02d", minutes, secs)
     }
 
     /// `TRACK 02 OF 11` (`player:2385`).
@@ -97,6 +108,12 @@ public enum Readout {
         case jump
         case next, previous
         case shuffle, repeatMode
+        /// `-` `=`, new as keys (D1); new again as a cap (D58) — the width
+        /// objection that had kept them off the legend gave way to wanting them
+        /// found at all.
+        case volumeDown, volumeUp
+        /// `m`, the same story as the pair above.
+        case mute
         /// Ask the drive again (`player:1018`). It was named for `scan_sources`
         /// and outlived it (D50) — the bay is the one thing left that can change
         /// under a screen that is already drawn.
@@ -137,11 +154,14 @@ public enum Readout {
         }
     }
 
-    /// The two keycap rows, both of them (`player:2429`).
+    /// The keycap rows — three now, not two (`player:2429`, D58).
     ///
-    /// Volume and mute are not on it. The script had neither, and the row is
-    /// already the width of the panel — a legend that has to wrap has stopped
-    /// being a legend. §14's transport takes the same view.
+    /// Volume and mute were kept off this legend on the grounds that the script
+    /// had neither and the row was already the width of the panel — a legend
+    /// that has to wrap has stopped being a legend. Sound reasoning for a row,
+    /// and the wrong call for the whole legend: it left two keys nobody could
+    /// find without having read `PanelView.letter`. They wrap. §14's transport
+    /// has not yet been asked to make the same trade.
     ///
     /// **`E EJECT` is on the second row and not the first** (D57). The first is
     /// the transport and measures 67 of the 69 columns, which is no room at all;
@@ -153,6 +173,13 @@ public enum Readout {
     ///
     /// **`Q` stays last**, where the hand already looks for it, on the picker
     /// row's precedent.
+    ///
+    /// **`VOL` and `MUTE` are the third row, after `QUIT` and not folded into
+    /// it** (D58). Row two at 47 of 69 has room to spare on paper, but putting
+    /// both new caps on it lands at exactly 69 — no margin at all, the same
+    /// complaint the old comment made about the legend as a whole. A row that
+    /// wraps and still has slack in it is the better trade. They read after
+    /// `QUIT` because that is where an addition belongs: last in, last placed.
     public static let legend: [[Cap]] = [
         [
             Cap("␣", "PLAY", .play),
@@ -167,6 +194,10 @@ public enum Readout {
             Cap("R", "REPEAT", .repeatMode),
             Cap("E", "EJECT", .eject),
             Cap("Q", "QUIT", .quit),
+        ],
+        [
+            Cap("-=", "VOL", .volumeDown, .volumeUp),
+            Cap("M", "MUTE", .mute),
         ],
     ]
 
@@ -217,14 +248,16 @@ public enum Readout {
 
     /// Whether holding the cap down should go on asking.
     ///
-    /// The two rockers only. Holding `←→` to run through a track and `↑↓` to run
-    /// down the list is the whole point of them being rockers, and the keyboard
-    /// already does it — `onKeyPress(phases: [.down, .repeat])`. The rest are
-    /// single-throw switches: a held `S` toggling shuffle twenty times a second
-    /// is not a faster way of doing anything, it is a coin being flipped.
+    /// The three rockers. Holding `←→` to run through a track, `↑↓` to run down
+    /// the list, and `-=` to run the level up or down is the whole point of them
+    /// being rockers, and the keyboard already does all three —
+    /// `onKeyPress(phases: [.down, .repeat])`. The rest are single-throw
+    /// switches: a held `S` toggling shuffle twenty times a second is not a
+    /// faster way of doing anything, it is a coin being flipped, and a held `M`
+    /// is the same coin.
     public static func repeats(_ press: Press) -> Bool {
         switch press {
-        case .seekBack, .seekForward, .selectUp, .selectDown: true
+        case .seekBack, .seekForward, .selectUp, .selectDown, .volumeDown, .volumeUp: true
         default: false
         }
     }
