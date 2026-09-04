@@ -820,7 +820,7 @@ struct SleeveFrameTests {
 @Suite("§10 — the keycaps")
 struct KeycapTests {
 
-    @Test("All three rows, and every cap on them says what it does")
+``    @Test("All three rows, and every cap on them says what it does")
     func legend() {
         #expect(Readout.legend.count == 3)
         for cap in Readout.legend.flatMap({ $0 }) {

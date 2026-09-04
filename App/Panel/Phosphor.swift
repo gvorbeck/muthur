@@ -244,7 +244,8 @@ extension View {
                     .float2(size),
                     .float(Float(bandY)),
                     .float(Float(Theme.warpDepth)),
-                    .float(Float(Theme.warpAmplitude))
+                    .float(Float(Theme.warpAmplitude)),
+                    .float(Float(Theme.sweepDepth / 2))
                 ),
                 maxSampleOffset: CGSize(width: Theme.warpAmplitude, height: Theme.warpAmplitude)
             )
