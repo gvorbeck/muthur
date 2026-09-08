@@ -102,7 +102,7 @@ struct PanelView: View {
                             // furniture has never moved out of. Any other screen
                             // would be showing a ghost of chrome that is not
                             // above it.
-                            if !model.isPicking && !model.isChecking && !model.isLoading {
+                            if deck {
                                 BurnIn(marks: burn(rows: rows))
                             }
                         }
@@ -164,6 +164,17 @@ struct PanelView: View {
                 // is clipped at the bottom loses its verdict.
                 if let report = model.report {
                     CheckView(report: report)
+                } else if let editor = model.plan {
+                    PlanView(
+                        editor: editor,
+                        visibleRange: model.planVisible,
+                        below: model.planBelow,
+                        prompt: model.planPrompt,
+                        click: { model.planClick(row: $0) },
+                        typed: { model.planPrompt?.value = $0 },
+                        commit: { model.planCommit() },
+                        cancel: { model.planCancel() }
+                    )
                 } else if model.isPicking, let entries = model.pickerEntries {
                     PickerView(
                         entries: entries,
@@ -190,7 +201,7 @@ struct PanelView: View {
                         .frame(height: Grid.rows(rows + 4))
                 }
 
-                if !model.isPicking && !model.isChecking && !model.isLoading {
+                if deck {
                     PanelBlank()
                     MeterView(
                         label: Readout.trackLabel(row: model.state.row, of: trackCount),
@@ -245,8 +256,17 @@ struct PanelView: View {
     /// the current screen does not answer is the same lie the dead ⌘O was.
     private var legend: [[Readout.Cap]] {
         if model.isChecking { return Readout.checkLegend }
+        if model.isPlanning { return Readout.planLegend }
         if model.isPicking { return Readout.pickerLegend(hasDisc: model.pickerHasDisc) }
         return Readout.legend
+    }
+
+    /// Whether the deck's own furniture is up — the two meters, the analyser,
+    /// and the burn under them. Every other screen has neither the room nor the
+    /// use for them, and a ghost of chrome that is not above it is worse than
+    /// no ghost at all.
+    private var deck: Bool {
+        !model.isPicking && !model.isChecking && !model.isLoading && !model.isPlanning
     }
 
     // MARK: - How big the sleeve may be (§5)
@@ -365,9 +385,31 @@ struct PanelView: View {
     /// on every `SIGWINCH`.
     private func trackRows(in height: CGFloat) -> Int {
         let lines = Int((height / Theme.cell.height).rounded(.down))
+        if model.isPlanning { return planRows(lines: lines) }
         var chrome = 17 + (model.header?.rows.count ?? 3)
         if model.statusLine != nil { chrome += 2 }
         if trackCount > lines - chrome { chrome += 1 }
+        return max(1, lines - chrome)
+    }
+
+    /// `tui_fit_rows` (`burncd:1041`), counted the same way and for the same
+    /// reason: everything except the track list is fixed, so the list gets what
+    /// is left rather than a guess.
+    ///
+    /// The faceplate and its blank, three header fields, a blank, the blank
+    /// before the meter and the meter's two rows, a blank and two keycap rows —
+    /// eleven. A status message adds a blank and itself, a prompt the same, and
+    /// D67's notes add themselves and a blank. The disc rules are the one thing
+    /// not counted here: they depend on where the window starts, which is
+    /// `planWalk`'s business and is settled after this.
+    private func planRows(lines: Int) -> Int {
+        guard let editor = model.plan else { return 1 }
+        var chrome = 11
+        if model.statusLine != nil { chrome += 2 }
+        if model.planPrompt != nil { chrome += 2 }
+        let notes = PlanScreen.notes(editor.plan).count
+        if notes > 0 { chrome += notes + 1 }
+        if editor.draft.order.count > lines - chrome { chrome += 1 }
         return max(1, lines - chrome)
     }
 
@@ -384,6 +426,10 @@ struct PanelView: View {
     private func perform(_ press: Readout.Press, shift: Bool = false) {
         if model.isChecking {
             performCheck(press)
+            return
+        }
+        if model.isPlanning {
+            performPlan(press, shift: shift)
             return
         }
         if model.isPicking {
@@ -412,6 +458,15 @@ struct PanelView: View {
         // and the transport legend (§14) has no room to say so. The cap lives on
         // the picker, where choosing a record is what you are already doing.
         case .browse: break
+        // §20 — the plan for the record already on the deck. `b` on the picker
+        // is BROWSE and `b` here is BURN, which is the two screens naming their
+        // own key and not a collision: neither is ever drawn beside the other.
+        case .burn: model.openPlan()
+        // Everything the plan screen answers, and nothing the deck does. They
+        // are in `Press` because one enum names every key the program has, not
+        // because every screen has to have an opinion about all of them.
+        case .moveUp, .moveDown, .rename, .artist, .drop, .split, .undo, .reset:
+            break
         // The way back to the start screen, and it is bound here rather than
         // only under `FINISHED` on purpose (D57): a record you have decided
         // against ten seconds in is exactly when you want the next one.
@@ -429,6 +484,33 @@ struct PanelView: View {
         case .rescan: model.check()
         case .quit: NSApplication.shared.terminate(nil)
         default: model.closeCheck()
+        }
+    }
+
+    /// `tui_edit`'s key table (`burncd:1157`).
+    ///
+    /// `⇧↑↓` is the same two caps as `↑↓` with the modifier carried, which is
+    /// why the shift arrives here rather than being read again: the cap is the
+    /// key, including the parts of it that are not printed on it.
+    private func performPlan(_ press: Readout.Press, shift: Bool) {
+        switch press {
+        case .selectUp: shift ? model.planMove(by: -1) : model.planStep(by: -1)
+        case .selectDown: shift ? model.planMove(by: 1) : model.planStep(by: 1)
+        case .moveUp: model.planMove(by: -1)
+        case .moveDown: model.planMove(by: 1)
+        case .rename, .jump: model.planRename()
+        case .artist: model.planArtist()
+        case .drop: model.planDrop()
+        case .split: model.planToggleBreak()
+        case .undo: model.planUndo()
+        case .reset: model.planReset()
+        case .burn: model.burn()
+        // D68 — the eleventh cap, and the only way back to the deck. `q` is
+        // still the program, here as everywhere (`burncd:1203` makes it the
+        // program too, by way of `die`).
+        case .close: model.closePlan()
+        case .quit: NSApplication.shared.terminate(nil)
+        default: break
         }
     }
 
@@ -452,6 +534,7 @@ struct PanelView: View {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if model.isChecking { return handleCheck(press) }
+        if model.isPlanning { return handlePlan(press) }
         if model.isPicking { return handlePicker(press) }
         let shift = press.modifiers.contains(.shift)
         switch press.key {
@@ -482,6 +565,56 @@ struct PanelView: View {
         case "r": model.check()
         case "q": NSApplication.shared.terminate(nil)
         default: model.closeCheck()
+        }
+        return .handled
+    }
+
+    /// `tui_edit`'s `read_key` (`burncd:1181`).
+    ///
+    /// While a field is being typed into, every key belongs to the field — the
+    /// script is in cooked mode for the whole of `tui_prompt` and the editor
+    /// sees none of it (`burncd:895`). The text field has the focus, so nothing
+    /// arrives here anyway; the guard is what makes that a rule rather than a
+    /// coincidence of where the focus happened to be.
+    private func handlePlan(_ press: KeyPress) -> KeyPress.Result {
+        guard model.planPrompt == nil else { return .ignored }
+        let shift = press.modifiers.contains(.shift)
+        switch press.key {
+        case .upArrow: perform(shift ? .moveUp : .selectUp)
+        case .downArrow: perform(shift ? .moveDown : .selectDown)
+        // The cursor by a screenful, which is the one thing the plan screen's
+        // legend has no room to name and the script binds anyway
+        // (`burncd:1186`).
+        case .pageUp: model.planStep(by: -model.visibleRows)
+        case .pageDown: model.planStep(by: model.visibleRows)
+        case .return: perform(.rename)
+        case .escape: perform(.close)
+        // `b|B|␣` is one case in the script (`burncd:1201`) and stays one here.
+        // It is not a burn: `tui_edit` breaks out to the disc prompt, and the
+        // prompt is what asks. Until stage 3 there is no prompt and it declines.
+        case .space: perform(.burn)
+        default: return planLetter(press)
+        }
+        return .handled
+    }
+
+    private func planLetter(_ press: KeyPress) -> KeyPress.Result {
+        let shift = press.modifiers.contains(.shift)
+        switch press.characters.lowercased() {
+        // The vi pair, shifted to move — `K` and `J` in the script, which is
+        // the same shift the arrows take (`burncd:1184`).
+        case "k": perform(shift ? .moveUp : .selectUp)
+        case "j": perform(shift ? .moveDown : .selectDown)
+        case "a": perform(.artist)
+        case "s": perform(.split)
+        // `d` as well as `x`, unbound on the legend and bound in the script
+        // for whichever hand is already there (`burncd:1189`).
+        case "x", "d": perform(.drop)
+        case "u": perform(.undo)
+        case "r": perform(.reset)
+        case "b": perform(.burn)
+        case "q": perform(.quit)
+        default: return .ignored
         }
         return .handled
     }
@@ -524,6 +657,9 @@ struct PanelView: View {
         case "s": perform(.shuffle)
         case "r": perform(.repeatMode)
         case "e": perform(.eject)
+        // §20 — the plan for what is on the deck. Nothing is scanned and
+        // nothing is chosen: the record is already here.
+        case "b": perform(.burn)
         // Bound only while there is an offer to take (`player:2720`). A key that
         // does nothing most of the time is worse than no key at all, so it is
         // the offer on screen that makes it live.

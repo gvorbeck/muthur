@@ -820,7 +820,7 @@ struct SleeveFrameTests {
 @Suite("§10 — the keycaps")
 struct KeycapTests {
 
-``    @Test("All three rows, and every cap on them says what it does")
+    @Test("All three rows, and every cap on them says what it does")
     func legend() {
         #expect(Readout.legend.count == 3)
         for cap in Readout.legend.flatMap({ $0 }) {
@@ -848,11 +848,20 @@ struct KeycapTests {
     /// second row is 47 now — the third, `VOL` and `MUTE` together, is 19: it
     /// would have fit on the second at exactly 69 with nothing left over, which
     /// is the same complaint that kept it off the legend in the first place.
+    ///
+    /// **Where `BURN` went was decided here too** (§20). The second row was 47
+    /// of 69 and the cap wants eleven, which lands at 58 — the row that was
+    /// already the home of what you do *to* the record, with room, so no fourth
+    /// row and no argument. The plan screen's own two rows stand in 61 and 54,
+    /// split where `burncd:1008` splits them: its ten keys will not go on one,
+    /// and the second is the emptier of the two, which is where the next cap
+    /// that wants a home should go.
     @Test("Each row fits the panel it is drawn on")
     func fits() {
         let legends =
             Readout.legend + Readout.pickerLegend(hasDisc: true)
             + Readout.pickerLegend(hasDisc: false) + Readout.checkLegend
+            + Readout.planLegend
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
@@ -863,17 +872,21 @@ struct KeycapTests {
         }
     }
 
-    /// `←→`, `↑↓` and `-=` are two glyphs on one plate each, which is a rocker
-    /// and not a button. Everything else is a single throw.
-    @Test("The rockers are the three with two ends, and they are the three that repeat")
+    /// `←→`, `↑↓`, `-=` and — on the plan screen — `⇧↑↓` are two glyphs on one
+    /// plate each, which is a rocker and not a button. Everything else is a
+    /// single throw, and the two properties travel together in both directions:
+    /// a plate with two ends is one you can hold down, and a plate with one is
+    /// a coin being flipped.
+    @Test("The rockers are the ones with two ends, and they are the ones that repeat")
     func rockers() {
-        let rockers = Readout.legend.flatMap { $0 }.filter { $0.presses.count > 1 }
-        #expect(rockers.map(\.key) == ["←→", "↑↓", "-="])
+        let plates = (Readout.legend + Readout.planLegend).flatMap { $0 }
+        let rockers = plates.filter { $0.presses.count > 1 }
+        #expect(Set(rockers.map(\.key)) == ["←→", "↑↓", "-=", "⇧↑↓"])
         for cap in rockers {
             #expect(cap.presses.count == 2)
             #expect(cap.presses.allSatisfy(Readout.repeats))
         }
-        for cap in Readout.legend.flatMap({ $0 }) where cap.presses.count == 1 {
+        for cap in plates where cap.presses.count == 1 {
             #expect(!Readout.repeats(cap.presses[0]), "held \(cap.key) is a coin being flipped")
         }
     }
@@ -883,13 +896,39 @@ struct KeycapTests {
     /// required, because `u` is deliberately not on it, bound only while there is
     /// an offer to take. `m` and the volume pair used to be the other exception;
     /// D58 put them on the legend, so they are no longer one.
+    ///
+    /// The plan screen (§20) joins the union, and it is the screen that most
+    /// needed to: it brought nine presses of its own in one go, and every one
+    /// of them is a key nobody would find by guessing.
     @Test("Every press a cap can make is one the legend names")
     func wired() {
         let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
         let picker = Set(Readout.pickerLegend(hasDisc: true).flatMap { $0 }.flatMap(\.presses))
         let check = Set(Readout.checkLegend.flatMap { $0 }.flatMap(\.presses))
-        let all = playing.union(picker).union(check)
+        let plan = Set(Readout.planLegend.flatMap { $0 }.flatMap(\.presses))
+        let all = playing.union(picker).union(check).union(plan)
         #expect(all == Set(Readout.Press.allCases))
+    }
+
+    /// **The same letter means different things on different screens, and that
+    /// is deliberate** — but only across screens, never on one. `S` is SHUFFLE
+    /// on the panel and SPLIT on the plan; `R` is REPEAT, RESCAN and RESET on
+    /// three screens; `B` is BROWSE on the picker and BURN on the other two.
+    /// What would be a bug is two caps on one screen answering to one key, and
+    /// this is the assertion that says so.
+    @Test("No screen binds one letter to two caps")
+    func noCollisions() {
+        let screens: [(String, [[Readout.Cap]])] = [
+            ("playing", Readout.legend),
+            ("picker", Readout.pickerLegend(hasDisc: true)),
+            ("empty picker", Readout.pickerLegend(hasDisc: false)),
+            ("check", Readout.checkLegend),
+            ("plan", Readout.planLegend),
+        ]
+        for (name, legend) in screens {
+            let keys = legend.flatMap { $0 }.map(\.key)
+            #expect(Set(keys).count == keys.count, "\(name) has two caps on one plate")
+        }
     }
 
     /// **D50.** `OPEN` is on the picker's legend only when there is something to
@@ -912,7 +951,8 @@ struct KeycapTests {
     @Test("EJECT is on the playing legend, on the row with room for it")
     func ejectIsOnTheSecondRow() {
         #expect(!Readout.legend[0].contains { $0.presses.contains(.eject) })
-        #expect(Readout.legend[1].map(\.label) == ["SHUFFLE", "REPEAT", "EJECT", "QUIT"])
+        #expect(
+            Readout.legend[1].map(\.label) == ["SHUFFLE", "REPEAT", "EJECT", "BURN", "QUIT"])
         // `Q` stays last, where the hand already looks for it.
         #expect(Readout.legend[1].last?.presses == [.quit])
     }
@@ -926,6 +966,7 @@ struct KeycapTests {
         for legend in [
             Readout.legend, Readout.pickerLegend(hasDisc: true),
             Readout.pickerLegend(hasDisc: false), Readout.checkLegend,
+            Readout.planLegend,
         ] {
             let keys = legend.flatMap { $0 }.map(\.key)
             #expect(Set(keys).count == keys.count)
@@ -950,7 +991,7 @@ struct KeycapTests {
     func ejectIsOnlyOnThePanel() {
         for legend in [
             Readout.pickerLegend(hasDisc: true), Readout.pickerLegend(hasDisc: false),
-            Readout.checkLegend,
+            Readout.checkLegend, Readout.planLegend,
         ] {
             #expect(!legend.flatMap { $0 }.contains { $0.presses.contains(.eject) })
         }

@@ -558,6 +558,9 @@ final class PanelModel {
                 failures: report.checks.filter { $0.mark == .fail }.count
             )
         }
+        if let plan {
+            return PlanScreen.meta(plan.plan)
+        }
         if let entries = pickerEntries, record == nil {
             return Faceplate.pickerMeta(count: entries.count)
         }
@@ -582,6 +585,11 @@ final class PanelModel {
         // (`player:1162`), and the offer it would carry is about the record
         // that is still being read.
         if isLoading { return nil }
+        // The plan screen's own row — and the deck's, for the one message the
+        // deck can produce about a plan: a `B` that could not open one. It is
+        // ahead of the engine's because it is the answer to the key that was
+        // just pressed, where the engine's is whatever was said last.
+        if let planStatus { return planStatus }
         if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
         if let offer { return offer.text }
@@ -712,6 +720,179 @@ final class PanelModel {
             await engine.play()
             await refresh()
         }
+    }
+
+    // MARK: - The burn plan (§20)
+
+    /// The plan editor while the plan screen is up, and nil the rest of the
+    /// time. `tui_edit` is a function the script calls and returns from
+    /// (`burncd:1140`); here it is a screen that goes over the deck and comes
+    /// off again, the way the check does, and for the same reason — a window
+    /// has nothing to return *to*.
+    ///
+    /// **The record goes on playing underneath.** Working out a running order
+    /// is reading, not burning, and stopping the music to look at a list would
+    /// be its own small failure — the argument `report` already makes about the
+    /// health check.
+    private(set) var plan: PlanEditor?
+
+    var isPlanning: Bool { plan != nil }
+
+    /// What the plan screen last said. Read straight off `PlanEditor.status`
+    /// after every verb and cleared by the first one that says nothing, which
+    /// is the draw loop reading and clearing it (`burncd:1180`).
+    private(set) var planStatus: String?
+
+    /// A field being typed into — `tui_prompt` (`burncd:893`).
+    ///
+    /// The current value is a **hint and not the text being edited**, exactly
+    /// as the script prints it: `▶ TITLE   [what it says now]` with an empty
+    /// line to type on. That is what makes ⏎ on an empty field mean *keep it*
+    /// rather than *clear it*, which is the only way out of the prompt the
+    /// script offers and the only one it needs.
+    struct PlanPrompt: Equatable {
+        enum Field: Equatable {
+            case rename
+            case artist
+        }
+        let field: Field
+        let label: String
+        let current: String
+        var value: String = ""
+    }
+
+    var planPrompt: PlanPrompt?
+
+    /// `B` on the deck — the plan for the record already on it.
+    ///
+    /// No chooser and no second scan: the record is the one thing this screen
+    /// is about, and asking again for what is already loaded would be the
+    /// picker pretending the deck is empty.
+    func openPlan() {
+        guard !isLoading, !isChecking, !isPicking, let record else { return }
+        planStatus = nil
+        planPrompt = nil
+        do {
+            plan = try PlanEditor(draft: PlanDraft(record: record))
+        } catch let failure as PlanFailure {
+            planStatus = Readout.status(PlanScreen.refusal(failure))
+        } catch {
+            planStatus = Readout.status("NO PLAN COULD BE MADE")
+        }
+    }
+
+    func closePlan() {
+        plan = nil
+        planPrompt = nil
+        planStatus = nil
+    }
+
+    /// `B` at the end of the editor. Stage 3, and it says so rather than
+    /// nothing (`PlanScreen.burnNotYet`).
+    func burn() {
+        planStatus = Readout.status(PlanScreen.burnNotYet)
+    }
+
+    /// Every editor verb, through one door.
+    ///
+    /// The status is taken off the editor *before* the new value is stored, so
+    /// what the key said and what the key did land on the panel in the same
+    /// frame. A key that says nothing clears the last message, which is what
+    /// `tui_edit` does by passing a fresh `status` into every draw.
+    private func editing(_ change: (inout PlanEditor) -> Void) {
+        guard var editor = plan else { return }
+        change(&editor)
+        let said = editor.takeStatus()
+        plan = editor
+        planStatus = said.isEmpty ? nil : said
+    }
+
+    func planStep(by delta: Int) { editing { $0.moveCursor(delta) } }
+    func planMove(by delta: Int) { editing { $0.moveTrack(delta) } }
+    func planToggleBreak() { editing { $0.toggleBreak() } }
+    func planDrop() { editing { $0.drop() } }
+    func planUndo() { editing { $0.undo() } }
+    func planReset() { editing { $0.reset() } }
+
+    /// A click puts the cursor on the row that was clicked — header field or
+    /// track, since the two are one list here.
+    func planClick(row: Int) { editing { $0.moveCursor(to: row) } }
+
+    func planRename() {
+        guard let plan else { return }
+        let prompt = plan.renamePrompt
+        planPrompt = PlanPrompt(field: .rename, label: prompt.label, current: prompt.value)
+    }
+
+    func planArtist() {
+        guard let plan else { return }
+        let prompt = plan.artistPrompt
+        planPrompt = PlanPrompt(field: .artist, label: prompt.label, current: prompt.value)
+    }
+
+    /// ⏎ out of the prompt.
+    func planCommit() {
+        guard let prompt = planPrompt else { return }
+        planPrompt = nil
+        // Flattened for the reason the script flattens (`burncd:900`): cooked
+        // mode passes a tab straight through and a paste can carry anything. A
+        // tab in a title bends the panel frame, and one in a header field
+        // splits its undo record into a field too many — album `Live\tAt Leeds`
+        // would come back from an undo as `Live`.
+        let typed = prompt.value.map { $0.isNewline || $0 == "\t" ? " " : $0 }
+        let text = String(typed)
+        // Nothing typed keeps what was there.
+        guard !text.isEmpty else { return }
+        switch prompt.field {
+        case .rename: editing { $0.rename(to: text) }
+        case .artist: editing { $0.setArtist(to: text) }
+        }
+    }
+
+    func planCancel() { planPrompt = nil }
+
+    /// The visible window over the running order, and the one thing about it
+    /// that is not the picker's arithmetic: **a disc rule costs a row**, so how
+    /// many tracks fit depends on where the disc boundaries fall inside the
+    /// window. `tui_walk` (`burncd:1057`) counts them; so does this.
+    var planVisible: Range<Int> {
+        guard let plan else { return 0..<0 }
+        let count = plan.draft.order.count
+        guard count > 0 else { return 0..<0 }
+        let budget = visibleRows
+        var top = (plan.selectedPosition ?? 0) - budget / 2
+        top = max(0, min(top, max(0, count - budget)))
+        var rows = planWalk(top: top, budget: budget)
+        // A list cut short spends a row on the `▾ n MORE` line, and that row
+        // comes out of the list (`tui_fit_rows`, `burncd:1041`).
+        if top + rows < count { rows = planWalk(top: top, budget: budget - 1) }
+        return top..<min(top + max(1, rows), count)
+    }
+
+    var planBelow: Int {
+        guard let plan else { return 0 }
+        return max(0, plan.draft.order.count - planVisible.upperBound)
+    }
+
+    /// `tui_walk` — walk the list the way the screen draws it, spending a row
+    /// on each disc rule as it crosses one, and stop when the budget runs out.
+    private func planWalk(top: Int, budget: Int) -> Int {
+        guard let plan else { return 0 }
+        let order = plan.draft.order
+        var left = budget
+        var lastDisc = 0
+        var rows = 0
+        var k = top
+        while k < order.count {
+            let disc = plan.plan.firstDisc(ofSource: order[k]) ?? 1
+            let cost = disc == lastDisc ? 1 : 2
+            guard cost <= left else { break }
+            left -= cost
+            lastDisc = disc
+            rows += 1
+            k += 1
+        }
+        return rows
     }
 
     // MARK: - Volume (§6.1a)

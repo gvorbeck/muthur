@@ -32,11 +32,17 @@ with a 284-line README beside it at
 
     /Users/garrett.vorbeck/Sites/cd-collection/scripts/player/README.md
 
-**Never modify anything under `cd-collection`.** That program continues to exist
-and be used independently — over ssh, in pipes, as a shell command — and nothing
-here should assume it will change or disappear.
+**There is a second program, on exactly the same terms.** `burncd` — 2,742
+lines at `../burncd/burncd`, with a README beside it — burns a folder to an
+audio CD, and it shares `lib/panel.sh` with `player`: the two are one instrument
+at two moments of the same disc, which is the whole reason its port lives in
+this repository. It is §20 of `docs/parity.md`.
 
-Do not shell out to the bash script at runtime. Port the logic.
+**Never modify anything under `cd-collection`.** Those programs continue to
+exist and be used independently — over ssh, in pipes, as a shell command — and
+nothing here should assume either will change or disappear.
+
+Do not shell out to either bash script at runtime. Port the logic.
 
 Where any description conflicts with the script, the script is right.
 
@@ -56,9 +62,9 @@ Ask before adding any dependency beyond these.
 
 - `docs/parity.md` is the definition of done. Keep it current as features land.
 - **It is three files, and the numbering runs across all three.** `parity.md` is
-  §1–§15, §17, and the still-open questions of §18; it is the only one carrying
-  the Status paragraph and the counts. `docs/decisions.md` is §16 — every
-  deliberate departure from the script, D1 onwards — plus the answered half of
+  §1–§15, §17, the still-open questions of §18, and §20; it is the only one
+  carrying the Status paragraph and the counts. `docs/decisions.md` is §16 —
+  every deliberate departure from either script, D1 onwards — plus the answered half of
   §18. `docs/hardware.md` is §19, the procedure to work through with a disc in
   the drive. Nothing was renumbered when they split, so `§16`, `§18.24` and
   `D44` mean in any of the three, and in the source, exactly what they always
@@ -70,9 +76,15 @@ Ask before adding any dependency beyond these.
   box, re-derive the count by counting the files — the boxes are in `parity.md`
   and, for D8's four, in `decisions.md` — and rewrite the paragraph to describe
   the section that just landed, all in the one pass.
-- Where a decision in `player` looks wrong, do not silently improve it. It has
-  been used and debugged. Flag it and ask. The answer, once it is given, is a
-  numbered entry in `docs/decisions.md`.
+- **`README.md` carries the same figure and is part of the same pass.** It had
+  drifted two behind and was also still naming the wrong four boxes as the open
+  ones, which is the failure above wearing a second hat: one number, written
+  down twice, is two numbers the moment only one of them is updated. The Status
+  paragraph in `parity.md` is where it is *derived*; `README.md` quotes it, and
+  quoting it is not optional.
+- Where a decision in `player` or `burncd` looks wrong, do not silently improve
+  it. It has been used and debugged. Flag it and ask. The answer, once it is
+  given, is a numbered entry in `docs/decisions.md`.
 - The script's vocabulary is the personality of the program — a cover is a
   _sleeve_, you put the _needle_ anywhere in the _record_. Use it in the UI, in
   the code, and in comments.

@@ -1,7 +1,8 @@
 # MU/TH/UR — decisions
 
-Every deliberate departure from the bash `player`, with the reasoning that
-produced it, and every question about the script that has been answered.
+Every deliberate departure from the bash `player` — and, from D63 on, from
+`burncd` — with the reasoning that produced it, and every question about either
+script that has been answered.
 **This is §16 of `docs/parity.md` and the answered half of its §18**, moved out
 on the day the answers grew longer than the thing they were answering for: two
 thousand lines of decision under a checklist of three hundred, in a document
@@ -19,16 +20,18 @@ this project where a total is allowed to be written down. A requirement does not
 stop being one by changing file.
 
 Source references are `player:NNNN` for
-`/Users/garrett.vorbeck/Sites/cd-collection/scripts/player/player` and
-`panel.sh:NNNN` for `../lib/panel.sh`. Both are read-only.
+`/Users/garrett.vorbeck/Sites/cd-collection/scripts/player/player`,
+`burncd:NNNN` for `../burncd/burncd`, and `panel.sh:NNNN` for
+`../lib/panel.sh` — which the two programs share, and which is the reason they
+are one instrument at two moments of the same disc. All three are read-only.
 
 ---
 
 ## 16. Decisions taken
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
-decision in `player` looks wrong, flag it rather than silently improve it. All
-fifty-eight are settled. Recorded here with the answer so that a departure from
+decision in the script looks wrong, flag it rather than silently improve it. All
+sixty-eight are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -97,7 +100,26 @@ being *wrong* rather than missing: ⌘O was reachable mid-record the whole time,
 and being invisible and unable to reach the drive is what made it not a door.
 **D58** is the third entry of that shape and the first to overrule a clause of
 D1 rather than something the script did: volume and mute get keycaps, which the
-legend's own width had been the reason to withhold.
+legend's own width had been the reason to withhold. **D59–D62 are the four that
+came of looking hard at what was already on screen** — a phosphor that read
+brightness the wrong way round, a counter that made you divide by sixty
+yourself, the bulge D61 gave D53's falling band, and a duration column whose
+width was right until D60 widened what could go in it.
+
+**D63–D68 are the first entries in this list that are not about `player` at
+all.** They came out of §20, the port of `burncd` — the other half of the same
+instrument, sharing the same `panel.sh` — and they divide the way the earlier
+ones do. **D63 and D64** are the script's own mechanisms rebuilt: iconv's
+transliteration written out by hand because the kit may not shell out, and a
+single overwritten `SPLIT_NOTE` made one note per split track. **D65 and D66**
+are the two questions the editor raised, both answered on the script's own
+stated principle rather than against it — a key that declines silently reads as
+broken, and `R` restores what the code restores and not what the README claims.
+**D67 and D68** are the two things a window needs that a terminal did not:
+`plan_header` never runs when there is always a screen, so the two warnings only
+it said move onto the plan; and `tui_edit`'s two exits are complete in a session
+you can retype and are not complete over a deck that is still spinning, which is
+D57's argument arriving a second time by a different door.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -1996,10 +2018,6 @@ unpadded the way minutes always were; only the fields to the right of the
 leftmost one pad, so `1:00:00` and `3:10:06` and the untouched `41:53` are
 all the same rule at different lengths.
 
-unpadded the way minutes always were; only the fields to the right of the
-leftmost one pad, so `1:00:00` and `3:10:06` and the untouched `41:53` are
-all the same rule at different lengths.
-
 ---
 
 **D61 — the deflection fault (D53) bulges the panel it is crossing, and got
@@ -2116,6 +2134,155 @@ so the same cure: `.frame(width:)` became `.frame(minWidth:)`. Every other
 row's fields still sum to exactly 65, so `minWidth` reports the identical
 65 there that `width` did; only the row this decision widens grows the
 plate along with it.
+
+---
+
+**D63 — the transliteration is ported; `iconv` is not.** → §20.3
+
+`cue_textv` runs `iconv -c -f UTF-8 -t ISO-8859-1//TRANSLIT` (`burncd:2085`),
+and the kit may not shell out — that is the standing rule, not a preference,
+and it is the same rule that made §9's analyser its own arithmetic rather than
+a pipe. Foundation does not stand in for it either: `String.data(using:
+.isoLatin1, allowLossyConversion: true)` substitutes `?` for everything it
+cannot carry and transliterates nothing, so `Tōkyō` comes back `T?ky?` where
+Apple's iconv gives `Tokyo` — a worse disc, not a differently-spelled one.
+
+What is written instead is iconv's own three steps, done with Unicode
+normalisation: take the character if Latin-1 has it, else decompose it and keep
+the base letter, else drop it. `ō` loses the macron and stays an `o`; `é` was
+already in the alphabet and is untouched; kana has no base letter to fall back
+to and goes, which is `-c`'s behaviour and the reason `-c` is in the script's
+command line.
+
+**Two details of the script's are ported exactly because they are the parts
+that were learned rather than written.** The first is the punctuation table
+(`burncd:2057`): curly quotes, the three dashes and `…` are mapped to ASCII
+*before* anything else looks at the string, because Apple's iconv turns a curly
+apostrophe into `´` and puts an acute accent where the apostrophe was — `Don´t`
+on the display of a car stereo that cannot explain itself. They are exact
+equivalents rather than approximations, so mapping them here also keeps them
+off the approximated count, where they were never a loss. The second is the
+round trip (`burncd:2096`): whether a field was approximated is decided by
+converting the result back to UTF-8 and comparing, not by an exit status, since
+on Apple's iconv the status reports success for a `Tōkyō` quietly turned into
+`Tokyo` and failure for every character `-c` correctly dropped from a line it
+converted perfectly well.
+
+The count is kept and said out loud for the same reason the script says it, and
+**the plan screen still shows the real titles**: what is approximated is what
+goes into the lead-in, not what the operator is checking the tags against.
+
+---
+
+**D64 — one split note per split track, where the script keeps one variable.**
+→ §20.1
+
+`burncd:647` assigns `SPLIT_NOTE` inside the loop that cuts over-long files, so
+a folder holding two of them reports only the second one's part count, under a
+sentence that begins "A track was". Nothing else reads the variable, and with
+one over-long file — the case that actually happens — it is exactly right,
+which is why it has never been visible.
+
+Answered *best judgement* when it was flagged, and the judgement is that a
+plan's own description of itself must not be able to be half true. `splitNotes`
+is an array, one entry per track that had to be cut. **The single-track wording
+is unchanged**, deliberately: the common case reads exactly as it read in bash,
+and only where there is more than one does the title have to be named to tell
+them apart. A departure that costs the ordinary album nothing is the cheapest
+kind there is.
+
+---
+
+**D65 — dropping the last track declines out loud.** → §20.4
+
+`tui_drop` returns nonzero on a header row and on the last remaining track, and
+`burncd:1193` calls it as `tui_drop "$cur" && status=…` — so the refusal is
+swallowed and `x` on the last track of a one-track plan does nothing and says
+nothing.
+
+**The principle is the script's own and it is three functions further down.**
+`tui_break` refuses the first track *and says why*, with a comment that a key
+which silently declines reads as a key that is broken (`burncd:1238`). Only
+this application of it is new. Both of `drop`'s refusals now speak — `SELECT A
+TRACK TO DROP` on a header row, `A DISC NEEDS ONE TRACK — THIS IS THE LAST` on
+the last one — and so do both of `toggleBreak`'s, which is where the sentence
+came from.
+
+Also answered *best judgement*. It was worth asking because a status line is
+not free: it is a row of a panel that is already tight, and a message nobody
+needed would cost the list a track. This one is needed. The alternative on
+offer was dimming the cap when the drop cannot happen, which is the dead ⌘O of
+D57 in a smaller frame — a control that looks unavailable teaches nothing about
+why.
+
+---
+
+**D66 — `R` restores the order and the breaks, and not the names.** → §20.4
+
+`burncd:1198` is `undo_state PLAN; ORDER=("${ORDER_ORIG[@]}"); BREAK_AT=();
+replan` — renames survive a reset. `burncd`'s README says "Reset to the
+original tags and order", which is a wider claim than the code makes, and the
+standing rule settles which one is right: where any description conflicts with
+the script, the script is right.
+
+The user's answer here was *your call*, and it went to the script's side on the
+merits as well as the rule. **A rename is one `U` away and a shuffled order is
+not.** Tying the two together would make `R` the only key on the screen that
+can lose work a single press cannot recover — and the work it would lose is the
+typing, which is the expensive kind. `R` is on the undo stack like everything
+else, so the wider reset is still available; it just takes the two presses it
+should.
+
+---
+
+**D67 — `plan_header`'s two warnings move onto the plan screen.** → §20.4
+
+`plan_header` is "the static plan, printed instead of the panel when there is
+no screen to draw one on" — the script's own comment at `burncd:740`. In a
+window there is always a screen, so it never runs at all, and two things it
+says that nothing else says would simply be lost: **which limit forced a second
+disc**, and **that the running order was arrived at by filename** because some
+files carry no track number.
+
+Both are facts about an order that is one keypress from being written into a
+lead-in permanently, and the editor is the last place anyone can act on either.
+So they are drawn as a notes block between the header fields and the list,
+measured inside the panel's columns like every other line on it, and the row
+budget counts them rather than discovering them (`tui_fit_rows`'s port). The
+rest of that header is not lost and is not here: the counts and the runtime are
+on the faceplate, and the level pass and the CD-Text switch belong to stages 2
+and 3.
+
+**Empty for the ordinary album**, which is the point — a plan with nothing
+wrong with it says nothing and spends no rows saying it.
+
+---
+
+**D68 — `ESC BACK`, the eleventh cap. No counterpart in `burncd`, and none
+claimed.** → §20.4
+
+`tui_edit` has two ways out and this is neither of them: `b` goes on to the
+burn, and `q` is `die "cancelled"` — the whole program (`burncd:1203`). That is
+a complete set in a terminal, where the editor *is* the session and the way
+back is to type `burncd` again.
+
+It is not complete in a window. The deck is still spinning underneath the plan
+screen, and `B` declines until stage 3 — so without this cap the only way off
+the plan is to quit the app, which is **D57's argument about `E` made a second
+time**, in the same shape and for the same reason. This is the fourth entry
+after D45, D49 and D57 with no script line behind it, and the third that comes
+of something already built being wrong rather than missing.
+
+**`Q` still means the program, on this screen as on every other.** That was the
+alternative — bind `q` to closing the panel, as the eleventh cap's job, and
+keep the legend at ten. It was refused: a legend that says QUIT and closes a
+panel is a legend that lies once and is never trusted again, and the ten keys
+it would have saved a column on are the ten this screen most needs believed.
+
+The row it went on and the two it fits beside were **measured by
+`KeycapTests.fits`, not by arithmetic** — the brief's own instruction, and the
+right one, since the same arithmetic said the deck's legend had no room for
+`VOL` and `MUTE` and D58 is what came of believing it.
 
 ---
 

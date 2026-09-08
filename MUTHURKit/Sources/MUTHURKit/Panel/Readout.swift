@@ -132,6 +132,30 @@ public enum Readout {
         /// leaves by ending the program (`player:531`), which a window cannot
         /// do.
         case close
+
+        /// Open the plan screen on the record already on the deck (§20).
+        ///
+        /// `burncd` is a second program and this is the seam where it becomes a
+        /// key: the script has no equivalent, because in a terminal you leave
+        /// `player` and type `burncd`. `B` is free on the playing panel — it
+        /// means BROWSE on the picker, which is a different screen, the way `R`
+        /// already means REPEAT here and RESCAN there.
+        case burn
+
+        // The plan screen (§20.4). `⇧↑↓` is a rocker like `↑↓` above it, and
+        // for the same reason: one plate, pressed at one end or the other.
+        case moveUp, moveDown
+        case rename
+        case artist
+        case drop
+        /// `S` on this screen, where it means *start a new disc here* — not
+        /// shuffle, which is not a thing you do to a plan.
+        case split
+        case undo
+        /// Put the running order back the way the folder had it (D66). Distinct
+        /// from `.rescan`, which asks the drive again: nothing is re-read here.
+        case reset
+
         case quit
     }
 
@@ -180,6 +204,14 @@ public enum Readout {
     /// complaint the old comment made about the legend as a whole. A row that
     /// wraps and still has slack in it is the better trade. They read after
     /// `QUIT` because that is where an addition belongs: last in, last placed.
+    ///
+    /// **`B BURN` joins row two, between `EJECT` and `QUIT`** (§20). It is the
+    /// argument D57 already made for putting `EJECT` there: burning is
+    /// something you do *to* the record rather than inside it, and row one is
+    /// the transport. It goes after `EJECT` because that is where an addition
+    /// belongs, and before `QUIT` because `Q` stays last. Row two goes 47 → 58,
+    /// measured by `KeycapTests.fits` and not by the arithmetic in this
+    /// sentence.
     public static let legend: [[Cap]] = [
         [
             Cap("␣", "PLAY", .play),
@@ -193,6 +225,7 @@ public enum Readout {
             Cap("S", "SHUFFLE", .shuffle),
             Cap("R", "REPEAT", .repeatMode),
             Cap("E", "EJECT", .eject),
+            Cap("B", "BURN", .burn),
             Cap("Q", "QUIT", .quit),
         ],
         [
@@ -246,6 +279,55 @@ public enum Readout {
         ],
     ]
 
+    /// The plan screen's rows (§20.4, `burncd:1181`).
+    ///
+    /// Eleven keys, which is more than a row holds, and **the break between
+    /// them is the script's own** (`burncd:1008`): the first row is what you do
+    /// to a track, ending with dropping it, and the second is what you do to
+    /// the plan and to the program. `⇧↑↓` is drawn as a rocker beside the plain
+    /// `↑↓` because that is what it is — the same plate with a shift on it —
+    /// and putting them next to each other is the only explanation either one
+    /// needs.
+    ///
+    /// **`S` means SPLIT here and SHUFFLE on the panel.** Both are the script's
+    /// own letters on their own screens (`burncd:1188`, `player:2429`), and
+    /// shuffling a burn plan is not a thing anyone wants; the same is true of
+    /// `R`, which is REPEAT on the panel, RESCAN on the picker and RESET here.
+    ///
+    /// **`B` is BURN in both places and means the same thing in both** — it is
+    /// how you got to this screen and it is how you leave it forwards. Until
+    /// stage 3 it declines, and says so.
+    ///
+    /// **`ESC BACK` is the eleventh key and it is not the script's (D68).**
+    /// `tui_edit` has two ways out and neither of them is this one: `b` goes on
+    /// to the burn, and `q` is `die "cancelled"` — the whole program
+    /// (`burncd:1203`). That is a complete set in a terminal, where the editor
+    /// *is* the session. It is not one in a window, where the deck is still
+    /// spinning underneath and `B` declines until stage 3: without this cap the
+    /// only way off the plan screen is to quit the app, which is D57's argument
+    /// about `E` made a second time. `Q` still means the program, on this
+    /// screen as on every other, because a legend that says QUIT and closes a
+    /// panel is a legend that lies once and is never trusted again.
+    ///
+    /// Measured by `KeycapTests.fits` rather than by this arithmetic.
+    public static let planLegend: [[Cap]] = [
+        [
+            Cap("↑↓", "SELECT", .selectUp, .selectDown),
+            Cap("⇧↑↓", "MOVE", .moveUp, .moveDown),
+            Cap("⏎", "RENAME", .rename),
+            Cap("A", "ARTIST", .artist),
+            Cap("X", "DROP", .drop),
+        ],
+        [
+            Cap("S", "SPLIT", .split),
+            Cap("U", "UNDO", .undo),
+            Cap("R", "RESET", .reset),
+            Cap("B", "BURN", .burn),
+            Cap("ESC", "BACK", .close),
+            Cap("Q", "QUIT", .quit),
+        ],
+    ]
+
     /// Whether holding the cap down should go on asking.
     ///
     /// The three rockers. Holding `←→` to run through a track, `↑↓` to run down
@@ -255,9 +337,17 @@ public enum Readout {
     /// switches: a held `S` toggling shuffle twenty times a second is not a
     /// faster way of doing anything, it is a coin being flipped, and a held `M`
     /// is the same coin.
+    ///
+    /// **`⇧↑↓` repeats too**, and it is the fourth rocker rather than an
+    /// exception: dragging a track from eleventh place to second is one gesture
+    /// held down, and nine deliberate presses is the same coin flipped the
+    /// other way. It stops on its own at either end, where `moveTrack` declines
+    /// and the cursor stays put.
     public static func repeats(_ press: Press) -> Bool {
         switch press {
-        case .seekBack, .seekForward, .selectUp, .selectDown, .volumeDown, .volumeUp: true
+        case .seekBack, .seekForward, .selectUp, .selectDown, .volumeDown, .volumeUp,
+            .moveUp, .moveDown:
+            true
         default: false
         }
     }

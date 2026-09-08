@@ -1,12 +1,14 @@
 # MU/TH/UR — parity
 
-The definition of done. Every box here is something the bash `player` does, read
-out of the source rather than out of the README, with the reasoning that has to
-survive the port attached to it.
+The definition of done. Every box here is something one of the two bash programs
+does, read out of the source rather than out of the README, with the reasoning
+that has to survive the port attached to it. §1–§18 are `player`; **§20 is
+`burncd`**, and it says so where it starts.
 
 Source references are `player:NNNN` for
-`/Users/garrett.vorbeck/Sites/cd-collection/scripts/player/player` and
-`panel.sh:NNNN` for `../lib/panel.sh`. Both are read-only.
+`/Users/garrett.vorbeck/Sites/cd-collection/scripts/player/player`,
+`burncd:NNNN` for `../burncd/burncd`, and `panel.sh:NNNN` for
+`../lib/panel.sh`, which the two programs share. All three are read-only.
 
 Three kinds of entry:
 
@@ -14,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All sixty-two are settled; they
+  the reasoning and the decision it came from. All sixty-eight are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -22,8 +24,8 @@ Three kinds of entry:
   keeps warning about. Re-derived by counting the decisions themselves, which is
   the only count that is ever authoritative.)*
 
-**Three files, one numbering.** This document is §1–§15, §17, and the five
-questions in §18 that are still open. `decisions.md` is §16 and the twenty-three
+**Three files, one numbering.** This document is §1–§15, §17, the five questions
+in §18 that are still open, and §20. `decisions.md` is §16 and the twenty-three
 answered questions of §18. `hardware.md` is §19. The split happened when the
 answers had grown to four times the checklist they were answering for; nothing
 was renumbered by it, and every `§n`, `§n.n` and `Dn` reference in all three
@@ -41,6 +43,10 @@ structurally, and what to do with a disc in the drive to prove each of it. It
 never assumed you had read the rest of this, and the rest of this never assumed
 you had read it, which is why it is `hardware.md` now.
 
+**§20 is the other program**, and it is a checklist like the rest of this
+document rather than a procedure like §19 — but its last ten boxes are waiting
+on the same drive §19 is, and they are marked as such where they stand.
+
 Line numbers are against the source as it stands today. Where a behaviour spans
 a comment and the code it explains, both are cited — the comment is usually the
 part worth porting.
@@ -49,13 +55,48 @@ part worth porting.
 
 ## Status
 
-**283 of 287 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**307 of 321 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 10 of 33). Re-derived by counting the files:
-279 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
+303 ticked and 14 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
 
-**One box, new and ticked, and the denominator moved for the sixth time — the
-fifth of them upward.** 286 → 287, on the same grounds as the last move: a
+**A second program arrived, and the denominator moved for the seventh time —
+the sixth of them upward, and by far the largest.** 287 → 321: thirty-four
+boxes, twenty-four of them ticked, all of them **§20**, the port of `burncd`.
+Every previous move was one requirement discovered or retired inside a section
+that already existed; this is a section that did not. `burncd` is the other
+half of the same instrument — it shares `lib/panel.sh` with `player`, and its
+header is where the phrase *one instrument at two moments of the same disc*
+comes from — so its boxes belong in this document rather than in one of their
+own, but they are `burncd`'s and the section says so at the top of every
+reading.
+
+**Stage 1 is done and it touches no hardware.** The plan (§20.1), the disc
+layout and its balancing search (§20.2), the CD-Text that will go in the
+lead-in (§20.3), the editor that lets a wrong tag be fixed before it is written
+there permanently (§20.4), and `B` on the deck as the way in (§20.5). The ten
+open boxes are the two stages that need something this machine has not got: the
+conversion and the cue sheet's own half, and then the drive — `cdrecord` is not
+a dependency of this project and adding it is a decision that has not been
+taken. They are open rather than absent for the reason §14's three are: a green
+box over an untested burn is worse than an honest empty one.
+
+**Six new decisions, D63–D68**, and they are the first in that list with no
+`player` behind them at all. D63 and D64 are the script's mechanisms rebuilt —
+iconv's transliteration written out by hand because the kit may not shell out,
+and one split note per split track where the script overwrites one variable.
+D65 and D66 answer the two questions the editor raised, both on the script's
+own stated principles. **D67 and D68 are the two things a window needs that a
+terminal did not**, and both were taken on best judgement rather than asked:
+`plan_header` is printed *instead of* the panel (`burncd:740`) and so never
+runs here, taking two warnings with it that now have rows of their own; and
+`tui_edit`'s only exits are `b` forward and `q` = `die "cancelled"`, which
+leaves a window with no way back to a deck that is still spinning — D57's
+argument arriving a second time by a different door, and answered the same way,
+with a cap that was measured onto the row rather than assumed onto it.
+
+**Before that: one box, new and ticked, and the denominator moved for the sixth
+time — the fifth of them upward.** 286 → 287, on the same grounds as the last move: a
 requirement that was not there before. **The keys worked; nothing on the panel
 said so.** `-`, `=` and `m` have nudged the level and toggled mute since D1, and
 the faceplate has shown the result since the same decision — but the one place
@@ -3113,3 +3154,176 @@ That is a description of a separate document.
 
 It still stands at **10 of 33**, and that figure is still kept in the Status
 paragraph above with every other figure, because the counts do not move house.
+
+---
+
+## 20. Burning a disc (`burncd`)
+
+**Every box in this section is `burncd`'s, not `player`'s.** It is the second
+program in `cd-collection` — 2,742 lines at `../burncd/burncd`, with a README
+beside it — and it is read-only on exactly the terms `player` is. The two share
+`lib/panel.sh`, and the script says why in its own header: they are *one
+instrument at two moments of the same disc*, which is only true for as long as
+one file decides what the picture is. That is the whole argument for the port
+living inside MU/TH/UR rather than beside it. References below are
+`burncd:NNNN`.
+
+**It lands in three stages, and the stages are about hardware.** Stage 1 is
+everything that can be decided, drawn and tested with no drive attached: the
+plan, the disc layout, the CD-Text that will go in the lead-in, the editor that
+lets you fix a tag before it is written there permanently, and the way in from
+the deck. **Stage 1 is what is ticked below.** Stage 2 is the conversion — the
+image and the cue sheet the burn is handed — and stage 3 is the drive itself.
+Nothing of either is written, `cdrecord` is not a dependency of this project,
+and the open boxes at the end of this section say what is waiting.
+
+**Nothing on any of stage 1's screens writes to the user's files.** The editor
+looks like a tag editor and is not one: it edits a plan, the plan is rebuilt
+from the draft after every change (`burncd:615`), and the folder it came from
+is never opened for writing. This is stated here as well as at the code because
+it is the property most easily lost by a later edit that means well.
+
+### 20.1 The plan
+
+- [x] `build_playlist` (`burncd:617`) — the running order flattened into the
+      things that get their own `TRACK` number on a disc, rebuilt from scratch
+      on every call because the editor changes the order underneath it
+      (`burncd:615`). `MUTHURKit/Sources/MUTHURKit/Burn/BurnPlan.swift`.
+- [x] **The order itself is §3's and is not derived a second time.**
+      `burncd:469` sorts by disc, then track number, then a natural filename
+      sort, and `player:1501` sorts by disc, then track number, then a natural
+      filename sort — the same three keys in the same order, which is why §3
+      covers both. `PlanDraft(record:)` takes `Record.order` rather than
+      re-deriving it, so the two can never disagree. The same goes for
+      durations rounding **up** and never down (`burncd:447`, and §3's box):
+      one function, `Track.roundedUp`, and a plan that rounded differently from
+      the panel would be a plan for a different record.
+- [x] **The untagged fallback says so out loud** (`ORDER_NOTE`, `burncd:483`).
+      An order arrived at by filename is an order worth checking before it goes
+      into a lead-in permanently, so the plan carries the note and the screen
+      draws it (**D67**).
+- [x] Capacity is **4797 seconds**, not 4800 (`burncd:178`): 79:57, what an
+      80-minute blank really holds. `MAX_TRACKS` is **99** (`burncd:122`), the
+      Red Book ceiling, and it is a limit on *count* whatever the runtime.
+- [x] `--split-long` cuts an over-long track into **equal parts**, not a disc
+      and a remainder, and the parts carry the offsets stage 2 will seek to.
+      **Every split track gets its own note (D64)**, where the script keeps one
+      `SPLIT_NOTE` and overwrites it in the loop; the single-track wording is
+      unchanged.
+
+### 20.2 Cutting it into discs
+
+- [x] `discs_needed` (`burncd:677`) and its **balancing binary search**: the
+      smallest per-disc capacity that still fits in the fewest discs, so a
+      128-minute set becomes 60 + 68 and not 79 + 49. Balancing is never
+      allowed to cost a disc, which is the property the test asserts rather
+      than the answer.
+- [x] `layout_discs` (`burncd:693`) applies **the same rule** the count did —
+      the script says so in a comment at `burncd:721`, and it is the one place
+      where getting it wrong makes the plan and the layout disagree about a
+      disc that is already being written.
+- [x] `breaks_here` (`burncd:668`) — the first entry never starts a new disc, a
+      forced break travels with its track through a reorder, and the later
+      parts of a cut track do not break a disc between them.
+- [x] **The plan says which limit split it** — runtime, the 99-track ceiling,
+      or both (`burncd:770`) — and blames neither when the break was yours,
+      because a forty-minute album across two discs reached no limit at all
+      (`burncd:780`).
+- [x] **A track longer than a disc is refused in the script's own words, both
+      lines** (`burncd:631`), the second of which is the entire remedy. The
+      panel prints the half it can act on (`PlanScreen.refusal`) because
+      `--split-long` is a flag on a command line the window has not got.
+
+### 20.3 CD-Text
+
+- [x] **The 18-byte pack budget.** `((n + 12) / 12) * 18` per field against
+      `CDTEXT_BUDGET` 3800 (`burncd:125`) — rough on purpose, because a drive
+      handed more lead-in than fits rejects the whole burn and the number to
+      aim at is a safe one rather than an exact one.
+- [x] **The shedding ladder, and every rung announced** (`burncd:2130`,
+      `burncd:2568`): per-track artists, then titles cut to 60, then to 30,
+      then no track titles, then no CD-Text for that disc. Measured again from
+      scratch at each rung rather than subtracted from the last, because the
+      rungs are not independent.
+- [x] **ISO-8859-1 conversion without `iconv` (D63).** Curly quotes, the three
+      dashes and `…` are mapped to ASCII *first* (`burncd:2057`) — or `Don't`
+      becomes `Don´t` on a car stereo — and what is left goes through the same
+      three steps iconv's `//TRANSLIT` takes. Whether a field was approximated
+      is decided by the round trip (`burncd:2096`), not by an exit status, and
+      **the count is reported**.
+- [x] **The plan still shows the real titles.** The conversion is what goes in
+      the lead-in; the screen is where the operator is checking the tags, and a
+      screen showing them already transliterated would be checking its own
+      work. `MUTHURKit/Sources/MUTHURKit/Burn/CueText.swift` and `DiscText.swift`.
+
+### 20.4 The plan editor
+
+- [x] **One cursor over three header fields and then the tracks** (`tui_*`,
+      `burncd:893`–`1350`), on one mark-plus-body grid so the selection bar is
+      the same width wherever it is. `PlanEditor.swift`, drawn by
+      `App/Panel/PlanView.swift`.
+- [x] `↑↓` select, `⇧↑↓` move, `⏎` rename, `A` artist, `X` drop. **Dropping the
+      last track declines out loud (D65)**, on `tui_break`'s own principle
+      three functions further down: a key that silently declines reads as a key
+      that is broken.
+- [x] `S` starts a disc at that track, `U` undoes any of it a hundred deep
+      (`UNDO_MAX`, `burncd:1111`), `R` restores **the order and the breaks and
+      not the names (D66)**.
+- [x] **The layout recomputes after every change, and nothing touches the
+      user's files.** Both halves are the point: the meter and the disc rules
+      move as you reorder, and the folder is never written to.
+- [x] **The scroll window and the row budget are counted, not guessed** —
+      `tui_walk`, where a disc rule costs a row, and `tui_fit_rows`, which
+      counts the chrome. The status line, the prompt, D67's notes and the
+      `▾ n MORE` row each take their rows from the same budget.
+- [x] **`plan_header`'s two warnings are drawn on the screen (D67)**, since
+      `plan_header` is printed *instead of* the panel (`burncd:740`) and
+      therefore never runs in a window. The disc meter under the list follows
+      the cursor and idles on disc 1 above the tracks.
+- [x] **`ESC BACK`, the eleventh cap (D68).** `tui_edit`'s only exits are `b`
+      forward and `q` = `die "cancelled"`, which is complete in a terminal and
+      not over a deck that is still spinning. `Q` still means the program.
+      Both legend rows re-measured by `KeycapTests.fits`.
+
+### 20.5 The way in, and the way it declines
+
+- [x] **`B BURN` on the deck's second legend row**, after `E EJECT` and before
+      `Q QUIT`, re-measured with `KeycapTests.fits` rather than by arithmetic.
+- [x] **It opens on the record already on the deck** — no second chooser and no
+      second scan, because the record whose tags you want to fix is the one you
+      are listening to.
+- [x] **`B` at the end of the editor refuses cleanly and says why**, in the
+      voice `--rip` is refused in (`LaunchOptions.swift:54`): *burning is not
+      wired up yet — the plan is right, the drive is not*. The cap stays live
+      rather than dimmed, on D57's reasoning about ⌘O — a control that looks
+      unavailable teaches nothing about why.
+
+### Stage 2 — the conversion (no hardware, not written)
+
+- [ ] Convert to 16-bit/44.1 kHz stereo through the ffmpeg fallback already in
+      §12, into the scratch directory §2 already sweeps.
+- [ ] Serialise `DiscText` into the cue sheet: `write_cue`'s `FILE` line and
+      the MSF `INDEX` offsets, neither of which exists until there is an image
+      to point at. **The field choices are not made again here** — §20.3
+      settled which survive and what they read.
+- [ ] `--level` — `album` or `track` loudness matching to `BURNCD_LUFS` with
+      `BURNCD_PEAK` of true-peak headroom, and no compression, which the script
+      declines by name.
+- [ ] `-n` and `--demo`: build everything and stop, which is what makes the
+      whole of stage 2 testable on a machine with no drive in it.
+
+### Stage 3 — the drive (blocked on hardware)
+
+- [ ] `media_check` — look at the blank before spending minutes converting into
+      an image it cannot hold, and proceed rather than block where the drive's
+      reporting is known to lie.
+- [ ] The burn itself: `cdrecord`, disc-at-once, `BURNCD_SPEED`, `BURNCD_DEV`.
+      **`cdrecord` is not a dependency of this project and adding it is a
+      decision that has not been taken.**
+- [ ] `--dummy` — rehearse with the laser off.
+- [ ] `--verify` — read the disc back afterwards and check it.
+- [ ] The burn panel: the progress meter, the lamp that keeps its own time
+      rather than the drive's, and `TAIL_QUIET`/`TAIL_PCT` — the rule that
+      tells a drive writing its lead-out from a drive that has died.
+- [ ] `--from-disc n` — resume a multi-disc job, which cannot be exercised
+      without two blanks and a drive to put them in.
