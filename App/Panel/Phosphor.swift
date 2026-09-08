@@ -531,16 +531,28 @@ struct Chassis<Content: View>: View {
     var body: some View {
         content
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            // The screen sits below the surface it is set into.
             .overlay {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.black.opacity(0.9), .black.opacity(0.25)],
-                            startPoint: .top, endPoint: .bottom),
-                        lineWidth: 3
-                    )
-                    .allowsHitTesting(false)
+                ZStack {
+                    // The lip overlaps the glass rather than merely bordering
+                    // it, so it drops a shadow of its own onto the screen it
+                    // covers. A blurred ring pulled inward and clipped back to
+                    // the glass reads as that overlap; the plain gradient
+                    // stroke underneath was the seam where metal meets glass,
+                    // not the metal sitting on top of it.
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .stroke(Color.black.opacity(0.55), lineWidth: 6)
+                        .blur(radius: 3)
+                        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                    // The screen sits below the surface it is set into.
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.black.opacity(0.9), .black.opacity(0.25)],
+                                startPoint: .top, endPoint: .bottom),
+                            lineWidth: 3
+                        )
+                }
+                .allowsHitTesting(false)
             }
             .padding(inset)
             .background {
@@ -549,10 +561,209 @@ struct Chassis<Content: View>: View {
                     LinearGradient(
                         colors: [.white.opacity(0.055), .clear, .black.opacity(0.35)],
                         startPoint: .top, endPoint: .bottom)
+                    // Wear sits on the surface, over the ambient lighting
+                    // rather than under it — a scuff catches the light,
+                    // it doesn't wait beneath it to be caught.
+                    Distress(inset: inset)
                     Screws(inset: inset)
                 }
             }
             .ignoresSafeArea(.all, edges: [.horizontal, .bottom])
+    }
+}
+
+/// A face that has been on a bulkhead a while. Three kinds of wear, in the
+/// proportion a real panel actually shows it: a fine brushed grain over
+/// everything, a few long low-contrast scratches running *with* the panel's
+/// edges rather than across them, and a couple of small paint chips where
+/// handling actually knocks a corner.
+///
+/// **A first pass here drew the scratches as a dozen-odd short strokes
+/// jabbing in from every edge at their own angle, each one flat-coloured and
+/// as loud as the next.** That is what "random grey lines" looks like: a
+/// scratch this visible and this isolated reads as a graphic, not a scuff,
+/// and a bulkhead panel is not scratched from a dozen directions at once —
+/// whatever slides across it slides one way. The fix is fewer marks, softer
+/// ones, running the way the panel is actually handled, and a grain
+/// underneath them that is doing more of the "worn metal" work than any
+/// single scratch does.
+///
+/// **The grain is generated, everything else is written down.** A few
+/// hundred individual flecks is not a table to place by eye the way
+/// `Screws`' four angles are; it comes from a fixed-seed seeded generator
+/// instead, computed once into a `static let` and never touched again. That
+/// is the same guarantee `Screws` needs — nothing here moves under your
+/// cursor or between launches — reached by generating once rather than
+/// typing three hundred numbers by hand. The scratches and chips stay literal
+/// constants, because there are few enough of them that hand-placing each one
+/// is the honest way to make it look deliberate.
+///
+/// **Placed by edge, not by fraction of the whole chassis.** The metal that
+/// actually shows is only the `inset`-wide band the screen is set into — the
+/// rest of this view's bounds sits behind the glass, which is drawn on top of
+/// it. Walking every mark out from its edge by a fraction of `inset` keeps it
+/// on the metal regardless of how wide the surround ends up being.
+private struct Distress: View {
+    let inset: CGFloat
+
+    private enum Edge: CaseIterable { case top, bottom, left, right }
+
+    private func point(_ edge: Edge, along: Double, depth: Double, size: CGSize) -> CGPoint {
+        let d = inset * depth
+        switch edge {
+        case .top: return CGPoint(x: along * size.width, y: d)
+        case .bottom: return CGPoint(x: along * size.width, y: size.height - d)
+        case .left: return CGPoint(x: d, y: along * size.height)
+        case .right: return CGPoint(x: size.width - d, y: along * size.height)
+        }
+    }
+
+    /// A line stroked as short segments whose opacity rises to `peak` at the
+    /// middle and falls back to nothing at both ends, so it fades into the
+    /// grain rather than stopping at a drawn edge — a real scratch does not
+    /// begin, it is just where the tool started catching.
+    private static func taper(
+        from a: CGPoint, to b: CGPoint, colour: Color, peak: Double, width: CGFloat,
+        in context: GraphicsContext
+    ) {
+        let segments = 10
+        for i in 0..<segments {
+            let t0 = Double(i) / Double(segments)
+            let t1 = Double(i + 1) / Double(segments)
+            let mid = (t0 + t1) / 2
+            let alpha = sin(mid * .pi)
+            var path = Path()
+            path.move(to: CGPoint(x: a.x + (b.x - a.x) * t0, y: a.y + (b.y - a.y) * t0))
+            path.addLine(to: CGPoint(x: a.x + (b.x - a.x) * t1, y: a.y + (b.y - a.y) * t1))
+            context.stroke(path, with: .color(colour.opacity(peak * alpha)), lineWidth: width)
+        }
+    }
+
+    /// A minimal xorshift generator, seeded once, so the grain below is the
+    /// same speckle field on every launch rather than reshuffling itself the
+    /// way an unseeded `Double.random` would.
+    private struct FixedRNG: RandomNumberGenerator {
+        var state: UInt64
+        mutating func next() -> UInt64 {
+            state ^= state << 13
+            state ^= state >> 7
+            state ^= state << 17
+            return state
+        }
+    }
+
+    /// Fine brushed-metal noise: flecks scattered across the band. This is
+    /// what reads as worn metal — the scratches below are the incidents, this
+    /// is the texture they happened on, and it has to survive being looked at
+    /// through a screenshot's own compression, not just at the pixel level a
+    /// simulator sees it at. A first pass here was sized and toned as if it
+    /// were sub-pixel dust; against a chassis this close to black it simply
+    /// vanished, leaving only the scratches — which is the "isolated line"
+    /// problem right back again, just with fewer lines.
+    private static let grain: [(edge: Edge, along: Double, depth: Double, radius: Double, tone: Double)] = {
+        var rng = FixedRNG(state: 0x9E37_79B9_7F4A_7C15)
+        var marks: [(Edge, Double, Double, Double, Double)] = []
+        for edge in Edge.allCases {
+            for _ in 0..<140 {
+                marks.append(
+                    (
+                        edge,
+                        Double.random(in: 0...1, using: &rng),
+                        Double.random(in: 0.04...0.96, using: &rng),
+                        Double.random(in: 0.35...1.1, using: &rng),
+                        Double.random(in: -1...1, using: &rng)
+                    ))
+            }
+        }
+        return marks
+    }()
+
+    /// Long, shallow scratches running with the grain — the direction
+    /// something slides across a panel in, not across it. Each is a groove
+    /// and a sheen half a point apart rather than one flat stroke, which is
+    /// what gives a scratch depth instead of just contrast.
+    private static let scratches: [(edge: Edge, along: Double, depth: Double, length: Double, tilt: Double)] = [
+        (.top, 0.16, 0.5, 40, 1.5),
+        (.top, 0.63, 0.35, 26, -1.0),
+        (.bottom, 0.30, 0.6, 46, -1.2),
+        (.bottom, 0.78, 0.4, 24, 1.0),
+        (.left, 0.42, 0.55, 50, 1.4),
+        (.right, 0.55, 0.45, 36, -1.2),
+    ]
+
+    /// Small paint chips, sparse and near the corners, where a panel this
+    /// shape actually takes its knocks.
+    private static let chips: [(edge: Edge, along: Double, depth: Double, radius: Double)] = [
+        (.top, 0.05, 0.6, 1.3),
+        (.top, 0.94, 0.4, 1.0),
+        (.bottom, 0.08, 0.5, 1.1),
+        (.left, 0.85, 0.5, 1.2),
+    ]
+
+    var body: some View {
+        Canvas { context, size in
+            for speck in Self.grain {
+                let p = point(speck.edge, along: speck.along, depth: speck.depth, size: size)
+                let box = CGRect(
+                    x: p.x - speck.radius, y: p.y - speck.radius,
+                    width: speck.radius * 2, height: speck.radius * 2)
+                let colour: Color =
+                    speck.tone > 0
+                    ? .white.opacity(speck.tone * 0.20) : .black.opacity(-speck.tone * 0.26)
+                context.fill(Path(ellipseIn: box), with: .color(colour))
+            }
+            // A scratch has no edge to it — it fades in and out of the grain
+            // rather than starting and stopping — so it is stroked as a run of
+            // short segments whose opacity rises and falls across the run
+            // instead of one hard-cornered line, and the whole run sits in its
+            // own blurred layer so the taper reads as soft rather than jagged.
+            context.drawLayer { layer in
+                layer.addFilter(.blur(radius: 0.5))
+                for scratch in Self.scratches {
+                    let mid = point(scratch.edge, along: scratch.along, depth: scratch.depth, size: size)
+                    let half = scratch.length / 2
+                    let dx: CGFloat
+                    let dy: CGFloat
+                    let offX: CGFloat
+                    let offY: CGFloat
+                    switch scratch.edge {
+                    case .top, .bottom:
+                        dx = half
+                        dy = scratch.tilt
+                        offX = 0
+                        offY = 0.6
+                    case .left, .right:
+                        dx = scratch.tilt
+                        dy = half
+                        offX = 0.6
+                        offY = 0
+                    }
+                    let start = CGPoint(x: mid.x - dx, y: mid.y - dy)
+                    let end = CGPoint(x: mid.x + dx, y: mid.y + dy)
+                    let sheenStart = CGPoint(x: start.x + offX, y: start.y + offY)
+                    let sheenEnd = CGPoint(x: end.x + offX, y: end.y + offY)
+                    Self.taper(from: start, to: end, colour: .black, peak: 0.30, width: 0.8, in: layer)
+                    Self.taper(
+                        from: sheenStart, to: sheenEnd, colour: .white, peak: 0.24, width: 0.6, in: layer)
+                }
+            }
+            for chip in Self.chips {
+                let p = point(chip.edge, along: chip.along, depth: chip.depth, size: size)
+                let box = CGRect(
+                    x: p.x - chip.radius, y: p.y - chip.radius,
+                    width: chip.radius * 2, height: chip.radius * 2)
+                // The pit itself, and a fleck of the bare metal it exposed,
+                // lit off-centre from it — a chip is never even, that is what
+                // makes it read as a hole and not a dot.
+                context.fill(Path(ellipseIn: box), with: .color(.black.opacity(0.35)))
+                let fleck =
+                    box
+                    .offsetBy(dx: chip.radius * 0.35, dy: -chip.radius * 0.35)
+                    .insetBy(dx: chip.radius * 0.55, dy: chip.radius * 0.55)
+                context.fill(Path(ellipseIn: fleck), with: .color(.white.opacity(0.20)))
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 
