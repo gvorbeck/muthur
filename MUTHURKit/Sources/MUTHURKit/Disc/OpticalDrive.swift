@@ -52,8 +52,14 @@ public struct OpticalDrive: Sendable, Equatable {
         if let override, !override.isEmpty {
             return OpticalDrive(device: override, answered: true)
         }
-        if let named = environment["MUTHUR_DEV"], !named.isEmpty {
-            return OpticalDrive(device: named, answered: true)
+        // `BURNCD_DEV` as well as this program's own name, because the machine
+        // that has a burner in it is the machine that already has that line in
+        // its shell profile, and the two programs are pointing at the same
+        // drive (`burncd:63`).
+        for name in ["MUTHUR_DEV", "BURNCD_DEV"] {
+            if let named = environment[name], !named.isEmpty {
+                return OpticalDrive(device: named, answered: true)
+            }
         }
         guard let cdrecord = Tooling.locate("cdrecord", environment: environment) else {
             return OpticalDrive(device: fallbackDevice, answered: false)

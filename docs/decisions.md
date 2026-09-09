@@ -121,6 +121,19 @@ it said move onto the plan; and `tui_edit`'s two exits are complete in a session
 you can retype and are not complete over a deck that is still spinning, which is
 D57's argument arriving a second time by a different door.
 
+**D69–D72 came with §20 stage 2, and three of the four are about the machine
+rather than the music.** D69 drops a hash the script needed only because a flat
+file needs one grep-able column. D70 is `-n` and `--demo` becoming an enum,
+which matters more than a flag usually would: with the drive a stage away it is
+the only path the conversion could be built along, so it is the tested one. D71
+asks the volume what it will give an important job instead of what `df` admits
+to. **D72 is the one that is a record of a mistake rather than a departure** —
+the script's disk-space message was read here as naming the wrong directory,
+flagged as such, and turned out on a second reading to be exactly right about
+its own program. The port says the same sentence about a different scratch
+directory, and the rule that says flag rather than fix is why the misreading
+never reached the code.
+
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
 widget is in a different position. Its own gain, not the system's. → §6.1a
@@ -2283,6 +2296,174 @@ The row it went on and the two it fits beside were **measured by
 `KeycapTests.fits`, not by arithmetic** — the brief's own instruction, and the
 right one, since the same arithmetic said the deck's legend had no room for
 `VOL` and `MUTE` and D58 is what came of believing it.
+
+---
+
+**D69 — the loudness cache is a dictionary, so `hash_str` does not survive.**
+→ §20 stage 2
+
+`measure_all` keys the cache on `hash_str "$f:$(file_size "$f"):$(stat -f%m …)"`
+and appends `key<TAB>lufs<TAB>peak` to `~/.cache/burncd/levels.tsv`
+(`burncd:494–546`). **The hash is not doing any work that a hash does.** It is
+not security and it is not a checksum of the audio: it exists because a flat
+file has to be `grep -m1 "^$key	"`-able, and a path with a tab or a newline in
+it would break the format the moment somebody's album title contained one. A
+dictionary has no such problem, so the port keys on the path outright and keeps
+size and mtime beside the reading as fields — `~/.cache/muthur/levels.json`,
+`XDG_CACHE_HOME` honoured as everywhere else. Same three facts, same
+invalidation, one less indirection to explain.
+
+**The cache is an optimisation and never a requirement**, which is the script's
+comment and is kept exactly: a home directory that cannot be written measures
+every time and says nothing about it.
+
+The stamp is read with `FileManager.attributesOfItem`, and that is not
+interchangeable with `URL.resourceValues` — **`resourceValues` caches on the URL
+instance**, so a size read through a URL that was already asked comes back as
+the size it used to be. A cache key read out of a cache is not a cache key. It
+cost a failing test to find and it is commented at the site.
+
+---
+
+**D70 — `-n` and `--demo` become `BurnJob.Stop`, because there is no command
+line to put them on.** → §20 stage 2
+
+`-n` exits after the editor (`burncd:1380`) and `--demo` runs the whole job with
+`fake_cdrecord` where the drive would be (`burncd:2591`). Two flags on an
+invocation; here, one enum with two cases — `.afterPlan` and `.afterBuilding` —
+handed to the job when it is made.
+
+**Stage 3's case is deliberately not there yet.** An enum with a case nothing
+can reach is a promise the code has not kept, and the honest shape of a job that
+cannot burn is a job whose every path stops before the burn. It gains a case
+when there is something for it to stop after.
+
+The reason this is a decision rather than a detail: **stopping early is the only
+way stage 2 could be built at all**, with the drive a stage away and nothing in
+the machine to write to. So it is not a courtesy flag bolted on at the end — it
+is the path the whole of §20 stage 2 was developed and tested through, and the
+material tests are `--demo` runs that read their own output back with the same
+ffmpeg that wrote it.
+
+---
+
+**D71 — free space is what the volume will give an important job, not what `df`
+admits to.** → §20 stage 2
+
+`free_bytes` is `df -k` (`burncd:159`). On APFS that number is pessimistic by
+design: it excludes space held by local snapshots and by purgeable caches, all
+of which the system hands over when something that matters asks for it. A burn
+is something that matters, and the port asks
+`volumeAvailableCapacityForImportantUsage`, which is the platform's own name for
+exactly that question.
+
+The consequence is that this port will accept jobs the script would have
+refused, and both are right about their own machine — the script has no API to
+ask and `df` is the only answer available to it.
+
+**A volume that will not answer is not a refusal.** The check is a courtesy paid
+before five minutes of decoding; the write is the authority. Declining a burn on
+a filesystem this port has never met, on the strength of a number it could not
+obtain, would be the check overreaching what it is for.
+
+---
+
+**D72 — the refusal names the directory it actually checked. The script was
+right and was nearly "fixed".** → §20 stage 2
+
+`burncd:2412` checks `free_bytes "$WORK"` and then says *in `${TMPDIR:-/tmp}`.
+Free some space or set TMPDIR to a bigger volume* — a message naming one
+directory about a check made on another, which is how it was first read here and
+flagged as an inconsistency. It is not one. `WORK=$(mktemp -d
+"${TMPDIR:-/tmp}/burncd.XXXXXX")` (`burncd:2354`), so `TMPDIR` is the volume,
+`TMPDIR` is the lever, and the sentence is exactly true.
+
+It stops being true here, because the scratch directory is §2's and its base is
+`MUTHUR_WORK` (**D13**), not `TMPDIR`. So the port says the same sentence with
+the variable that actually moves it, and prints the path it really measured
+rather than a `${TMPDIR:-/tmp}` it never looked at.
+
+Written down chiefly as a record of the near miss: the flagged inconsistency was
+a misreading, and the rule that sent it to be asked about rather than quietly
+corrected is the reason the misreading cost nothing.
+
+---
+
+**D73 — track mode names the limit that stopped it, the way album mode already
+does eleven lines lower.** → §20 stage 2
+
+`level_note`'s track branch prints one sentence and prints it unconditionally
+(`burncd:793`):
+
+    Level: each track matched to -11 LUFS
+
+The gain it is describing is `TRACK_GAIN`, which is `(gl < gh ? gl : gh)`
+(`burncd:556`) — the smaller of the distance to the loudness target and the
+distance to the true-peak ceiling — with no clamp of any kind. On a modern
+master `gh` is a fraction of a dB while `gl` is several, so the ceiling wins,
+the track is left roughly where it was, and the note says it was matched to a
+target it never reached. The note is not describing the gain; it is describing
+the intention.
+
+Album mode, in the same function five lines below, does not have this problem.
+It carries `ALBUM_BOUND` out of `compute_album_gain` and writes three different
+sentences from it — no change, headroom-bound, target reached — which is the
+whole reason `ALBUM_BOUND` exists. So the port gives the track branch the same
+thing: `Loudness.trackBound` applies `compute_album_gain`'s own `gl < gh` test
+one track at a time (a tie counts as `peak`, because that comparison is strict),
+and the note becomes three sentences instead of one:
+
+    Level: each track matched to -11 LUFS
+    Level: every track held by its peak, short of -11 LUFS
+    Level: 12 of 15 matched to -11 LUFS, the rest held by peaks
+
+The third one carries both counts in its first clause so that the second needs
+no number of its own and cannot come out as "1 tracks"; all three fit the
+67-column strip with the widest target and a 99-track disc.
+
+Counted over the **playlist**, and each source counted once however many discs
+it spans — `compute_album_gain` averages over `P_SRC` for the same reason, and
+two sentences about one job should be counted over the same set of tracks.
+
+**The justification is the inconsistency inside `level_note`, not a general
+licence to improve the script.** One function, two branches, one shared fact
+about how these gains are computed, and only one of the branches saying it: the
+half that already exists is the argument for the half that does not. Nothing
+else about `--level` moves — the gains, the ceiling, the refusal to compress and
+the `"0.0"` string comparison the conversion switches on are all exactly the
+script's.
+
+**D74 — a burn speed that is not a whole number falls back to 8 and says so,
+where the script refuses to start.** → §20 stage 3a
+
+`burncd` checks its environment at startup and dies on anything that is not a
+plain unsigned integer:
+
+```sh
+numeric() {
+  case "$2" in ''|*[!0-9]*) die "$1 must be a whole number, got: $2" ;; esac
+}
+numeric BURNCD_SPEED "$SPEED"
+```
+
+That is the right answer for a program you invoked from a shell a second ago,
+where the whole cost of the refusal is retyping the line you can still see. It
+is the wrong answer here. An app reads its environment once, at launch, from
+whatever launched it — a plist, a login shell four years old, Xcode — and there
+is no line in front of anybody to retype. Refusing to burn a disc that would
+have been written at 8x anyway is a worse outcome than writing it at 8x, and
+the user is not in a position to fix it in the moment even if they wanted to.
+
+So the value falls back to the default and the fallback is written into the
+job's notes, beside the split note and the level note, where every other thing
+the job decided for itself is already recorded. The test is the script's own —
+whole, unsigned, and zero rejected with the rest, because cdrecord reads `0` as
+*the drive's choice* and that is not a speed anybody typed on purpose.
+
+**The rule this follows is the one about the drive, not a new one.** A hand-set
+device is never second-guessed: its failure is reported against the name that
+was asked for. A hand-set *speed* that cannot be a speed is not a name at all,
+and there is nothing to report it against.
 
 ---
 

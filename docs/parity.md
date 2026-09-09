@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All sixty-eight are settled; they
+  the reasoning and the decision it came from. All seventy-four are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -55,10 +55,66 @@ part worth porting.
 
 ## Status
 
-**307 of 321 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**315 of 324 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 10 of 33). Re-derived by counting the files:
-303 ticked and 14 open here, plus the 4 that live inside D8 in `decisions.md`,
+311 ticked and 9 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
+
+**Stage 3a of §20 is done — the whole burn except the drive — and the
+denominator moved for the ninth time, the eighth of them upward.** 322 → 324:
+stage 3's line for *the burn itself* was three requirements wearing one coat,
+and only one of them needs hardware. Building the argument vector, drawing the
+panel, and standing a fake drive up to drive both are all things a machine with
+no burner in it can do, and two of them now have boxes of their own to be
+honest in. Three ticked, one of them a box that was already there.
+
+**The burn screen exists, and it is the plan's meter with the laser on.** The
+bands are the disc's tracks in the same four ambers; only the numerator under
+the head changes — seconds converted on one screen, megabytes written on the
+other — so `Meter.bands`, `Meter.head` and `Meter.cells` draw both, which is
+`bands()` and `bandbar()` doing in the port exactly what they do in
+`lib/panel.sh`. Under it the lamp keeps its own time rather than the drive's, at
+`0.05`s a step, because a lamp that stepped once per progress line took two
+minutes to cross the panel and read as stuck — the one impression it exists to
+prevent. And the phase machine covers the two silences a drive gives you for
+free: `LEAD-IN` before it speaks at all, and `LEAD-OUT` when three seconds of
+quiet arrive on a disc that is all but full, measured against the last track as
+well as the disc so that forty short tracks' worth of rounding arrears cannot
+strand the bar at ninety-three percent until the disc is ejected out from under
+it. It is reversible, because a drive that was only pausing must be able to take
+the panel straight back.
+
+**The drive is a parameter now, which is the shape of what is left.** The
+invocation is a value that can be read back argument by argument rather than a
+command line assembled at the moment of use; `fake_cdrecord` is a schedule
+rather than a run of sleeps, so a burn that takes half a minute to watch takes
+no time at all to check; and `BurnJob` runs from a folder of files to a finished
+burn screen with nothing spawned and no blank in the machine. When the drive
+arrives it arrives as a second conformance of one protocol with two members. **A
+whole record now goes end to end in the test suite** — planned, levelled,
+converted, imaged, cue'd and burnt to a panel that says the disc is written —
+which is the thing stage 3a was for.
+
+**Stage 2 of §20 is done, and the denominator moved for the eighth time — the
+seventh of them upward, and the smallest yet.** 321 → 322, one box: *there is
+room for the image before there is an image*. It is a requirement the four boxes
+stage 2 was written as never named, and it has its own code, its own message and
+its own remedy in the script (`burncd:2405`) — refuse in a millisecond rather
+than discover at ninety percent, with the scratch directory full and the record
+half-converted. Five boxes ticked, four of them the four that were open.
+
+**Everything of `burncd` that does not need the drive now exists.** Every track
+goes through the ffmpeg fallback of §12 to 16-bit/44.1 kHz stereo with the
+dither *asked for* rather than assumed, into one continuous sector-aligned image
+per disc whose track boundaries are index marks and not gaps; `DiscText` from
+stage 1 becomes the cue sheet beside it, with the year as `REM DATE` because
+CD-Text has nowhere to put a year; `--level` matches loudness to `MUTHUR_LUFS`
+or stops at `MUTHUR_PEAK` of true-peak headroom, whichever comes first, and says
+which; and `-n` and `--demo` build all of it and stop. That last one is not a
+convenience: **it is the only way any of this could be built with the drive a
+stage away**, so it is the path stage 2 was developed along and the one the
+material tests exercise, reading each image back with the same ffmpeg that
+wrote it.
 
 **A second program arrived, and the denominator moved for the seventh time —
 the sixth of them upward, and by far the largest.** 287 → 321: thirty-four
@@ -74,15 +130,40 @@ reading.
 **Stage 1 is done and it touches no hardware.** The plan (§20.1), the disc
 layout and its balancing search (§20.2), the CD-Text that will go in the
 lead-in (§20.3), the editor that lets a wrong tag be fixed before it is written
-there permanently (§20.4), and `B` on the deck as the way in (§20.5). The ten
-open boxes are the two stages that need something this machine has not got: the
-conversion and the cue sheet's own half, and then the drive — `cdrecord` is not
-a dependency of this project and adding it is a decision that has not been
-taken. They are open rather than absent for the reason §14's three are: a green
-box over an untested burn is worse than an honest empty one.
+there permanently (§20.4), and `B` on the deck as the way in (§20.5). The nine
+open boxes left are five of stage 3b and §14's four: those need a drive and a
+disc to write with it, and `cdrecord` — which stage 3b makes a hard requirement
+and stage 3a deliberately does not. They are open rather than absent for the
+reason §14's are: a green box over an untested burn is worse than an honest
+empty one.
 
-**Six new decisions, D63–D68**, and they are the first in that list with no
-`player` behind them at all. D63 and D64 are the script's mechanisms rebuilt —
+**Two new decisions, D73–D74**, both about a script being right for a program
+that is a shell command and wrong for one that is an app. `level_note` claims
+in track mode that every track was matched to the target when a hot master is
+peak-bound and was never matched to anything, and album mode distinguishes its
+three cases eleven lines lower in the same function — so track mode names its
+limit too, and the justification is that inconsistency and not a general licence.
+And a junk `BURNCD_SPEED` falls back to 8 and says so in the job's notes rather
+than refusing to start: the script can die and have you retype the line you can
+still see, where an app read its environment at launch from whatever launched
+it.
+
+**Four decisions before those, D69–D72**, three about the machine rather than
+the music:
+a loudness cache keyed on the path itself, since `hash_str` exists only to give
+a flat file one column it can grep; `-n` and `--demo` as an enum with stage 3's
+case deliberately missing; and free space asked of the volume as
+*important-usage* capacity rather than of `df`, which on APFS reports a figure
+low enough to refuse jobs that would have run. **D72 is a record of a mistake
+that did not land**: the script's disk-space message was read here as naming the
+wrong directory, flagged rather than corrected, and turned out on a second
+reading to be exactly right about its own program — `WORK` is made inside
+`TMPDIR`. The port says the same sentence about `MUTHUR_WORK`, because that is
+where its scratch directory actually is.
+
+**Six decisions before those, D63–D68**, and they are the first in that list
+with no `player` behind them at all. D63 and D64 are the script's mechanisms
+rebuilt —
 iconv's transliteration written out by hand because the kit may not shell out,
 and one split note per split track where the script overwrites one variable.
 D65 and D66 answer the two questions the editor raised, both on the script's
@@ -3298,32 +3379,88 @@ it is the property most easily lost by a later edit that means well.
       rather than dimmed, on D57's reasoning about ⌘O — a control that looks
       unavailable teaches nothing about why.
 
-### Stage 2 — the conversion (no hardware, not written)
+### Stage 2 — the conversion (no hardware, written)
 
-- [ ] Convert to 16-bit/44.1 kHz stereo through the ffmpeg fallback already in
-      §12, into the scratch directory §2 already sweeps.
-- [ ] Serialise `DiscText` into the cue sheet: `write_cue`'s `FILE` line and
+- [x] **Convert to 16-bit/44.1 kHz stereo through the ffmpeg fallback already
+      in §12**, into the scratch directory §2 already sweeps, and into **one
+      continuous sector-aligned image per disc** — `le32`, `wav_header`,
+      `patch_le32` (`burncd:2002–2035`), both size fields written as zero and
+      patched after the single streaming pass, because the length is not known
+      until the last track has been decoded. Track boundaries are kept as the
+      offsets the `INDEX` marks are made from and are not a gap. A mixture of
+      formats and sample rates is what a folder of music is, so it is what the
+      material tests are made of. **`dither_method=triangular` is said
+      outright** (`burncd:2513`): ffmpeg's default is to truncate, which is a
+      grainy floor on every 24-bit source and silent about it — and it is the
+      one thing here proved on digital silence, where truncation writes nothing
+      and dither writes a floor.
+- [x] **Serialise `DiscText` into the cue sheet**: `write_cue`'s `FILE` line and
       the MSF `INDEX` offsets, neither of which exists until there is an image
-      to point at. **The field choices are not made again here** — §20.3
-      settled which survive and what they read.
-- [ ] `--level` — `album` or `track` loudness matching to `BURNCD_LUFS` with
-      `BURNCD_PEAK` of true-peak headroom, and no compression, which the script
-      declines by name.
-- [ ] `-n` and `--demo`: build everything and stop, which is what makes the
-      whole of stage 2 testable on a machine with no drive in it.
+      to point at, and the year as `REM DATE`, which is where a year goes when
+      CD-Text has no field for one. **The field choices are not made again
+      here** — §20.3 settled which survive and what they read.
+- [x] **`--level` — `album` or `track` loudness matching to `MUTHUR_LUFS` with
+      `MUTHUR_PEAK` of true-peak headroom, and no compression**, which the
+      script declines by name: the gain is whichever limit comes first, so a
+      record that would have to clip to reach the target stops short of it
+      instead, and the plan says which of the two stopped it. Album is one gain
+      across the record and never turns anything down; `track` levels each one
+      and will. Measuring decodes everything an extra time, so it announces
+      itself once and caches by path, size and mtime (**D69**).
+- [x] **There is room for the image before there is an image** (`burncd:2405`).
+      Uncompressed audio is about 10 MB a minute, so a job that will not fit is
+      refused in a millisecond with the size it wanted and the size it found,
+      rather than discovered at ninety percent with the scratch directory full
+      (**D71**, **D72**).
+- [x] **`-n` and `--demo`: build everything and stop**, which is what makes the
+      whole of stage 2 testable on a machine with no drive in it — and is how
+      all of it was tested (**D70**). `-n` still measures the lead-in, because
+      `measure_all` runs at load and the plan it prints has the level note on
+      it (`burncd:603`). `--demo`'s second half — feeding `fake_cdrecord` to
+      the burn panel — went with stage 3a, which is where the panel is.
 
-### Stage 3 — the drive (blocked on hardware)
+### Stage 3a — the whole burn except the drive
+
+- [x] **The burn panel**: the progress meter, the lamp that keeps its own time
+      rather than the drive's, and `TAIL_QUIET`/`TAIL_PCT` — the rule that
+      tells a drive writing its lead-out from a drive that has died. The bar is
+      the plan's capacity meter again, from the same two functions with a
+      different numerator under the head, which is the point of the whole
+      port: the disc you approved and the disc being written are one picture at
+      two moments. `render`'s compact readout for a terminal under 71 columns
+      is not ported and has no decision of its own — the window's floor is the
+      panel's own width, on the same grounds `PanelGrid` gives for dropping the
+      25×71 minimum.
+- [x] **The invocation, built and never run**: disc-at-once, `-text` per disc
+      rather than per job, `-dummy` and the `-eject` that is withheld when
+      something still wants the disc, `driveropts=burnfree`, the cue sheet by
+      bare name with the working directory set, `MUTHUR_SPEED`/`BURNCD_SPEED`
+      and `MUTHUR_DEV`/`BURNCD_DEV`, and the `IODVDServices`/
+      `IOCompactDiscServices`/`IOBDServices` probe across units 0 and 1 with a
+      hand-set device never second-guessed. A junk speed falls back and says so
+      instead of refusing to burn (**D74**). It is a value, argument by
+      argument, because the argument that is wrong is wrong whether or not
+      anything runs it.
+- [x] **`fake_cdrecord`, and `--demo`'s second half with it**: the lead-in, the
+      lead-out and every megabyte between them as a schedule rather than as
+      sleeps, driving the real panel through the real parser. `BurnJob` takes
+      the drive as a parameter, so the whole pipeline runs from a folder of
+      files to a finished burn screen with nothing spawned — and the real drive
+      arriving is a different argument, not a different program.
+
+### Stage 3b — the drive (blocked on hardware)
+
+**`cdrecord` (`brew install cdrtools`) becomes a hard requirement here.** It is
+not one yet: nothing in stage 3a shells out to it or assumes it is present.
 
 - [ ] `media_check` — look at the blank before spending minutes converting into
       an image it cannot hold, and proceed rather than block where the drive's
       reporting is known to lie.
-- [ ] The burn itself: `cdrecord`, disc-at-once, `BURNCD_SPEED`, `BURNCD_DEV`.
-      **`cdrecord` is not a dependency of this project and adding it is a
-      decision that has not been taken.**
-- [ ] `--dummy` — rehearse with the laser off.
+- [ ] The burn itself: spawn `cdrecord` with the vector stage 3a already
+      builds, read it on the carriage returns, and hand the chunks to the panel
+      that is already drawing them.
+- [ ] `--dummy` — rehearse with the laser off. The verb it changes is in the
+      panel; what is missing is a drive to rehearse on.
 - [ ] `--verify` — read the disc back afterwards and check it.
-- [ ] The burn panel: the progress meter, the lamp that keeps its own time
-      rather than the drive's, and `TAIL_QUIET`/`TAIL_PCT` — the rule that
-      tells a drive writing its lead-out from a drive that has died.
 - [ ] `--from-disc n` — resume a multi-disc job, which cannot be exercised
       without two blanks and a drive to put them in.

@@ -65,9 +65,13 @@ enum Tooling {
         }
         // Read before waiting: a full pipe with nobody reading it is a process
         // that never exits.
-        let data = try? pipe.fileHandleForReading.readToEnd()
+        //
+        // `readToEnd` answers nil at EOF with nothing before it, and a tool that
+        // said nothing is not a tool that failed to run — `ffmpeg -v error` on a
+        // conversion that went fine is silent by design. Only a spawn that threw
+        // is a nil here; everything else ran and has a status worth having.
+        let data = (try? pipe.fileHandleForReading.readToEnd()) ?? Data()
         process.waitUntilExit()
-        guard let data else { return nil }
         return Result(
             output: String(decoding: data, as: UTF8.self),
             status: process.terminationStatus

@@ -21,6 +21,25 @@ public enum BurnLimits {
     /// needs two discs. `BurnPlan.splitReason` exists because "too long" is the
     /// wrong thing to tell someone whose album is nine minutes.
     public static let maxTracks = 99
+
+    /// 2352 bytes — 588 stereo 16-bit samples (`burncd:123`).
+    ///
+    /// The unit a CD is addressed in, and therefore the unit a track boundary
+    /// has to land on: the cue sheet's `INDEX` is a sector number and there is
+    /// no way to say "one and a third of one". Every track in the image is
+    /// padded out to a whole one of these.
+    public static let sector = 2352
+
+    /// 176,400 — 44100 Hz × 2 channels × 2 bytes (`burncd:124`).
+    ///
+    /// A second of the only format a Red Book disc holds, which makes it both
+    /// the conversion's target and the arithmetic that turns a runtime into an
+    /// image size before anything has been converted.
+    public static let bytesPerSecond = 176_400
+
+    /// 75 (`msf`, `burncd:156`). Frames a second, the third field of the MSF
+    /// addressing a cue sheet is written in.
+    public static let framesPerSecond = 75
 }
 
 /// What stopped a plan being made at all.

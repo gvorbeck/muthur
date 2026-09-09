@@ -111,12 +111,24 @@ public enum Usage {
               MUTHUR_WORK        where zips unpack (default ~/.cache/muthur/work)
               MUTHUR_KEEP        set to keep the scratch directory instead of destroying it
               MUTHUR_NO_MB       set to never ask MusicBrainz about a disc
-              MUTHUR_DEV         cdrecord device for CD-Text (default: whichever the drive answers to)
+              MUTHUR_DEV         cdrecord device, for CD-Text and for burning
+                                 (default: whichever one the drive answers to).
+                                 BURNCD_DEV is read too, and means the same drive.
+              MUTHUR_SPEED       burn speed (default 8). BURNCD_SPEED is read too.
               MUTHUR_COLLECTION  the catalogue CSV the shelf is read out of
               MUTHUR_CRT         set to 0 to hold the tube still: no drifting scan
                                  band, no wordmark glitch. The screws, the chassis
                                  and the true sleeve under the pointer stay either
                                  way. Reduce Motion does this on its own.
+              MUTHUR_LEVEL       off, album or track — how a burn is levelled
+                                 (default off). album is one gain for the whole
+                                 record and never turns anything down; track
+                                 levels each one and will.
+              MUTHUR_LUFS        the loudness a burn is levelled to (default -11)
+              MUTHUR_PEAK        the true peak it stops short of, in dBTP
+                                 (default -1). Whichever of the two comes first
+                                 is the gain, because it is a gain and nothing
+                                 else — no compression, no limiting.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_STATE_HOME     where the resume file lives
 
@@ -125,6 +137,18 @@ public enum Usage {
             PLAYER_DIRS is the one that is not: there is no scan for it to point
             at. MUTHUR_NO_MB is the other way up from the script's PLAYER_MB:
             unset, 0 and empty are on.
+
+            MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV and MUTHUR_SPEED
+            came from burncd rather than the player. They are
+            read under their BURNCD_ names too, on the same reasoning: somebody
+            who has been burning discs from a terminal has them exported
+            already — and DEV and SPEED name the drive itself, so the two
+            programs are describing one piece of hardware.
+
+            A speed that is not a whole number is not fatal here the way it is in
+            the script: it falls back to 8 and says so in the burn's log. The
+            script can die and have you retype the line; an app read its
+            environment at launch, from whatever launched it.
 
             """
     }

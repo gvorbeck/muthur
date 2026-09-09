@@ -154,8 +154,13 @@ struct UsageTests {
         let help = Usage.text()
         for name in Self.environmentNames(in: Self.sourceText()).sorted() {
             // A `PLAYER_` name is documented by the paragraph about `PLAYER_`
-            // names, which speaks of them under their new spelling.
-            let modern = name.replacingOccurrences(of: "PLAYER_", with: "MUTHUR_")
+            // names, which speaks of them under their new spelling. A `BURNCD_`
+            // name is documented by the paragraph beneath it, the same way and
+            // for the same reason.
+            let modern =
+                name
+                .replacingOccurrences(of: "PLAYER_", with: "MUTHUR_")
+                .replacingOccurrences(of: "BURNCD_", with: "MUTHUR_")
             #expect(
                 help.contains(name) || help.contains(modern),
                 "\(name) is read by the kit and named nowhere in --help")
@@ -184,9 +189,33 @@ struct UsageTests {
         #expect(help.contains("PLAYER_DIRS is the one that is not"))
     }
 
+    /// And the same again for the second script's three, which arrived with §20
+    /// stage 2. The paragraph names them by hand exactly as the `PLAYER_` one
+    /// does, so a fourth `BURNCD_` name honoured without a word about it fails
+    /// here rather than going unmentioned.
+    @Test(
+        "The BURNCD_ paragraph names exactly the BURNCD_ names that work",
+        .enabled(if: UsageTests.canReadSource)
+    )
+    func theBurncdParagraphIsComplete() {
+        let honoured = Self.environmentNames(in: Self.sourceText())
+            .filter { $0.hasPrefix("BURNCD_") }
+            .sorted()
+        #expect(
+            honoured == [
+                "BURNCD_DEV", "BURNCD_LEVEL", "BURNCD_LUFS", "BURNCD_PEAK", "BURNCD_SPEED",
+            ])
+        let help = Usage.text()
+        #expect(
+            help.contains(
+                "MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV and MUTHUR_SPEED"))
+        #expect(help.contains("read under their BURNCD_ names too"))
+    }
+
     private static func environmentNames(in text: String) -> Set<String> {
         var found: Set<String> = []
-        let pattern = try! NSRegularExpression(pattern: "\"((?:MUTHUR|PLAYER|XDG)_[A-Z_]+)\"")
+        let pattern = try! NSRegularExpression(
+            pattern: "\"((?:MUTHUR|PLAYER|BURNCD|XDG)_[A-Z_]+)\"")
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         for match in pattern.matches(in: text, range: range) {
             if let r = Range(match.range(at: 1), in: text) { found.insert(String(text[r])) }

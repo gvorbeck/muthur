@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 
 /// §6. The deck.
@@ -91,6 +91,15 @@ public actor PlaybackEngine {
     private let player = AVAudioPlayerNode()
     private let offline: Bool
     private var running = false
+    /// §18's route-change recovery. Lives for the actor's whole lifetime, not
+    /// just while a graph is running: a device switch between records would
+    /// otherwise leave the engine stopped when the next `load` tries to start
+    /// it. Cancelled only in `deinit` — see there.
+    ///
+    /// `nonisolated(unsafe)`: only ever written in `init` (before the actor
+    /// has a second caller) and in `deinit` (after it has none), and `Task`
+    /// itself is Sendable — there is no window in which two threads touch it.
+    private nonisolated(unsafe) var configWatcher: Task<Void, Never>?
     /// §9, waiting for a player node to hang off. See `listen`.
     private var listener: Analyser?
     private var canonical = CanonicalFormat.format(
@@ -167,6 +176,33 @@ public actor PlaybackEngine {
         self.offline = offline
     }
 
+    deinit {
+        configWatcher?.cancel()
+    }
+
+    /// Set up once, on the first record ever loaded, and left running for
+    /// every record after — a route change between records would otherwise
+    /// leave the engine stopped when the next `load` tries to start it. Not
+    /// started from `init` itself: an actor initializer cannot send `self`
+    /// into an escaping closure (the actor is not yet provably constructed,
+    /// from the compiler's point of view), but this ordinary isolated method
+    /// can, because being called at all proves `self` already is. Not for
+    /// the offline suites: there is no real output device for
+    /// `AVAudioEngineConfigurationChange` to fire about, and `engine` never
+    /// leaves manual rendering mode to post it.
+    private func startConfigWatcherIfNeeded() {
+        guard !offline, configWatcher == nil else { return }
+        let engine = self.engine
+        configWatcher = Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(
+                named: .AVAudioEngineConfigurationChange, object: engine
+            ) {
+                guard let self else { return }
+                await self.recoverFromConfigurationChange()
+            }
+        }
+    }
+
     // MARK: - Loading
 
     /// The whole record at once, in panel order, so the engine can read ahead
@@ -239,6 +275,51 @@ public actor PlaybackEngine {
         try engine.start()
         running = true
         listener?.tap(player)
+        startConfigWatcherIfNeeded()
+    }
+
+    /// §18: the engine posts `.AVAudioEngineConfigurationChange` and stops
+    /// itself whenever macOS moves the default output — headphones pulled,
+    /// AirPlay picked up, a conference call taking the device — and does not
+    /// restart on its own. Nothing else observes this notification, so left
+    /// alone the deck goes silent and stays silent.
+    ///
+    /// The graph is rebuilt exactly as `startGraph` built it, and the
+    /// timeline is rebuilt from the position the head was actually at —
+    /// `positionInTrack` reads `lastHead`, which `observe()` set on the last
+    /// `pump()` tick before the engine stopped, so it is not a guess.
+    private func recoverFromConfigurationChange() {
+        guard running, !offline else { return }
+
+        let row = currentRow
+        let position = positionInTrack
+        let history = visitHistory[currentVisit]
+
+        listener?.untap(player)
+        player.stop()
+        engine.disconnectNodeOutput(player)
+
+        engine.connect(player, to: engine.mainMixerNode, format: canonical)
+        applyGain()
+
+        do {
+            try engine.start()
+        } catch {
+            running = false
+            mode = .stopped
+            return
+        }
+
+        listener?.tap(player)
+
+        switch mode {
+        case .playing, .paused:
+            restart(row: row, offsetSeconds: position, historyIndex: history)
+        case .stopped, .finished:
+            // The graph is live again so the next `play()` works, but there
+            // is nothing to resume.
+            break
+        }
     }
 
     /// The app's exit path. Stops the graph, closes the feeder, and resets

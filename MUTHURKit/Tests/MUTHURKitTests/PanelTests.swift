@@ -861,7 +861,8 @@ struct KeycapTests {
         let legends =
             Readout.legend + Readout.pickerLegend(hasDisc: true)
             + Readout.pickerLegend(hasDisc: false) + Readout.checkLegend
-            + Readout.planLegend
+            + Readout.planLegend + Readout.burnLegend(canEdit: true)
+            + Readout.burnLegend(canEdit: false)
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.

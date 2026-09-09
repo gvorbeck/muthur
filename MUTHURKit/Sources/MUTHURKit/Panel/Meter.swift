@@ -153,6 +153,26 @@ public enum Meter {
         return cells
     }
 
+    /// Where the head sits on a bar that is `done` of `total`, in units
+    /// (`burncd:1770`, `burncd:2489`).
+    ///
+    /// **This is the arithmetic that makes the plan's meter and the burn's
+    /// progress bar one instrument.** `burncd` works it out twice, from two
+    /// different pairs of numbers — seconds converted over seconds to convert,
+    /// megabytes written over megabytes to write — and hands both to the same
+    /// `bandbar` over the same bands, which is why the disc you approved and the
+    /// disc being written are visibly the same picture at two moments. Written
+    /// once here so a third caller cannot quietly get it wrong.
+    ///
+    /// Clamped at the full width: cdrecord's megabytes and ours are roundings of
+    /// different numbers of the same bytes, so the sum of its can land a little
+    /// past our total (`burncd:1938`).
+    public static func head(done: Int, of total: Int, width: Int = PanelGrid.stripWidth) -> Int {
+        let units = width * unitsPerCell
+        guard total > 0, done > 0 else { return 0 }
+        return min(units, done * units / total)
+    }
+
     /// One row of track bar (`player:558`).
     ///
     /// The same cells and the same partial blocks as the album meter so the two

@@ -328,6 +328,31 @@ public enum Readout {
         ],
     ]
 
+    /// The insert stage's row (§20 stage 3, `burncd:1536`).
+    ///
+    /// `keys '⏎' BURN E EDIT Q CANCEL`, and the middle cap is conditional in the
+    /// script for a reason worth keeping: **going back is only offered on the
+    /// first disc of the job, and only when the job started there.** Once a disc
+    /// is written the plan it came from is a fact about a physical object, and
+    /// re-cutting the running order underneath it would renumber discs that are
+    /// already in a sleeve.
+    ///
+    /// `Q` is CANCEL and not QUIT, which is the one place in the program that
+    /// letter means something narrower than the whole session — and it is the
+    /// script's own word (`burncd:1539`). It is accurate here: nothing has been
+    /// written yet, so there is a job to cancel rather than only a program to
+    /// leave. `.quit` is still the press behind it, because what the key does to
+    /// the burn is end it.
+    ///
+    /// `E EDIT` presses `.close`, which is the plan screen's `ESC BACK` — the
+    /// same movement backwards out of a screen, arriving at the same editor.
+    public static func burnLegend(canEdit: Bool) -> [[Cap]] {
+        var caps = [Cap("⏎", "BURN", .burn)]
+        if canEdit { caps.append(Cap("E", "EDIT", .close)) }
+        caps.append(Cap("Q", "CANCEL", .quit))
+        return [caps]
+    }
+
     /// Whether holding the cap down should go on asking.
     ///
     /// The three rockers. Holding `←→` to run through a track, `↑↓` to run down
