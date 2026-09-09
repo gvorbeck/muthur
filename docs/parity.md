@@ -44,7 +44,7 @@ never assumed you had read the rest of this, and the rest of this never assumed
 you had read it, which is why it is `hardware.md` now.
 
 **§20 is the other program**, and it is a checklist like the rest of this
-document rather than a procedure like §19 — but its last ten boxes are waiting
+document rather than a procedure like §19 — but its last five boxes are waiting
 on the same drive §19 is, and they are marked as such where they stand.
 
 Line numbers are against the source as it stands today. Where a behaviour spans
@@ -59,6 +59,18 @@ part worth porting.
 counted; it stands separately at 10 of 33). Re-derived by counting the files:
 311 ticked and 9 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 10 of 33 in `hardware.md`.
+
+**The nine open ones are five, three and one, and not one of them can be closed
+on this machine.** Five are §20's stage 3b: they need a drive, a
+disc to write with it, and `cdrecord` — which stage 3b makes a hard requirement
+and stage 3a deliberately does not. Three are §14's, blocked on hardware and
+material: AirPlay's unplug, hi-res output switching, and an Opus or Ogg file to
+make the ffmpeg fallback fail on. The last is §4.2's `cdda2wav` read of a disc's
+CD-Text, which is written and has never been run. They are open rather than
+absent for the reason §14's have always been: a green box over an untested burn
+is worse than an honest empty one. **This census belongs to the count above it**
+— re-deriving one without re-reading the other is how the sentence goes stale
+while the number stays right.
 
 **Stage 3a of §20 is done — the whole burn except the drive — and the
 denominator moved for the ninth time, the eighth of them upward.** 322 → 324:
@@ -103,8 +115,8 @@ its own remedy in the script (`burncd:2405`) — refuse in a millisecond rather
 than discover at ninety percent, with the scratch directory full and the record
 half-converted. Five boxes ticked, four of them the four that were open.
 
-**Everything of `burncd` that does not need the drive now exists.** Every track
-goes through the ffmpeg fallback of §12 to 16-bit/44.1 kHz stereo with the
+**The conversion exists, which is everything the burn will be handed.** Every
+track goes through the ffmpeg fallback of §12 to 16-bit/44.1 kHz stereo with the
 dither *asked for* rather than assumed, into one continuous sector-aligned image
 per disc whose track boundaries are index marks and not gaps; `DiscText` from
 stage 1 becomes the cue sheet beside it, with the year as `REM DATE` because
@@ -127,15 +139,14 @@ comes from — so its boxes belong in this document rather than in one of their
 own, but they are `burncd`'s and the section says so at the top of every
 reading.
 
-**Stage 1 is done and it touches no hardware.** The plan (§20.1), the disc
-layout and its balancing search (§20.2), the CD-Text that will go in the
-lead-in (§20.3), the editor that lets a wrong tag be fixed before it is written
-there permanently (§20.4), and `B` on the deck as the way in (§20.5). The nine
-open boxes left are five of stage 3b and §14's four: those need a drive and a
-disc to write with it, and `cdrecord` — which stage 3b makes a hard requirement
-and stage 3a deliberately does not. They are open rather than absent for the
-reason §14's are: a green box over an untested burn is worse than an honest
-empty one.
+**Stage 1 was the first of §20's stages to land, and like the two that have
+followed it, it touches no hardware.** The plan (§20.1), the disc layout and its
+balancing search (§20.2), the CD-Text that will go in the lead-in (§20.3), the
+editor that lets a wrong tag be fixed before it is written there permanently
+(§20.4), and `B` on the deck as the way in (§20.5). With stage 2 and stage 3a
+above it, §20 has nothing left in it that a machine with no burner could have
+done — what remains is stage 3b, and the census of it is with the count at the
+top of this section.
 
 **Two new decisions, D73–D74**, both about a script being right for a program
 that is a shell command and wrong for one that is an app. `level_note` claims
@@ -3249,14 +3260,17 @@ one file decides what the picture is. That is the whole argument for the port
 living inside MU/TH/UR rather than beside it. References below are
 `burncd:NNNN`.
 
-**It lands in three stages, and the stages are about hardware.** Stage 1 is
-everything that can be decided, drawn and tested with no drive attached: the
-plan, the disc layout, the CD-Text that will go in the lead-in, the editor that
-lets you fix a tag before it is written there permanently, and the way in from
-the deck. **Stage 1 is what is ticked below.** Stage 2 is the conversion — the
-image and the cue sheet the burn is handed — and stage 3 is the drive itself.
-Nothing of either is written, `cdrecord` is not a dependency of this project,
-and the open boxes at the end of this section say what is waiting.
+**It lands in stages, and the stages are about hardware.** Stage 1 is everything
+that can be decided, drawn and tested with no drive attached: the plan, the disc
+layout, the CD-Text that will go in the lead-in, the editor that lets you fix a
+tag before it is written there permanently, and the way in from the deck. Stage
+2 is the conversion — the image and the cue sheet the burn is handed. Stage 3
+turned out to be two things wearing one coat, and only one of them needs the
+drive: **3a** is the burn panel, the `cdrecord` invocation as a value, and a
+stand-in drive to run both through, none of which needs hardware either, and
+**3b** is the drive. **Stages 1, 2 and 3a are what is ticked below.** Stage 3b
+is not written, `cdrecord` is still not a dependency of this project, and the
+open boxes at the end of this section say what is waiting.
 
 **Nothing on any of stage 1's screens writes to the user's files.** The editor
 looks like a tag editor and is not one: it edits a plan, the plan is rebuilt

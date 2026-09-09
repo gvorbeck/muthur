@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-sixty-eight are settled. Recorded here with the answer so that a departure from
+seventy-four are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -133,6 +133,16 @@ flagged as such, and turned out on a second reading to be exactly right about
 its own program. The port says the same sentence about a different scratch
 directory, and the rule that says flag rather than fix is why the misreading
 never reached the code.
+
+**D73 and D74 came with §20 stage 3a, and both are a script being right for a
+shell command and wrong for a window.** D73 has track mode name the limit that
+stopped it, because `level_note` claims every track was matched when a hot
+master was peak-bound and never matched to anything — and album mode already
+distinguishes its three cases eleven lines lower in the same function, which is
+the justification and not a general licence. D74 lets a junk `BURNCD_SPEED` fall
+back to 8 and say so in the job's notes rather than refuse to start: a script
+can die and have you retype the line still on your screen, where an app read its
+environment at launch from whatever launched it.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
