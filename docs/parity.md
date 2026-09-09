@@ -3466,6 +3466,94 @@ it is the property most easily lost by a later edit that means well.
 
 **`cdrecord` (`brew install cdrtools`) becomes a hard requirement here.** It is
 not one yet: nothing in stage 3a shells out to it or assumes it is present.
+`cdrtools` 3.02a09 is now installed on this machine, at
+`/opt/homebrew/bin/cdrecord`, and it answers one of `check_deps`'s questions
+already: this build's `-help` carries both `cuefile=` and `-text`, so CD-Text is
+not forced off here, and `cdda2wav` is beside it, so `--verify` will not be
+reduced to a TOC check. Neither fact says anything at all about a drive.
+
+**The first thing this stage has to answer is a privilege question, and it is
+not one `burncd` has.** Run by hand on this machine, `cdrecord -scanbus` prints
+six refusals before it gets as far as a drive — `file read`, `file write`,
+`device`, `memlock`, `priocntl`, `network` — and then `No matching device
+IOBDServices/15 found. Cannot open or use SCSI driver.`, which is only the empty
+machine talking and means nothing until something is plugged in. The six above
+it mean something now. Homebrew installs the binary `-r-xr-xr-x` and not setuid
+root, which is what all six are reporting: cdrtools expects to be installed
+privileged and says so, in these lines, every time it is not. `burncd` has never
+had to care, and its silence on the subject is evidence rather than an
+oversight — it is a shell command, started by a person in their own terminal,
+inheriting that session, and it has burnt discs for years over exactly these
+warnings. **An app spawning the same binary is not standing where that shell
+was.** It is launched by launchd rather than by a login shell, it carries the
+bundle's entitlement and TCC posture rather than the user's, and a child it
+spawns inherits *that* — so nothing observed about `cdrecord` at a prompt
+transfers to `cdrecord` under MU/TH/UR without being observed again. (MU/TH/UR
+carries no App Sandbox entitlement today, which narrows the question and does
+not close it: the gap between a terminal and an app bundle is there before
+anyone turns a sandbox on, and turning one on later would be this same decision
+taken a second time.)
+
+**`memlock` is the one with teeth.** `file read`, `file write` and `network` are
+about paths and hosts a burn does not want; `device` will be answered or
+contradicted by a real drive the moment there is one. `memlock` is the ring
+buffer being pinned so it cannot be paged out from under the write, and the
+failure it exists to prevent is a buffer underrun — which on a CD-R is not a
+retry, it is a ruined blank. It is why `driveropts=burnfree` is already on the
+invocation stage 3a builds; burnfree is the drive's net under this exact fall,
+and a net is not a reason to stop asking why one is falling. `priocntl` — the
+scheduling priority — is the same failure at one remove.
+
+**None of this is solved here, deliberately.** Every candidate fix — a
+privileged helper, a setuid install, an entitlement, or declining and telling
+the operator to burn from a terminal — can only be judged against a real drive
+writing a real blank, and a decision taken blind is worse than a note. So it is
+a note, and it is the first thing stage 3b answers, before any box below.
+
+**What `check_deps` already knows to ask, this port inherits** (`burncd:255`–
+`330`). `cdrecord` present at all, with its `-version` line printed rather than
+assumed. The build's `-help` carrying `cuefile=` and `-text`, because CD-Text is
+written out of the cue sheet and a build without both means `--no-cdtext`.
+`cdda2wav`, whose absence is a warning and not a failure — only `--verify` wants
+it. `detect_dev` (`panel.sh:627`) walking `IODVDServices`, `IOCompactDiscServices`
+and `IOBDServices` across units 0 and 1 with `-checkdrive`, which stage 3a
+already ports. `-prcap` for the two capabilities worth knowing *before* the
+blanks are bought: whether the drive advertises CD-Text at all, and whether it
+advertises test writing, since a drive that does not may fail `--dummy` rather
+than rehearse. And `drutil status` for the media — read **before** any of the
+cdrecord probes, never after, because `-checkdrive` and `-prcap` open the device
+exclusively and macOS then reports `No Media Inserted` about a disc that never
+moved (`burncd:278`). That ordering rule is §19's opening rule as well, and it
+is the same drive it is talking about.
+
+**What `media_check` knows to ask of the blank** (`burncd:2257`) is a burn's
+worth of minutes saved in a second. `drutil` first and `cdrecord` second, always,
+for the reason above — and here it is not enough on its own, because the ATIP
+read below is itself such an exclusive open, so **an empty drive has to say so
+twice**, a second apart, before it is believed. A disc that is not blank is
+refused by its own type name. ATIP's lead-out lba over 75 is the only honest
+capacity there is — a 74-minute blank and an 80-minute blank are the same object
+to everything else — read up to three times, because a drive asked cold answers
+the first request with everything about itself and nothing about the disc. A
+blank too small for the disc is refused with both durations and `BURNCD_MINUTES`
+as the remedy; a blank larger than planned is a waste and not a problem, and only
+says so. An ATIP that will not parse **goes ahead on trust**, warning exactly
+once, because a false negative that blocks a good burn is worse than the problem
+being solved — and `BURNCD_NO_MEDIA_CHECK` exists for the drive whose reporting
+lies. All of it runs at the insert prompt in a loop, so a refusal is a swap and
+a keypress rather than a dead job.
+
+**And what it says when the burn fails anyway** (`burncd:2634`–`2645`).
+`cdrecord`'s output is `tee`'d to `cdrecord-<disc>.log` before the panel parser
+sees it, precisely because the parser drops every line it cannot read and would
+otherwise hide the reason. On a non-zero exit the alternate screen comes off
+first — the message is going to stderr and into scrollback, not onto a panel one
+`printf` from being discarded — then the log's last fifteen lines minus the
+progress chatter, then the failure itself naming `dev=`, and three remedies that
+are the whole of what a person can do next: `cdrecord -scanbus` and set the
+device; retry with `--no-cdtext` if it choked on the lead-in or the cue; and
+`--check`, which reports what this machine supports. Three sentences, each one
+actionable, which is the standard the rest of this port's failures are held to.
 
 - [ ] `media_check` — look at the blank before spending minutes converting into
       an image it cannot hold, and proceed rather than block where the drive's

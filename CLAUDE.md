@@ -76,6 +76,16 @@ Ask before adding any dependency beyond these.
   box, re-derive the count by counting the files — the boxes are in `parity.md`
   and, for D8's four, in `decisions.md` — and rewrite the paragraph to describe
   the section that just landed, all in the one pass.
+
+  **A tally written in words is a count and goes stale exactly like a digit —
+  but no `grep` will catch it.** "The nine open boxes", "its last ten", "all
+  sixty-eight", or any sentence saying what is not written yet. So after the
+  count, re-read as English: the Status section entire, the preamble of every
+  section the work touched, and this document's front matter. A section's
+  preamble is the likeliest, because work lands under it and nothing forces a
+  reader back to the top. The structural half — the census living directly under
+  the count in `parity.md`, which says *which* boxes those are — is the part
+  doing the real work.
 - **`README.md` carries the same figure and is part of the same pass.** It had
   drifted two behind and was also still naming the wrong four boxes as the open
   ones, which is the failure above wearing a second hat: one number, written
