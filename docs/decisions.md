@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-seventy-four are settled. Recorded here with the answer so that a departure from
+seventy-nine are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -143,6 +143,32 @@ the justification and not a general licence. D74 lets a junk `BURNCD_SPEED` fall
 back to 8 and say so in the job's notes rather than refuse to start: a script
 can die and have you retype the line still on your screen, where an app read its
 environment at launch from whatever launched it.
+
+**D75 to D78 came with stage 3b, and D77 is the only one of the four that is
+not about the script at all.** D75 extends D74's fallback to the disc's
+capacity, and has to say so out loud because `media_check`'s refusal names
+`MUTHUR_MINUTES` as the remedy. D76 prints a disc's length without the hour term
+D60 folded into every other duration, so that the two halves of that refusal are
+in the same units. D78 puts the discs back in the script's order — prompt, look,
+convert, write, one at a time — because a media check after the conversion is a
+slower way of learning the same thing too late. **D77 is a departure from
+nothing:** `diskarbitrationd` mounts what a finished write leaves behind and
+cdrtools then cannot open its own drive, which is a macOS problem a bash script
+burning blanks never had — and the reason it is worth a numbered entry is that
+its second victim, the ATIP read behind `media_check`, fails silently and looks
+exactly like success. **It has since taken a third**, at the other end of the
+program entirely: §4.2's `cdda2wav` read of a disc's CD-Text cannot open a disc
+macOS has mounted either, and macOS mounts every audio CD. That one is not
+settled here — it is a question standing open under §19 step 8, because the
+remedy is to unmount and remount around a *lookup*, and the script has the same
+hole for the same reason.
+
+**D79 came with the burn itself**, and it is the smallest entry here that had to
+be argued at all: the image is deleted after the write rather than before it. The
+script's `rm -f` is about peak disk usage on a five-disc job and not about
+tidiness, so the deletion is kept and moved — below the rehearsal's `continue`,
+where it cannot destroy the image the panel has just promised you can burn for
+real straight after.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -2474,6 +2500,165 @@ whole, unsigned, and zero rejected with the rest, because cdrecord reads `0` as
 device is never second-guessed: its failure is reported against the name that
 was asked for. A hand-set *speed* that cannot be a speed is not a name at all,
 and there is nothing to report it against.
+
+**D75 — the same fallback for the disc's capacity, and for the same reason.**
+→ §20 stage 3b
+
+`BURNCD_MINUTES` and `BURNCD_SECONDS` go through the script's `numeric` beside
+the speed, and die on the same junk. `BurnPlan.capacity` falls back to 80
+minutes and says so, on D74's argument entire — the environment an app is
+launched from is nobody's typing mistake, and it is not in front of anybody to
+fix.
+
+What is new is that this fallback has to be *said* rather than merely taken, and
+that is not a nicety. `media_check`'s refusal is **use an 80-minute disc, or set
+`MUTHUR_MINUTES`** — it names the variable as the remedy. A port that quietly
+ignored a `MUTHUR_MINUTES` it could not parse would offer a remedy it had just
+thrown away, which is a worse failure than refusing to start. So the note says
+which name was junk, what it said, and what the plan was cut against instead.
+
+The test is the script's: whole, unsigned, and zero rejected with the rest,
+because a disc holding nothing is not a disc anybody meant. Seconds beat minutes
+where both are set, which is also the script's order.
+
+**D76 — a disc's length is printed without the hour term the rest of the port
+folds in.** → §20 stage 3b
+
+D60 gave `Readout.mmss` an hour term, because a three-hour record printed
+`190:06` and that is nobody's idea of a running time. A disc is the one quantity
+where that fold is never right and always fires: a CD-R holds between 74 and 80
+minutes, so every capacity this port will ever print lands inside the hour D60
+rewrites, and none of them is ever long enough for D60's problem to arise.
+`Readout.discLength` is `panel.sh:148` with no hour term — `74:00`, `79:57`.
+
+It matters because of the sentence it appears in. The refusal reads *this blank
+holds 74:00 … use an 80-minute disc*, and a half saying `1:14:00` against a half
+saying `80-minute` is one sentence speaking two languages about one object.
+Discs are sold, labelled and asked for in minutes; `MUTHUR_MINUTES` is named
+after that, and a remedy has to be readable in the units of the thing you are
+about to go and find in a drawer.
+
+**§5's refusal deliberately keeps `mmss`.** *"Title" is 1:35:00, longer than a
+1:19:57 disc* compares two durations to each other, and the first of them really
+can run past the hour — a ninety-five minute file is exactly what that message
+exists for.
+
+**D77 — the drive is unmounted before cdrecord opens it. Not in the script.**
+→ §20 stage 3b
+
+`diskarbitrationd` mounts every audio CD it sees, and a mounted optical device
+is one cdrtools cannot get exclusive access to: it says so outright, names
+`diskarbitrationd`, and stops. The script never needed this because a shell
+burning a blank is burning a blank, and a blank has nothing to mount.
+
+This port hit it after the rehearsals. A finished `--dummy` write leaves a table
+of contents the kernel believes, macOS puts an `Audio CD` on the desktop for a
+disc that is still blank, and the next thing to reach for the drive fails on
+hardware that has done nothing wrong. Both halves were watched happen at a
+prompt on this machine: with the mount in place `cdrecord -atip` printed the
+warning and read nothing, and after `diskutil unmount` the identical command
+read the ATIP. **How reliably a finished write leaves that mount behind is not
+known** — three later rehearsals left none, but each of them began by
+unmounting, so they are evidence of nothing. The remedy is cheap, idempotent and
+a no-op on a drive with nothing on it; what it prevents costs a disc.
+
+So `DriveRelease` reads `drutil status` for the media's node, finds every volume
+mounted on it, and unmounts each. It is deliberately the same probes
+`Diagnostics` and `DiscFinder` already use — the node read the way §19 reads it,
+the mount table parsed by the parser that exists — because a second way of
+finding the drive is a second way of finding the wrong one. An unmount that
+fails is not an error: cdrecord's own refusal is a better message than anything
+guessed in advance of it.
+
+**It has two callers, and the second one is why this is written down twice.** It
+was built for `Burner.write` and then found to be needed a step earlier.
+`media_check` reads capacity with `cdrecord -atip`, which is the same exclusive
+open and fails the same way — and the check's answer to a drive that will not
+say is *go ahead on trust*. So without this the capacity check switches itself
+off for the rest of a session and nothing announces it: the failure is silent,
+it looks like success, and it disables the one thing standing between a
+seventy-four minute blank and an eighty-minute record. It is called after
+`drutil status` has had its say and not before, because `drutil` answers from a
+mounted drive perfectly well and a disc already refused should cost no unmount
+at all.
+
+**D78 — one disc at a time, in the script's order, and a single `Stop` case for
+the burn.** → §20 stage 3b
+
+Stage 3a built every disc and then wrote every disc, which is defensible on its
+own and wrong beside `media_check`. The script prompts, looks at the blank,
+converts, and writes, one disc at a time (`burncd:2398`), and the look is *only*
+worth having in that order: the whole claim of a media check is that it refuses
+the wrong blank **before** the minutes are spent converting. A check that ran
+after the conversion would be a slower way of finding out the same thing too
+late. So `BurnJob.run` is one loop, and the prompt, the check, the build and the
+write are its four steps.
+
+The layout is still fixed before any of it. `BurnPlan` is made once, from the
+whole record, because disc two's contents cannot depend on how disc one went —
+that is what makes `--from-disc n` mean anything at all.
+
+The stop that used to be `.afterDemoBurn` is now `.throughTheBurn`, one case and
+not two. The stop says where the job stops; *what writes the disc* is the drive
+it was handed — `FakeDrive` for `--demo`, `Burner` for a burn. A job that had to
+be told both is a job that can be told the wrong pair, and there is no useful
+meaning for the two disagreeing.
+
+---
+
+**D79 — the image is deleted after the write, not before it, and a rehearsal
+keeps its own.** → §20 stage 3b
+
+The script deletes each disc's image once it is done with it:
+
+    [ -n "${BURNCD_KEEP_WORK:-}" ] || rm -f "$IMAGE"
+
+That is `burncd:2649`, and the port does the same thing for the same reason. It
+is tempting to read it as tidying up after itself and to skip it here, because
+MU/TH/UR's scratch directory already sweeps itself and one image on the way out
+is one image the sweep would have taken anyway. **That reading is wrong, and it
+is wrong about a multi-disc job.** What the deletion controls is not what is left
+at the end, it is the *peak*: `TempSpace.check` runs before each disc's
+conversion and asks whether there is room for the image that is about to be
+built, and a five-disc job that keeps every image needs about three and a half
+gigabytes free rather than about seven hundred megabytes. On the machine where
+that is the difference, the job dies at disc four having burnt three discs. So
+the deletion stays, and it stays where it can do that job — inside the loop,
+after each disc.
+
+**The cue sheet does not go with it.** The script keeps it and so does this: it
+is a kilobyte, and it is the only thing left afterwards that says what was on the
+disc. An image is a copy of a disc that now exists; a cue is a record of it.
+
+`BURNCD_KEEP_WORK` is honoured, and `MUTHUR_KEEP` beside it on D13's terms — the
+script's name still works and this program's name works too. Both mean the same
+thing in both directions: somebody who asked for the scratch directory to survive
+asked for what is *in* it, and handing them an empty directory with a cue sheet
+pointing at a file that is not there would be answering a different question. The
+answer is read once, where the job is set up, and carried on the job the way
+`capacity` is (D75), so that a five-disc job cannot change its mind halfway
+through.
+
+**And here is the departure, which is a placement and not a policy.** In the
+script the `rm -f` sits *above* the `--dummy` `continue` two lines below it, so a
+rehearsal deletes the image it has just spent minutes building. Four lines
+earlier the same program has printed, on the panel, in its own words:
+
+> The disc is not ejected, so you can burn it for real straight after.
+
+Which is true of the disc and false of the image. Doing it for real straight
+after means converting the whole record again, from the top, which is the exact
+cost the rehearsal was meant to let somebody avoid paying twice. Nothing about
+the peak-usage argument applies to a rehearsal either — a rehearsal writes
+nothing, so there is no disc for the image to be a copy of, and `--dummy` on a
+multi-disc job is not something anybody runs to save space.
+
+So the port deletes only after a real write, and `rehearsalKeepsItsImage` in
+`BurnConversionTests.swift` holds it there — asserting the image survives *and*
+that the panel line above is still being said, because the two belong together
+and the bug is what happens when only one of them is true. This is flagged rather
+than fixed in `burncd`, per `CLAUDE.md`: the script is not ours to change, and it
+has presumably been lived with for as long as anybody has rehearsed on it.
 
 ---
 

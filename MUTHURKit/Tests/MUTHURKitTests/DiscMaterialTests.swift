@@ -168,8 +168,18 @@ struct DiscMaterialTests {
         // disc whose CD-Text is printed some other way looks exactly like a disc
         // with no CD-Text on it. Counting the lines the tool printed against the
         // titles that came out is the only way to tell those apart.
+        // `title:` is a version and not a guarantee — cdda2wav 3.02a09 prints
+        // `Track  1: 'x'` — so the line is selected on what every shape has:
+        // `Track`, a number, a colon, and a quoted value after it. Requiring
+        // `title:` here meant this test could only ever have run against output
+        // the parser was already known to read.
         let printed = output.split(separator: "\n").filter {
-            $0.hasPrefix("Track") && $0.contains("title:")
+            guard $0.hasPrefix("Track") else { return false }
+            let after = $0.dropFirst("Track".count).drop { $0 == " " }
+            let digits = after.prefix { $0.isASCII && $0.isNumber }
+            guard !digits.isEmpty else { return false }
+            let rest = after.dropFirst(digits.count).drop { $0 == " " }
+            return (rest.hasPrefix("title:") || rest.hasPrefix(":")) && rest.contains("'")
         }
         try #require(!printed.isEmpty, "no track title lines in this file at all")
         #expect(text.titles.count == printed.count)

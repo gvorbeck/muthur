@@ -38,6 +38,52 @@ struct CDTextTests {
         #expect(value == .init(value: "Don't Stop Me Now", from: nil))
     }
 
+    // MARK: - The shapes a real cdda2wav actually printed
+
+    /// The shape that was missing, and the reason a disc with 742 bytes of
+    /// CD-Text on it read as a disc with none.
+    @Test("cdda2wav's own track shape, which carries no `title:` at all")
+    func bareColonShape() {
+        let text = CDTextParser.parse(
+            """
+            Album title: 'Slippery When Wet (Special Edition)'\t[from Bon Jovi]
+            Track  1: 'Let It Rock'
+            Track  3: 'Livin' On A Prayer'
+            Track 13: 'Wanted Dead Or Alive (Acoutisc Live Version)'
+            """)
+
+        #expect(text.album == "Slippery When Wet (Special Edition)")
+        #expect(text.albumArtist == "Bon Jovi")
+        #expect(text.titles[1] == "Let It Rock")
+        // The quote rule holds in this shape too, and this is the title on the
+        // disc that proves it: a lazy match gives `Livin`.
+        #expect(text.titles[3] == "Livin' On A Prayer")
+        #expect(text.titles[13] == "Wanted Dead Or Alive (Acoutisc Live Version)")
+    }
+
+    /// The bracket is only an artist clause when it says it is. `[Untitled]` is
+    /// a name macOS really writes, and it is the title, not a performer.
+    @Test("A title that merely ends in a bracket keeps it")
+    func bracketThatIsNotAnArtist() {
+        // The body comes back with its leading space still on: trimming the
+        // front is the quote rule's job and doing it twice would be two places
+        // that have to agree about what a space is.
+        let (body, from) = CDTextParser.bracketFrom(" '[Untitled]'")
+        #expect(body == " '[Untitled]'")
+        #expect(from == nil)
+
+        let text = CDTextParser.parse("Track  8: '[Untitled]'")
+        #expect(text.titles[8] == "[Untitled]")
+        #expect(text.artists[8] == nil)
+    }
+
+    @Test("A bracketed artist on a track line, not just the album line")
+    func bracketOnATrack() {
+        let text = CDTextParser.parse("Track  2: 'Under Pressure'\t[from Queen]")
+        #expect(text.titles[2] == "Under Pressure")
+        #expect(text.artists[2] == "Queen")
+    }
+
     @Test("An apostrophe in the artist as well as the title")
     func apostropheBothSides() {
         let value = CDTextParser.quoted("'Rock'n'Roll' from 'Guns N' Roses'")

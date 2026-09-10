@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All seventy-four are settled; they
+  the reasoning and the decision it came from. All seventy-nine are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -44,8 +44,10 @@ never assumed you had read the rest of this, and the rest of this never assumed
 you had read it, which is why it is `hardware.md` now.
 
 **§20 is the other program**, and it is a checklist like the rest of this
-document rather than a procedure like §19 — but its last five boxes are waiting
-on the same drive §19 is, and they are marked as such where they stand.
+document rather than a procedure like §19 — but its last box is waiting on a
+disc, the way §19's remaining steps are, and it is marked as such where it
+stands. The blank has been written to and read back; what is left is a second
+blank that does not exist.
 
 Line numbers are against the source as it stands today. Where a behaviour spans
 a comment and the code it explains, both are cited — the comment is usually the
@@ -55,22 +57,60 @@ part worth porting.
 
 ## Status
 
-**315 of 324 boxes** outside §19 (§19 is a procedure, not boxes, and is not
-counted; it stands separately at 10 of 33). Re-derived by counting the files:
-311 ticked and 9 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 10 of 33 in `hardware.md`.
+**319 of 324 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+counted; it stands separately at 31 of 37). Re-derived by counting the files:
+315 ticked and 5 open here, plus the 4 that live inside D8 in `decisions.md`,
+and 31 of 37 in `hardware.md` — which grew by a step this pass, because §20's
+hardware runs had been referred to as `hardware.md` step 14 by the tests that
+perform them for some time and there was no step 14.
 
-**The nine open ones are five, three and one, and not one of them can be closed
-on this machine.** Five are §20's stage 3b: they need a drive, a
-disc to write with it, and `cdrecord` — which stage 3b makes a hard requirement
-and stage 3a deliberately does not. Three are §14's, blocked on hardware and
-material: AirPlay's unplug, hi-res output switching, and an Opus or Ogg file to
-make the ffmpeg fallback fail on. The last is §4.2's `cdda2wav` read of a disc's
-CD-Text, which is written and has never been run. They are open rather than
-absent for the reason §14's have always been: a green box over an untested burn
-is worse than an honest empty one. **This census belongs to the count above it**
-— re-deriving one without re-reading the other is how the sentence goes stale
-while the number stays right.
+**The five open ones are three, one and one, and not one of them is waiting on
+code being written.** Three are §14's, blocked on hardware and material as they
+have always been: AirPlay's unplug, hi-res output switching, and an Opus or Ogg
+file to make the ffmpeg fallback fail on. One is what is left of §20's stage 3b:
+`--from-disc n`, which is written and tested everywhere above the drive — a
+resumed disc is byte-identical to the same disc in a whole-job run — and needs
+two blanks to be exercised where it matters. There is one blank in this building
+and it is now a Bon Jovi record. The last is §4.2's `cdda2wav` read: it *ran*,
+off a real lead-in, and what it proved is that cdrtools cannot open a disc macOS
+has mounted — so the parser below it is verified against 742 bytes of real
+CD-Text while the invocation above it has no path to a title on this machine.
+That is a decision to take, not a line to fix, and it is the one open box on this
+list that a person could close in an afternoon by deciding something.
+
+**`--verify` came off this list this pass, and it is the one box here that was
+closed by a disc rather than by a decision.** It was unwritten a day ago; it is
+written now, and the CD-R §20 burnt answered it the same afternoon — thirteen
+tracks off the table of contents, 265,307 sectors read back without a single
+error, and the album title out of the lead-in. Nothing else on this list can be
+closed that way, which is why the five that remain are still five.
+
+All five are open rather than absent for the reason §14's have always been:
+a green box over a path that yields nothing is worse than an honest empty one.
+**This census belongs to the count above it** — re-deriving one without
+re-reading the other is how the sentence goes stale while the number stays
+right.
+
+**The laser has been on, and §19 moved further in one afternoon than in the whole
+year before it.** 12 of 33 to 27 of 33, and to 31 of 37 the pass after, when the
+burn's own procedure was finally written down as step 14. §20's blank became an
+audio CD: thirteen
+tracks, 58:57.42, written at an average 8.0x with the drive buffer never below
+96% and the FIFO never once empty, every track boundary `pregapsize: 0`, and a
+read-back TOC whose starts are the image's own sector counts with nothing
+inserted between them. MusicBrainz resolves the burnt CD-R's disc ID to four real
+pressings of the album it was made from, which is the strongest thing on any of
+these pages: gapless checked against somebody else's disc rather than against our
+own arithmetic. That disc then closed most of what §19 had been waiting on —
+§1.3's disc-present half, D17's premise, the mounted volume end to end, and **the
+disc macOS cannot name**, which arrived as `1 Audio Track.aiff` … `13 Audio
+Track.aiff` because nothing on earth knows a CD-R pressed this afternoon. Two
+decisions, D77 at the write end and **D79**, and one shipped bug: `CDTextParser`
+knew two printed shapes and this machine's cdda2wav prints two others, so a disc
+carrying full CD-Text was displayed as a disc carrying none — visible on the
+app's own screen before any test failed, and invisible to the test that existed
+to catch it, which had been written to select only the lines the parser already
+read.
 
 **Stage 3a of §20 is done — the whole burn except the drive — and the
 denominator moved for the ninth time, the eighth of them upward.** 322 → 324:
@@ -144,11 +184,23 @@ followed it, it touches no hardware.** The plan (§20.1), the disc layout and it
 balancing search (§20.2), the CD-Text that will go in the lead-in (§20.3), the
 editor that lets a wrong tag be fixed before it is written there permanently
 (§20.4), and `B` on the deck as the way in (§20.5). With stage 2 and stage 3a
-above it, §20 has nothing left in it that a machine with no burner could have
-done — what remains is stage 3b, and the census of it is with the count at the
-top of this section.
+above it, §20 had nothing left in it that a machine with no burner could have
+done, and stage 3b is what the drive answers — the census of what is still open
+there is with the count at the top of this section.
 
-**Two new decisions, D73–D74**, both about a script being right for a program
+**Four new decisions, D75–D78.** D75 extends D74's fallback to the disc's
+capacity and D76 prints that capacity without the hour term D60 folded into
+every other duration, both so that `media_check`'s refusal — *this blank holds
+74:00 … use an 80-minute disc* — is one sentence in one set of units. D78 puts
+the discs back in the script's order and collapses the burn's two stop cases
+into one, because what writes a disc is the drive it was handed and not the
+switch. **D77 is the only one of the four that is not about the script at all:**
+`diskarbitrationd` mounts what a finished write leaves behind and cdrtools then
+cannot open its own drive — a macOS problem a bash script burning blanks never
+had, whose quietest victim is the ATIP read behind `media_check`, where failing
+looks exactly like succeeding.
+
+**Two decisions before those, D73–D74**, both about a script being right for a program
 that is a shell command and wrong for one that is an app. `level_note` claims
 in track mode that every track was matched to the target when a hot master is
 peak-bound and was never matched to anything, and album mode distinguishes its
@@ -259,7 +311,7 @@ was. Still nothing here for `player` to have an opinion on, so still no box.
 requirements, and a requirement does not stop being one by changing file — which
 is why it is now stated as a sum with `decisions.md` in it rather than as one
 `grep` of one file. The four in `decisions.md` are D8's, on MU/TH/UR as a voice;
-the twenty-three open in `hardware.md` are steps waiting on a disc. **Nothing is
+the ones still open in `hardware.md` are steps waiting on a disc. **Nothing is
 counted twice and nothing is counted nowhere**, which is the only property this
 paragraph has ever had to hold.
 
@@ -1478,8 +1530,19 @@ rather than in a log (README, `player:2054`).
 ### 4.2 CD-Text
 
 - [ ] `cdda2wav dev=… -J -v titles`, falling back to `cdrecord dev=… -toc -v`
-      (`player:2070`). *Written, never run — see §19.* The fallback is on the
-      script's own condition: the first tool's output not containing `title`.
+      (`player:2070`). The fallback is on the script's own condition: the first
+      tool's output not containing `title`.
+
+      *Run, and it does not reach a disc the way the program holds one — §19
+      step 8.* Unmounted by hand it works perfectly and read 742 bytes of real
+      CD-Text back; mounted, which is how macOS always has an audio CD and how §3
+      needs it to play, `diskarbitrationd` refuses cdrtools the exclusive open and
+      both tools come back empty. That is D77 at the read end of the program. The
+      **parser** half of §4.2 is proven on that real capture — the three boxes
+      below are ticked on it — but the invocation has no path to a title on this
+      machine that does not start by unmounting the disc, and whether §4 should
+      unmount and remount around a lookup the way §20 does around a write is not a
+      thing to decide quietly. Open until it is decided.
 - [x] Both printed shapes are matched: `Track  1 title: 'X' from 'Y'` and
       `Track  1 title: 'X'`. **The quote that ends a value is the one before
       ` from '` or the one at the end of the line — not simply the next one
@@ -3244,8 +3307,16 @@ of requirements — and it said as much itself: nothing else in this document
 assumes you have read it, and it does not assume you have read anything else.
 That is a description of a separate document.
 
-It still stands at **10 of 33**, and that figure is still kept in the Status
-paragraph above with every other figure, because the counts do not move house.
+It stands at **31 of 37**, and most of that came in one afternoon by the only
+route that was ever going to work: §20 burnt a disc, and a section that had been
+waiting on material had material. Steps 4 and 6 through 10 and 13 closed against
+it. **Step 14 is new**, and it is the burn itself — building the record,
+rehearsing it, spending the blank, and reading the disc back — which the tests
+that perform it had been citing as step 14 for a while before there was one. What
+is left wants a disc out of a multi-disc set, a data disc, an empty bay, two
+AIFFs on an external volume, and one decision about §4.2. That figure is still
+kept in the Status paragraph above with every other figure, because the counts do
+not move house.
 
 ---
 
@@ -3268,9 +3339,13 @@ tag before it is written there permanently, and the way in from the deck. Stage
 turned out to be two things wearing one coat, and only one of them needs the
 drive: **3a** is the burn panel, the `cdrecord` invocation as a value, and a
 stand-in drive to run both through, none of which needs hardware either, and
-**3b** is the drive. **Stages 1, 2 and 3a are what is ticked below.** Stage 3b
-is not written, `cdrecord` is still not a dependency of this project, and the
-open boxes at the end of this section say what is waiting.
+**3b** is the drive. **Stages 1, 2 and 3a are ticked below, and stage 3b has had
+the laser on.** `cdrecord` is a dependency of this project now, and it has
+written an audio CD: one blank, thirteen tracks, 58:57.42, gapless, with CD-Text
+in the lead-in, from a plan this port built and a cue sheet this port wrote —
+**and it has read that disc back**, every sector of it, which is the other thing
+a drive is for. The single box still open at the end of this section is
+`--from-disc n`, and what it is waiting for is not code: it is a second blank.
 
 **Nothing on any of stage 1's screens writes to the user's files.** The editor
 looks like a tag editor and is not one: it edits a plan, the plan is rebuilt
@@ -3462,11 +3537,12 @@ it is the property most easily lost by a later edit that means well.
       files to a finished burn screen with nothing spawned — and the real drive
       arriving is a different argument, not a different program.
 
-### Stage 3b — the drive (blocked on hardware)
+### Stage 3b — the drive (the laser has been on, and the disc has been read back)
 
-**`cdrecord` (`brew install cdrtools`) becomes a hard requirement here.** It is
-not one yet: nothing in stage 3a shells out to it or assumes it is present.
-`cdrtools` 3.02a09 is now installed on this machine, at
+**`cdrecord` (`brew install cdrtools`) becomes a hard requirement here**, and as
+of this stage it is one: nothing in stage 3a shelled out to it or assumed it was
+present, and the code below does both. `cdrtools` 3.02a09 is installed on this
+machine, at
 `/opt/homebrew/bin/cdrecord`, and it answers one of `check_deps`'s questions
 already: this build's `-help` carries both `cuefile=` and `-text`, so CD-Text is
 not forced off here, and `cdda2wav` is beside it, so `--verify` will not be
@@ -3509,6 +3585,27 @@ privileged helper, a setuid install, an entitlement, or declining and telling
 the operator to burn from a terminal — can only be judged against a real drive
 writing a real blank, and a decision taken blind is worse than a note. So it is
 a note, and it is the first thing stage 3b answers, before any box below.
+
+**Stage 3b answered it, and the answer is that nothing needs fixing.** Three
+`--dummy` rehearsals, at 8x through the whole vector this port builds, printed
+all six warnings and then wrote the disc anyway: `Min drive buffer fill was 99%`,
+`fifo was 0 times empty and 2799 times full, min fill was 98%`. `memlock` was the
+one with teeth and the teeth did not close — the ring buffer was never paged out
+from under an 8x write on a machine with memory to spare, and `burnfree` never
+had to catch anything. `device` was the other open one, and a real drive
+contradicted it outright: the SCSI commands went through. So no privileged
+helper, no setuid install, no entitlement. The warnings stay in the log, where
+they are true and harmless, and the note above stays as the account of why they
+were taken seriously.
+
+**What did have teeth was `diskarbitrationd`, which that note never suspected.**
+A mounted optical device is one cdrtools cannot open exclusively — it says so
+outright — and macOS mounts what a finished write leaves behind. It cost a burn
+nothing here only because it was found first, in a `-atip` read that failed and
+then succeeded either side of one `diskutil unmount`. **D77** is the answer and
+it is two lines of housekeeping; the reason it is a numbered decision rather
+than a shrug is that its quietest victim is `media_check`, where the failure
+looks exactly like success.
 
 **What `check_deps` already knows to ask, this port inherits** (`burncd:255`–
 `330`). `cdrecord` present at all, with its `-version` line printed rather than
@@ -3555,14 +3652,41 @@ device; retry with `--no-cdtext` if it choked on the lead-in or the cue; and
 `--check`, which reports what this machine supports. Three sentences, each one
 actionable, which is the standard the rest of this port's failures are held to.
 
-- [ ] `media_check` — look at the blank before spending minutes converting into
+- [x] `media_check` — look at the blank before spending minutes converting into
       an image it cannot hold, and proceed rather than block where the drive's
       reporting is known to lie.
-- [ ] The burn itself: spawn `cdrecord` with the vector stage 3a already
+- [x] The burn itself: spawn `cdrecord` with the vector stage 3a already
       builds, read it on the carriage returns, and hand the chunks to the panel
-      that is already drawing them.
-- [ ] `--dummy` — rehearse with the laser off. The verb it changes is in the
-      panel; what is missing is a drive to rehearse on.
-- [ ] `--verify` — read the disc back afterwards and check it.
-- [ ] `--from-disc n` — resume a multi-disc job, which cannot be exercised
-      without two blanks and a drive to put them in.
+      that is already drawing them. **The laser has been on.** One blank, thirteen
+      tracks, 58:57.42 written at an average 8.0x with the drive buffer never
+      below 96% and the FIFO never once empty; it plays, the TOC's track starts
+      are the image's own sector counts with nothing inserted between them, and
+      `cdda2wav` reads the whole of the CD-Text back off the lead-in.
+- [x] `--dummy` — rehearse with the laser off. The verb it changes is in the
+      panel; the drive to rehearse on is here, and it has rehearsed three times.
+- [x] `--verify` — read the disc back afterwards and check it. Three checks and
+      not a comparison, because every drive reads audio at a small fixed offset
+      from where it wrote it and a byte-for-byte compare fails on a perfectly
+      good disc — which is the false alarm the flag exists to settle. The table
+      of contents and a read of every sector fail the disc; the CD-Text prints
+      `!` and does not, because a `-J` that felt unhelpful is not a bad disc.
+      **Run against the disc stage 3b burnt**: thirteen tracks, 265,307 sectors
+      with no read error, and the album title back off the lead-in
+      (`hardware.md` step 14).
+
+      Two things here are not the script's, and both are this machine
+      answering. It takes the disc off macOS before either tool opens it (**D77**),
+      which the script never needed because a terminal burn usually had nothing
+      mounted; and a refused exclusive open gets its own sentence rather than
+      being reported as a disc with no tracks on it, because the disc a verify
+      reads is the disc just burnt and listening to it is the first thing anyone
+      does — an unmount is dissented by whoever holds the volume, this app
+      included.
+- [ ] `--from-disc n` — resume a multi-disc job. **Written, and everything above
+      the drive is tested; what cannot be exercised is the drive.** A resumed
+      disc is byte-identical — starts, names, bytes and cue — to the same disc in
+      a job that ran the whole way through, the discs before it are planned and
+      then not built, and a number past the end is refused before anything
+      converts. The box is open for the hardware alone: resuming needs a job
+      interrupted between two discs, which needs two blanks, and there is one
+      blank in this building and it is now a Bon Jovi record.

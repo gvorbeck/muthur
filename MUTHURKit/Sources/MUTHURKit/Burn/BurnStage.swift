@@ -89,6 +89,25 @@ public enum BurnStage: Sendable, Equatable {
             : "✓ Disc \(disc) of \(of) written"
     }
 
+    /// What `--verify` says about one disc once it has read it back
+    /// (`burncd:2666`). The reasons are the read-back's own notes and are already
+    /// in the log above this line, which is what `see above` is pointing at.
+    public static func verifiedNote(disc: Int, passed: Bool) -> String {
+        passed
+            ? "✓ Disc \(disc) verified"
+            : "✗ Disc \(disc) did not verify — see above"
+    }
+
+    /// The line the summary carries when a job had a disc fail its read-back
+    /// (`burncd:2739`).
+    ///
+    /// It is said again at the end because the per-disc line above scrolled off
+    /// four discs ago, and the one thing somebody needs out of a finished
+    /// multi-disc job is which of the discs in front of them to throw away.
+    public static func verifyFailedNote(discs: [Int]) -> String {
+        "✗ Discs that did not verify: \(discs.map(String.init).joined(separator: " "))"
+    }
+
     /// The summary's own line (`burncd:2699`): `2 DISCS · 78:12 · 21:04 ELAPSED`,
     /// and a rehearsal says so instead of claiming a runtime it did not write.
     public static func summary(discs: Int, runtime: Int, elapsed: Int, rehearsal: Bool) -> String {

@@ -425,7 +425,7 @@ struct BurnConversionTests {
         ]
         let job = BurnJob(
             draft: Self.draft(["One", "Two", "Three"], durations: [2, 2, 2]),
-            files: files, work: work.url, stop: .afterDemoBurn
+            files: files, work: work.url, stop: .throughTheBurn
         )
 
         var frames = 0
@@ -455,6 +455,70 @@ struct BurnConversionTests {
         #expect(outcome.notes.contains("✓ Disc 1 of 1 written"))
     }
 
+    /// D79. The image is the only thing in a burn that is measured in hundreds
+    /// of megabytes, and once it is on a disc it is a copy of the disc.
+    @Test("A written image does not outlive the disc it was written to")
+    func writtenImageGoes() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        let job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn, keepImages: false
+        )
+        let outcome = try job.run(ffmpeg: Self.ffmpeg)
+        let disc = try #require(outcome.discs.first)
+
+        #expect(!FileManager.default.fileExists(atPath: disc.image.path))
+        // The cue stays. It is what says what was burnt, and it costs nothing.
+        #expect(FileManager.default.fileExists(atPath: disc.cue.path))
+    }
+
+    /// The other half of D79, and the half the script has: somebody who asked
+    /// to keep the work gets the work, not a cue sheet pointing at a file that
+    /// is no longer there.
+    @Test("Asked to keep the work, the image is still there afterwards")
+    func keptImageStays() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        let job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn, keepImages: true
+        )
+        let outcome = try job.run(ffmpeg: Self.ffmpeg)
+        let disc = try #require(outcome.discs.first)
+        #expect(FileManager.default.fileExists(atPath: disc.image.path))
+    }
+
+    /// **Where the port departs from the script, and the reason it has to.**
+    /// `burncd:2649` deletes the image *before* the `--dummy` `continue` two
+    /// lines later, so a rehearsal destroys the image it just spent minutes
+    /// building — while the panel above it is still saying "The disc is not
+    /// ejected, so you can burn it for real straight after." Doing it for real
+    /// straight after means converting the whole record again.
+    @Test("A rehearsal keeps its image, because the point of one is what follows")
+    func rehearsalKeepsItsImage() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn, keepImages: false
+        )
+        job.rehearsal = true
+        let outcome = try job.run(ffmpeg: Self.ffmpeg)
+        let disc = try #require(outcome.discs.first)
+
+        #expect(FileManager.default.fileExists(atPath: disc.image.path))
+        #expect(
+            outcome.notes.contains(
+                "The disc is not ejected, so you can burn it for real straight after."))
+    }
+
     /// The panel's bands are the disc's own tracks, not the record's — which is
     /// the difference that only shows up on a record that needs two discs.
     @Test("Each disc's burn screen is banded with that disc's tracks")
@@ -466,7 +530,7 @@ struct BurnConversionTests {
         var draft = Self.draft(["One", "Two", "Three"], durations: [1200, 1200, 600])
         draft.breaks = [2]
         let job = BurnJob(
-            draft: draft, files: files, work: work.url, stop: .afterDemoBurn)
+            draft: draft, files: files, work: work.url, stop: .throughTheBurn)
         let outcome = try job.run(ffmpeg: Self.ffmpeg)
         #expect(outcome.burns.count == outcome.discs.count)
         #expect(outcome.burns.count > 1)
@@ -476,6 +540,290 @@ struct BurnConversionTests {
             #expect(burn.titles == entries.map(\.title))
             #expect(burn.bands == Meter.bands(for: entries.map(\.duration), cells: PanelGrid.stripWidth))
             #expect(burn.phase == .tail)
+        }
+    }
+
+    // MARK: - --verify, at the job's level
+
+    /// The disc is read back after it is written, once, and told the truth about
+    /// itself: the number of tracks that were actually laid out and the album
+    /// title as the shedding ladder left it.
+    ///
+    /// `DiscVerify`'s own branches are `DiscVerifyTests`'. What is proved here is
+    /// the wiring — that it is asked at all, asked once, and asked about the
+    /// right disc.
+    @Test("--verify reads each disc back after writing it")
+    func verifyIsAskedPerDisc() throws {
+        let work = try Work()
+        let files = try (1...3).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var draft = Self.draft(["One", "Two", "Three"], durations: [1200, 1200, 600])
+        draft.breaks = [2]
+        let asked = AskedOfTheDisc()
+
+        let job = BurnJob(
+            draft: draft, files: files, work: work.url, stop: .throughTheBurn)
+        let outcome = try job.run(
+            ffmpeg: Self.ffmpeg, verify: Self.verifier(asked, tracks: [2, 1]))
+
+        #expect(outcome.discs.count == 2)
+        #expect(asked.logs == ["verify-1.log", "verify-2.log"])
+        // Two tracks on the first disc and one on the second, which is the
+        // layout — a verify told the record's track count would fail disc two
+        // for being short of tracks it never had.
+        #expect(asked.wants == [2, 1])
+        // The drive comes back off macOS once per disc, ahead of every open
+        // (D77), and not once for the job.
+        #expect(asked.released == 2)
+        // The album is the shed title and not the folder's: the fixture's `-J`
+        // says `A Test Record`, and anything else the job could have passed
+        // would print `!` here instead.
+        #expect(outcome.notes.contains("  ✓ CD-Text — album title reads back"))
+        #expect(outcome.verifyFailures.isEmpty)
+        #expect(outcome.notes.contains("✓ Disc 1 verified"))
+        #expect(outcome.notes.contains("✓ Disc 2 verified"))
+    }
+
+    /// The disc has to still be in the drive to be read back, so `-eject` comes
+    /// off the vector and is issued by hand once the verify is done — which is
+    /// how a multi-disc job still cues the next disc (`burncd:2607`).
+    @Test("Verifying takes -eject off the burn and does it afterwards instead")
+    func verifyMovesTheEject() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        let asked = AskedOfTheDisc()
+        let watching = WatchingDrive()
+
+        let job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn)
+        _ = try job.run(
+            ffmpeg: Self.ffmpeg, drive: watching,
+            verify: Self.verifier(asked, tracks: [2]))
+
+        let vector = try #require(watching.vectors.first)
+        #expect(!vector.contains("-eject"))
+        #expect(asked.ejected == 1)
+
+        // And without `--verify` it stays on the vector, because then there is
+        // nothing left to keep the disc in the drive for.
+        let plain = WatchingDrive()
+        _ = try job.run(ffmpeg: Self.ffmpeg, drive: plain)
+        #expect(try #require(plain.vectors.first).contains("-eject"))
+    }
+
+    /// A rehearsal leaves the blank blank, so there is nothing on it to read
+    /// (`burncd:2655`). The script reaches this by `continue`ing past the verify
+    /// block; here it is the same condition written out.
+    @Test("A rehearsal is never verified")
+    func rehearsalIsNotVerified() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        let asked = AskedOfTheDisc()
+        var job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn)
+        job.rehearsal = true
+
+        let outcome = try job.run(
+            ffmpeg: Self.ffmpeg, verify: Self.verifier(asked, tracks: [2]))
+        #expect(asked.logs.isEmpty)
+        #expect(asked.released == 0)
+        #expect(asked.ejected == 0)
+        #expect(outcome.verifyFailures.isEmpty)
+    }
+
+    /// A failing read-back does not stop the job — the discs after it still get
+    /// written, because a job abandoned halfway leaves somebody with a stack of
+    /// discs and no idea which ones are good. The numbers are collected instead
+    /// and said again at the end (`burncd:2739`).
+    @Test("A disc that does not verify is named, and the job carries on")
+    func verifyFailureIsCollected() throws {
+        let work = try Work()
+        let files = try (1...3).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var draft = Self.draft(["One", "Two", "Three"], durations: [1200, 1200, 600])
+        draft.breaks = [2]
+        let asked = AskedOfTheDisc()
+
+        let job = BurnJob(
+            draft: draft, files: files, work: work.url, stop: .throughTheBurn)
+        let outcome = try job.run(
+            ffmpeg: Self.ffmpeg, verify: Self.verifier(asked, tracks: [2, 1], passing: false))
+
+        #expect(asked.logs == ["verify-1.log", "verify-2.log"])
+        #expect(outcome.burns.count == 2)
+        #expect(outcome.verifyFailures == [1, 2])
+        #expect(outcome.notes.contains("✗ Disc 1 did not verify — see above"))
+        #expect(outcome.notes.contains("✗ Discs that did not verify: 1 2"))
+    }
+
+    // MARK: - --from-disc n
+
+    /// **The discs before `n` are planned exactly as they were and then not
+    /// built** (`burncd:2384`). The layout has to be identical or the disc
+    /// numbers mean nothing, which is why `from` is consulted after the plan is
+    /// fixed and not before.
+    ///
+    /// The drive half of this — a second blank, and a job actually picked back up
+    /// — is what §20's last box is still open for. Everything above the drive is
+    /// here.
+    @Test("--from-disc skips the discs already burnt and renumbers nothing")
+    func resumesAtADisc() throws {
+        let work = try Work()
+        let files = try (1...3).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var draft = Self.draft(["One", "Two", "Three"], durations: [1200, 1200, 600])
+        draft.breaks = [2]
+
+        var job = BurnJob(
+            draft: draft, files: files, work: work.url, stop: .throughTheBurn)
+        job.from = 2
+        let outcome = try job.run(ffmpeg: Self.ffmpeg)
+
+        // The plan is the whole record's, and disc 2 is still disc 2 of 2.
+        #expect(outcome.plan.discCount == 2)
+        #expect(outcome.discs.map(\.number) == [2])
+        #expect(outcome.burns.map(\.disc) == [2])
+        #expect(try #require(outcome.burns.first).discs == 2)
+
+        // Disc one was not converted: no image, no cue, no ffmpeg log.
+        #expect(!FileManager.default.fileExists(atPath: job.imageURL(disc: 1).path))
+        #expect(!FileManager.default.fileExists(atPath: job.cueURL(disc: 1).path))
+        #expect(!FileManager.default.fileExists(atPath: job.logURL(disc: 1).path))
+        #expect(FileManager.default.fileExists(atPath: job.cueURL(disc: 2).path))
+
+        #expect(
+            outcome.notes.contains("Resuming at disc 2 of 2, skipping 1 already burned."))
+    }
+
+    /// The resumed disc is the disc it would have been in a job that ran the
+    /// whole way through — same tracks, same order, same cue sheet. That is the
+    /// claim `--from-disc` is making, and it is checkable without a drive.
+    @Test("A resumed disc is the disc the whole job would have burnt")
+    func resumedDiscMatchesTheWholeJob() throws {
+        let work = try Work()
+        let resumedWork = try Work()
+        let files = try (1...3).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var draft = Self.draft(["One", "Two", "Three"], durations: [1200, 1200, 600])
+        draft.breaks = [2]
+
+        let whole = BurnJob(
+            draft: draft, files: files, work: work.url, stop: .afterBuilding,
+            keepImages: true)
+        var resumed = BurnJob(
+            draft: draft, files: files, work: resumedWork.url, stop: .afterBuilding,
+            keepImages: true)
+        resumed.from = 2
+
+        let full = try whole.run(ffmpeg: Self.ffmpeg)
+        let part = try resumed.run(ffmpeg: Self.ffmpeg)
+
+        let expected = try #require(full.discs.last)
+        let got = try #require(part.discs.first)
+        #expect(part.discs.count == 1)
+        #expect(got.number == expected.number)
+        #expect(got.starts == expected.starts)
+        #expect(got.text == expected.text)
+        #expect(got.bytes == expected.bytes)
+        #expect(
+            try String(contentsOf: got.cue, encoding: .isoLatin1)
+                == String(contentsOf: expected.cue, encoding: .isoLatin1))
+    }
+
+    /// `--from-disc 4` on a three-disc job is a typo, and it is answered in a
+    /// millisecond rather than after the conversion (`burncd:2385`).
+    @Test("--from-disc past the end is refused before anything is converted")
+    func resumePastTheEnd() throws {
+        let work = try Work()
+        let files = try (1...2).map {
+            try Self.make("t\($0).wav", in: work.url, codec: ["-c:a", "pcm_s16le"])
+        }
+        var job = BurnJob(
+            draft: Self.draft(["One", "Two"], durations: [2, 2]),
+            files: files, work: work.url, stop: .throughTheBurn)
+        job.from = 4
+
+        #expect(throws: BurnJob.Failure.self) { try job.run(ffmpeg: Self.ffmpeg) }
+        #expect(!FileManager.default.fileExists(atPath: job.imageURL(disc: 1).path))
+    }
+
+    // MARK: - Standing in for the disc and the drive
+
+    /// A `DiscVerify` answering for discs that are not there, recording what it
+    /// was asked about each of them.
+    ///
+    /// **`tracks` is what the discs really have on them, a disc at a time, and
+    /// the test has to say so.** The table of contents is read before the job
+    /// mentions how many tracks it is expecting, so a fixture cannot echo the
+    /// question back — it has to have an answer ready, the way a disc does. A
+    /// disc whose entry does not match what the job then asks for is a disc that
+    /// fails its contents, which is one of the two ways this goes wrong; the
+    /// other is `passing: false`, a drive that cannot get through the sectors.
+    ///
+    /// The album is not among the recordings because no probe is handed it — it
+    /// is only ever compared against what `-J` said. So `titles` answers with
+    /// the album the record is expected to carry, and whether the job passed
+    /// that same string is read off the CD-Text note.
+    static func verifier(
+        _ asked: AskedOfTheDisc, tracks: [Int], passing: Bool = true
+    ) -> DiscVerify {
+        DiscVerify(
+            probes: DiscVerify.Probes(
+                release: { asked.released += 1 },
+                toc: { _ in
+                    let n = asked.discsRead < tracks.count ? tracks[asked.discsRead] : 0
+                    asked.discsRead += 1
+                    var listing = (0..<n).map { "track:\($0 + 1) lba: \($0 * 1000)" }
+                    listing.append("track:lout lba: \(n * 1000)")
+                    return listing.joined(separator: "\n")
+                },
+                hasCdda2wav: { true },
+                read: { _, want, log in
+                    asked.wants.append(want)
+                    // The log is named for the disc it belongs to, which is the
+                    // job's own claim about which disc this is.
+                    asked.logs.append(log.lastPathComponent)
+                    return passing ? 0 : 1
+                },
+                titles: { _, _ in "Album title: 'A Test Record'" },
+                eject: { _ in asked.ejected += 1 }))
+    }
+
+    /// What the verify was asked, and how many times the tray was opened.
+    final class AskedOfTheDisc: @unchecked Sendable {
+        var wants: [Int] = []
+        var logs: [String] = []
+        var released = 0
+        var discsRead = 0
+        var ejected = 0
+    }
+
+    /// A `Drive` that keeps the vector it was handed and does nothing else. The
+    /// burn itself is `FakeDrive`'s, which is already proved above; what this
+    /// adds is a look at the arguments the job built.
+    final class WatchingDrive: Drive, @unchecked Sendable {
+        var vectors: [[String]] = []
+        private let inner = FakeDrive()
+
+        func totalMegabytes(bytes: Int, tracks: Int) -> Int {
+            inner.totalMegabytes(bytes: bytes, tracks: tracks)
+        }
+
+        func write(
+            _ invocation: Cdrecord, into panel: inout BurnPanel, frame: (BurnPanel) -> Void
+        ) throws {
+            vectors.append(invocation.arguments)
+            try inner.write(invocation, into: &panel, frame: frame)
         }
     }
 }

@@ -75,8 +75,8 @@ public struct BurnPanel: Sendable, Equatable {
     /// The image's size in whole megabytes (`total_mb`, `burncd:2584`).
     public let totalMegabytes: Int
     /// `--dummy`. The laser stays off and the verb changes; nothing else does.
-    /// Nothing sets this yet — the rehearsal is stage 3b's, and its box in §20
-    /// stays open — but the word it changes is `burn_frame`'s and belongs here.
+    /// `BurnJob.rehearsal` sets it, and it is the same flag that puts `-dummy`
+    /// on the vector — one word carried from the switch to the screen.
     public let rehearsal: Bool
 
     // MARK: - What the drive has said

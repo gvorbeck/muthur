@@ -109,7 +109,10 @@ public enum Usage {
 
             Env overrides:
               MUTHUR_WORK        where zips unpack (default ~/.cache/muthur/work)
-              MUTHUR_KEEP        set to keep the scratch directory instead of destroying it
+              MUTHUR_KEEP        set to keep the scratch directory instead of destroying it,
+                                 and to keep the disc images a burn would otherwise
+                                 delete as it goes. BURNCD_KEEP_WORK is read too and
+                                 means the same thing.
               MUTHUR_NO_MB       set to never ask MusicBrainz about a disc
               MUTHUR_DEV         cdrecord device, for CD-Text and for burning
                                  (default: whichever one the drive answers to).
@@ -129,6 +132,15 @@ public enum Usage {
                                  (default -1). Whichever of the two comes first
                                  is the gain, because it is a gain and nothing
                                  else — no compression, no limiting.
+              MUTHUR_MINUTES     what one blank is assumed to hold (default 80).
+                                 MUTHUR_SECONDS says the same thing exactly and
+                                 wins where both are set. BURNCD_MINUTES and
+                                 BURNCD_SECONDS are read too.
+              MUTHUR_NO_MEDIA_CHECK
+                                 set to stop looking at the blank before burning
+                                 it. For the drive whose reporting lies about
+                                 what is in it; everybody else wants the look.
+                                 BURNCD_NO_MEDIA_CHECK is read too.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_STATE_HOME     where the resume file lives
 
@@ -138,17 +150,26 @@ public enum Usage {
             at. MUTHUR_NO_MB is the other way up from the script's PLAYER_MB:
             unset, 0 and empty are on.
 
-            MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV and MUTHUR_SPEED
-            came from burncd rather than the player. They are
+            MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV, MUTHUR_SPEED,
+            MUTHUR_MINUTES, MUTHUR_SECONDS and MUTHUR_NO_MEDIA_CHECK came from
+            burncd rather than the player. They are
             read under their BURNCD_ names too, on the same reasoning: somebody
             who has been burning discs from a terminal has them exported
             already — and DEV and SPEED name the drive itself, so the two
             programs are describing one piece of hardware.
 
+            BURNCD_KEEP_WORK is the one whose two names are not the same name
+            with a different prefix. burncd spells it that way and the player
+            spells its own PLAYER_KEEP, so both spellings are honoured and both
+            mean what MUTHUR_KEEP means: leave the scratch directory alone, and
+            leave what is in it — a disc image that has been written is deleted
+            on the way past, and somebody who asked to keep the directory did
+            not ask for an empty one.
+
             A speed that is not a whole number is not fatal here the way it is in
-            the script: it falls back to 8 and says so in the burn's log. The
-            script can die and have you retype the line; an app read its
-            environment at launch, from whatever launched it.
+            the script: it falls back to 8 and says so in the burn's log, and so
+            does a capacity. The script can die and have you retype the line; an
+            app read its environment at launch, from whatever launched it.
 
             """
     }

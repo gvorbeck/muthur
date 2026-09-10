@@ -26,6 +26,36 @@ public enum Readout {
         return String(format: "%d:%02d", minutes, secs)
     }
 
+    /// The length of a **disc**, which is `panel.sh:148` with no hour term —
+    /// `74:00`, `79:57`, `80:00` (**D76**).
+    ///
+    /// D60 folded hours into `mmss` because a three-hour record printed `190:06`
+    /// and that is nobody's idea of a running time. A disc is the one quantity
+    /// on which that fold is never right and always fires: a CD-R is between 74
+    /// and 80 minutes, so every capacity this port ever prints lands inside the
+    /// hour that D60 rewrites, and none of them is ever long enough for D60's
+    /// problem to arise.
+    ///
+    /// It matters because of the sentence it appears in. `media_check`'s refusal
+    /// is *this blank holds 74:00 … use an 80-minute disc*, and a half that
+    /// reads `1:14:00` against a half that says `80-minute` is one sentence
+    /// speaking two languages about the same object. Discs are sold, labelled
+    /// and asked for in minutes; `MUTHUR_MINUTES` is named after that, and a
+    /// remedy has to be readable in the units of the thing you are about to go
+    /// and find in a drawer.
+    ///
+    /// **§5's refusal deliberately keeps `mmss`.** *"Title" is 1:35:00, longer
+    /// than a 1:19:57 disc* is two durations compared to each other, and the
+    /// first of them really can run past the hour — a ninety-five minute file is
+    /// exactly what that message exists for. Both halves in the same form is
+    /// right there, and both halves in the units of the remedy is right here.
+    /// The line between them is what the sentence is *about*, not where the
+    /// number came from.
+    public static func discLength(_ seconds: Int) -> String {
+        let whole = max(0, seconds)
+        return String(format: "%d:%02d", whole / 60, whole % 60)
+    }
+
     /// `TRACK 02 OF 11` (`player:2385`).
     public static func trackLabel(row: Int, of count: Int) -> String {
         String(format: "TRACK %02d OF %02d", row + 1, count)

@@ -189,10 +189,18 @@ struct UsageTests {
         #expect(help.contains("PLAYER_DIRS is the one that is not"))
     }
 
-    /// And the same again for the second script's three, which arrived with §20
-    /// stage 2. The paragraph names them by hand exactly as the `PLAYER_` one
-    /// does, so a fourth `BURNCD_` name honoured without a word about it fails
-    /// here rather than going unmentioned.
+    /// And the same again for the second script's names, which arrived with §20
+    /// stage 2 and grew by three in stage 3b, then by one more with the burn
+    /// itself. The paragraph names them by hand exactly as the `PLAYER_` one
+    /// does, so another `BURNCD_` name honoured without a word about it fails
+    /// here rather than going unmentioned — **which is exactly what it did.**
+    /// `BURNCD_KEEP_WORK` arrived with D79 and was honoured by the kit for
+    /// several hours before anything said so on a help screen; this test is why
+    /// that was hours and not months.
+    ///
+    /// The sentence is matched with its line breaks flattened, because where the
+    /// paragraph wraps is the typesetting of a help screen and not a fact about
+    /// which variables are honoured — which is the whole of what this is for.
     @Test(
         "The BURNCD_ paragraph names exactly the BURNCD_ names that work",
         .enabled(if: UsageTests.canReadSource)
@@ -203,12 +211,16 @@ struct UsageTests {
             .sorted()
         #expect(
             honoured == [
-                "BURNCD_DEV", "BURNCD_LEVEL", "BURNCD_LUFS", "BURNCD_PEAK", "BURNCD_SPEED",
+                "BURNCD_DEV", "BURNCD_KEEP_WORK", "BURNCD_LEVEL", "BURNCD_LUFS",
+                "BURNCD_MINUTES", "BURNCD_NO_MEDIA_CHECK", "BURNCD_PEAK", "BURNCD_SECONDS",
+                "BURNCD_SPEED",
             ])
         let help = Usage.text()
+        let flat = help.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(
-            help.contains(
-                "MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV and MUTHUR_SPEED"))
+            flat.contains(
+                "MUTHUR_LEVEL, MUTHUR_LUFS, MUTHUR_PEAK, MUTHUR_DEV, MUTHUR_SPEED, "
+                    + "MUTHUR_MINUTES, MUTHUR_SECONDS and MUTHUR_NO_MEDIA_CHECK"))
         #expect(help.contains("read under their BURNCD_ names too"))
     }
 

@@ -40,6 +40,47 @@ public enum BurnLimits {
     /// 75 (`msf`, `burncd:156`). Frames a second, the third field of the MSF
     /// addressing a cue sheet is written in.
     public static let framesPerSecond = 75
+
+    /// The disc the plan is cut against, when the operator has said it is not a
+    /// standard blank (`burncd:173`–`179`).
+    ///
+    /// **Why this is here and not just the constant above.** `media_check`
+    /// refuses a blank that is too small for the disc it was asked to hold, and
+    /// the whole of that refusal's usefulness is its second half: *use an
+    /// 80-minute disc, or set this and start again*. A remedy naming a variable
+    /// nothing reads is worse than no remedy at all, so the variable is read.
+    ///
+    /// Seconds win over minutes where both are set, which is the script's own
+    /// order — it asks for `BURNCD_SECONDS` first and only falls through to
+    /// minutes.
+    ///
+    /// **A junk value falls back and says so, on D74's reasoning and now D75's.**
+    /// The script's `numeric` dies, which is right for a program you invoked
+    /// from a shell one second ago. This one was launched by launchd from an
+    /// environment nobody is looking at, and refusing to plan a record because
+    /// a stale export says `80min` is a worse answer than planning it against
+    /// the disc everybody actually buys.
+    public static func capacity(
+        _ environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> (seconds: Int, note: String?) {
+        for (name, scale) in [
+            ("MUTHUR_SECONDS", 1), ("BURNCD_SECONDS", 1),
+            ("MUTHUR_MINUTES", 60), ("BURNCD_MINUTES", 60),
+        ] {
+            guard let raw = environment[name], !raw.isEmpty else { continue }
+            // The script's own test, and `Cdrecord.speed`'s: whole and
+            // unsigned, so `80min`, `-80` and `80.0` are all junk. Zero is junk
+            // here too — a disc that holds nothing is not a disc anybody meant.
+            if let value = Int(raw), value > 0, raw.allSatisfy(\.isNumber) {
+                return (value * scale, nil)
+            }
+            return (
+                capacity,
+                "! \(name) must be a whole number, got: \(raw) — planning for \(Readout.discLength(capacity))"
+            )
+        }
+        return (capacity, nil)
+    }
 }
 
 /// What stopped a plan being made at all.
