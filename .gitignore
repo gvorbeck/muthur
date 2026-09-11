@@ -5,3 +5,13 @@ DerivedData/
 xcuserdata/
 .build/
 .swiftpm/
+
+# cdda2wav's leavings. It writes these beside itself, into whatever directory it
+# was run from, and §19 is worked by hand from the repository root — so they land
+# here and a `git add -A` takes them. Named exactly and anchored to the root
+# rather than `audio*`, which would one day swallow real material. Two digits
+# because a CD holds at most 99 tracks.
+/audio.cddb
+/audio.cdindex
+/audio.cdtext
+/audio_[0-9][0-9].inf
