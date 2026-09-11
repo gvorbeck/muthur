@@ -6,6 +6,16 @@ xcuserdata/
 .build/
 .swiftpm/
 
+# A built bundle, if `Scripts/install.sh Release .` ever puts one here. The
+# script installs to /Applications by default and takes a directory as its
+# second argument, and the repository root is the obvious thing to type. The
+# bundle does not belong in history: git stores Mach-O whole rather than as a
+# delta, so every rebuild committed would be another full copy kept forever,
+# and a binary that has gone stale shows no diff to say so. The zip a release
+# is cut from is the same object under another name.
+/MUTHUR.app/
+/MUTHUR.zip
+
 # cdda2wav's leavings. It writes these beside itself, into whatever directory it
 # was run from, and §19 is worked by hand from the repository root — so they land
 # here and a `git add -A` takes them. Named exactly and anchored to the root

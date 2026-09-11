@@ -12,6 +12,59 @@ questions of §18, and §20), `docs/decisions.md` (§16, every deliberate depart
 from either script, and the answered half of §18), and `docs/hardware.md` (§19,
 the procedure to work through with a disc in the drive).
 
+## Installing
+
+Two Homebrew formulae first. The port does not bundle them; it looks up each
+tool by name in `/opt/homebrew/bin` and `/usr/local/bin` and shells out to it.
+
+    brew install ffmpeg cdrtools
+
+`ffmpeg` decodes what AVFoundation will not take and converts every track on
+the way to a burn. `cdrtools` is `cdrecord` and `cdda2wav` — the drive's writer
+and the reader that lifts CD-Text out of a lead-in. Without them the player
+still plays what AVFoundation understands; the burner does not run at all.
+
+Then, from the repository root:
+
+    Scripts/install.sh
+
+It builds Release into `build/DerivedData`, copies the bundle to
+`/Applications/MUTHUR.app`, nudges LaunchServices, and prints the path it
+wrote. A copy and not a symlink, because Raycast indexes the standard
+application folders and indexes symlinks into them only erratically — the cost
+being that **the script has to be re-run to pick up a change**; during
+development you are launching from Xcode anyway. It will not clear a path in an
+application folder blind: anything already standing there whose
+`CFBundleIdentifier` is not `com.gvorbeck.muthur` stops the install rather than
+being deleted.
+
+Both arguments are optional and positional —
+`Scripts/install.sh [Release|Debug] [directory]`, defaulting to Release and
+`/Applications`. `/Applications` rather than `~/Applications` because it is
+`drwxrwxr-x root:admin`, so an admin account writes to it without `sudo`, and
+it is where every launcher looks first.
+
+### Without the repository
+
+A tagged [release](https://github.com/gvorbeck/muthur/releases) carries a built
+`MUTHUR.zip` — one universal bundle, arm64 and x86_64, so it runs on an Apple
+silicon machine and an Intel one from the same download. Unzip it, drag
+`MUTHUR.app` to `/Applications`, and then:
+
+    xattr -dr com.apple.quarantine /Applications/MUTHUR.app
+
+**That last line is not optional.** The app is ad-hoc signed — a personal app,
+with no Developer ID and no notarization, which is what `CLAUDE.md` chose and
+is fine for a bundle you built yourself. But a file that arrived over the
+network carries `com.apple.quarantine`, and Gatekeeper rejects an ad-hoc
+signature under quarantine outright: `spctl -a` on the downloaded bundle
+answers `rejected`, and the Finder's version of that answer is a dialog saying
+the app is damaged. Stripping the attribute is the whole fix, and it is
+saying *I know where this came from*, which you do.
+
+`brew install ffmpeg cdrtools` is still wanted on that machine; the zip is the
+app and nothing else.
+
 ## Status
 
 It builds, installs with `Scripts/install.sh`, plays records — and burns them.
