@@ -97,6 +97,11 @@ public struct SleeveResolver: Sendable {
         /// goes when the app does — a picture out of a tag is not a file
         /// anybody asked to keep.
         public let scratch: URL?
+        /// **D82.** True when `album` is §4.1's stand-in and not a title — a
+        /// disc nothing could identify, wearing the name of the volume it
+        /// mounted as. False for every folder and every zip, which are named by
+        /// their tags or by nothing.
+        public let albumIsPlaceholder: Bool
 
         public init(
             directory: URL?,
@@ -104,7 +109,8 @@ public struct SleeveResolver: Sendable {
             album: String,
             albumArtist: String,
             releaseMBID: String? = nil,
-            scratch: URL? = nil
+            scratch: URL? = nil,
+            albumIsPlaceholder: Bool = false
         ) {
             self.directory = directory
             self.files = files
@@ -112,6 +118,7 @@ public struct SleeveResolver: Sendable {
             self.albumArtist = albumArtist
             self.releaseMBID = releaseMBID
             self.scratch = scratch
+            self.albumIsPlaceholder = albumIsPlaceholder
         }
 
         /// The record as §3 read it. The running order is what is handed over,
@@ -120,7 +127,8 @@ public struct SleeveResolver: Sendable {
             record: Record,
             directory: URL?,
             releaseMBID: String? = nil,
-            scratch: URL? = nil
+            scratch: URL? = nil,
+            albumIsPlaceholder: Bool = false
         ) {
             self.init(
                 directory: directory,
@@ -128,7 +136,8 @@ public struct SleeveResolver: Sendable {
                 album: record.album,
                 albumArtist: record.albumArtist,
                 releaseMBID: releaseMBID,
-                scratch: scratch
+                scratch: scratch,
+                albumIsPlaceholder: albumIsPlaceholder
             )
         }
     }
@@ -178,6 +187,29 @@ public struct SleeveResolver: Sendable {
 
         if let found = await embeddedPicture(request) {
             return Resolution(sleeve: Sleeve(url: found, source: .tags))
+        }
+
+        // **A placeholder is not a title. D82.**
+        //
+        // §5.3 searches the catalogue by name, and a name is what a disc nothing
+        // could identify does not have: the faceplate is showing `Audio CD`
+        // because §4.1 had to put *something* there. Handed that, the catalogue
+        // does what a search engine does and finds the best match for the words
+        // it was given — on this machine, an Elton John SACD sampler at score 77
+        // — and the panel ends up with `ALBUM "Audio CD"`, thirteen bare track
+        // numbers and somebody else's cover drawn confidently beside them.
+        //
+        // §5.3's own comment says the strict Lucene phrasing exists so that "a
+        // wrong cover drawn confidently beside the panel would be worse than
+        // none". That protection is real and it fails here, because the query is
+        // well-formed and the phrase does match a release. Nothing downstream
+        // can catch it; the only place that knows is the one place that knows
+        // nobody named the record.
+        //
+        // A release MBID goes through regardless. That is not a name, it is the
+        // disc's own identity out of §4.3, and it names a pressing exactly.
+        guard request.releaseMBID != nil || !request.albumIsPlaceholder else {
+            return Resolution(sleeve: nil)
         }
 
         // Everything below this line is the network, and none of it is allowed

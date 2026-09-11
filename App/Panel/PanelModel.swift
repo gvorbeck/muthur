@@ -147,13 +147,23 @@ final class PanelModel {
     /// steps are a stat and at most three file opens and they finish before the
     /// record does; the archive answers when it answers, and if it never does,
     /// the panel is exactly the panel it would have been.
-    private func findSleeve(for record: Record, directory: URL?) {
+    private func findSleeve(
+        for record: Record, directory: URL?, releaseMBID: String? = nil,
+        albumIsPlaceholder: Bool = false
+    ) {
         sleeveWork?.cancel()
         pendingSleeve?.cancel()
         sleeve = nil
 
         let request = SleeveResolver.Request(
-            record: record, directory: directory, scratch: Self.scratch)
+            record: record, directory: directory,
+            // `MB_RELEASE` (`player:1907`) — the disc's own identity, which
+            // beats searching by name and is the only thing §5.3 will accept in
+            // place of one (D82).
+            releaseMBID: releaseMBID.flatMap { $0.isEmpty ? nil : $0 },
+            scratch: Self.scratch,
+            albumIsPlaceholder: albumIsPlaceholder
+        )
         sleeveWork = Task {
             let resolver = SleeveResolver()
             // A cover that turned up late. By the time the archive answers the
@@ -297,7 +307,9 @@ final class PanelModel {
                 self.scratch = opened.scratch
                 adopt(
                     opened.record, source: opened.source,
-                    titleSource: opened.titleSource, directory: opened.directory
+                    titleSource: opened.titleSource, directory: opened.directory,
+                    notice: opened.notice, releaseMBID: opened.releaseMBID,
+                    albumIsPlaceholder: opened.albumIsPlaceholder
                 )
             } catch {
                 die("\(error)")
@@ -434,11 +446,13 @@ final class PanelModel {
     }
 
     private func adopt(
-        _ read: Record, source: SourceKind, titleSource: TitleSource?, directory: URL?
+        _ read: Record, source: SourceKind, titleSource: TitleSource?, directory: URL?,
+        notice: String? = nil, releaseMBID: String? = nil, albumIsPlaceholder: Bool = false
     ) {
         record = read
         stage = nil
         loading = nil
+        discNotice = notice
         // The deck is loaded a moment from now, and until it is, `state` still
         // describes the record that just came off. A record change is a stop and
         // then a start, and the system is told it that way round rather than
@@ -474,7 +488,9 @@ final class PanelModel {
         )
         offer = nil
 
-        findSleeve(for: read, directory: directory)
+        findSleeve(
+            for: read, directory: directory, releaseMBID: releaseMBID,
+            albumIsPlaceholder: albumIsPlaceholder)
 
         // And it plays. `load` is `playlist_build` with `append-play` on it
         // (`player:3259`) — see the note there. Nothing here decides to start it;
@@ -574,6 +590,11 @@ final class PanelModel {
     /// A status message set by the picker.
     private(set) var pickerStatus: String?
 
+    /// **D80** — what opening this record went wrong at without failing. Set
+    /// only when the disc was unmounted to read its lead-in and did not come
+    /// back; cleared by the next record, because it is a fact about this one.
+    private(set) var discNotice: String?
+
     /// The status line, which the resume offer gets to borrow when the deck has
     /// nothing of its own to say. A record you have not started yet is exactly
     /// when the offer is worth reading.
@@ -592,6 +613,15 @@ final class PanelModel {
         if let planStatus { return planStatus }
         if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
+        // **D80.** Under the deck's own messages and over the resume offer.
+        //
+        // Under, because the deck is talking about the key that was just pressed
+        // or the track that just would not open, and this is about something
+        // that has already happened and will not change. Over, because the offer
+        // is a convenience and this is the one thing about opening a record the
+        // user cannot work out for themselves: the disc is out of Finder, and it
+        // was this program that took it out.
+        if let discNotice { return Readout.status(discNotice.uppercased()) }
         if let offer { return offer.text }
         return nil
     }

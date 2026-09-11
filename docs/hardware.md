@@ -79,11 +79,13 @@ failure it causes is legible in a terminal and silent in the app: `media_check`
 that cannot read ATIP does not stop — it warns once and goes ahead on trust,
 which is exactly what a good burn looks like.
 
-**Where the port does *not* do it is §4.2**, and that is the one thing on this
-page still waiting on a decision rather than on a disc. Reading a disc's CD-Text
-is an exclusive open like any other, so it is refused for as long as the disc is
-mounted — and unlike a write, a lookup happens on a disc the program is about to
-*play*, which is to say on a mount it needs. Step 8 has the readings.
+**§4.2 does it too now, and step 8 is where that was decided (D80).** Reading a
+disc's CD-Text is an exclusive open like any other, so it is refused for as long
+as the disc is mounted — and unlike a write, a lookup happens on a disc the
+program is about to *play*, which is to say on a mount it needs. So the port
+borrows the mount for the length of the read and gives it straight back, **when
+the user opens the record and never when §1 scans the drive**: a scan has not
+been handed the disc. Step 8 has the readings on both sides of that.
 
 **One more thing about this drive, and it is not in any script.** `drutil tray
 close` exits 0 and does nothing here; the tray has to be pushed shut by hand.
@@ -436,11 +438,10 @@ cdda2wav really prints, rather than against a banner typed out from memory. And
 it proves the point of the whole section: two shapes had been reasoned about, and
 the machine printed two others.
 
-**What it does not prove is §4.2's first box, and that box stays open.** Every
-reading above was taken with the disc unmounted by hand. Run the way the port
-actually runs it — the disc mounted, because macOS mounts every audio CD and §3
-needs the mount to play from — `cdda2wav dev=IODVDServices/0 -J -v titles`
-answers:
+**Every reading above was taken with the disc unmounted by hand, and that is the
+thing this step turned into a decision.** Run the way the port actually runs it —
+the disc mounted, because macOS mounts every audio CD and §3 needs the mount to
+play from — `cdda2wav dev=IODVDServices/0 -J -v titles` answers:
 
     Warning, 'diskarbitrationd' is running and does not allow us to
     send SCSI commands to the drive.
@@ -451,15 +452,25 @@ rather than the write end. The fallback cannot cover it: `cdrecord -toc` cannot
 open a mounted disc either, and on this drive it has no titles to give even when
 it can. **So §4.2, on this machine, has no path to a title that does not begin by
 unmounting the disc** — and the script has exactly the same hole, for exactly the
-same reason, which is why this is a question rather than a bug to go and fix.
-`DriveRelease` already knows how to take the mount away and §20 uses it before
-every write; whether §4 should use it too, and put the mount back before playback
-starts, is the decision that has to be made before this box can be honestly
-ticked.
+same reason, which is why it was a question rather than a bug to go and fix.
 
-The disc is not left unnamed by this: §4.3 reads `.TOC.plist` off the mounted
-volume (D44), and step 7 resolved this very disc to its release through
-MusicBrainz without touching the device once.
+- [x] **The answer is D80, and §4.2's first box is ticked on the strength of
+      this step.** Mounted, the read returns 1,431 bytes of refusal. Unmounted
+      with the `DriveRelease` §20 already uses, the same call returns the album,
+      the artist and all thirteen titles, and `diskutil mount /dev/disk7` puts
+      the volume back with Finder none the wiser. The port now takes the mount
+      away for the length of that one read and gives it straight back —
+      **when the user opens the record, and never when §1 merely scans the
+      drive.** The distinction is the decision; the mechanism was already here.
+
+      Proved against a CD-R burnt by §20 this afternoon, not against a pressing,
+      which is the caveat carried over into §4.2's box.
+
+The disc was not left unnamed even before that: §4.3 reads `.TOC.plist` off the
+mounted volume (D44), and step 7 resolved this very disc to its release through
+MusicBrainz without touching the device once. That is why D80 is worded as an
+upgrade rather than a rescue — CD-Text arriving is better than the volume name,
+and worse than MusicBrainz, so the fall-through past it stays silent.
 
 ### 9. The mounted volume, end to end
 

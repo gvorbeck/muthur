@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-seventy-nine are settled. Recorded here with the answer so that a departure from
+eighty-two are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -158,10 +158,10 @@ burning blanks never had — and the reason it is worth a numbered entry is that
 its second victim, the ATIP read behind `media_check`, fails silently and looks
 exactly like success. **It has since taken a third**, at the other end of the
 program entirely: §4.2's `cdda2wav` read of a disc's CD-Text cannot open a disc
-macOS has mounted either, and macOS mounts every audio CD. That one is not
-settled here — it is a question standing open under §19 step 8, because the
-remedy is to unmount and remount around a *lookup*, and the script has the same
-hole for the same reason.
+macOS has mounted either, and macOS mounts every audio CD. That one stood open as
+a question under §19 step 8 for a while, because the remedy is to unmount and
+remount around a *lookup* rather than a write, and the script has the same hole
+for the same reason. It is **D80** now.
 
 **D79 came with the burn itself**, and it is the smallest entry here that had to
 be argued at all: the image is deleted after the write rather than before it. The
@@ -169,6 +169,19 @@ script's `rm -f` is about peak disk usage on a five-disc job and not about
 tidiness, so the deletion is kept and moved — below the rehearsal's `continue`,
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
+
+**D80 to D82 came from playing the disc §20 had just burnt, and all three are
+about a program sounding more certain than it is.** D80 borrows the mount for the
+length of a CD-Text read — when the user opens the record, never when §1 scans
+the drive, because a scan has not been handed the disc — and says so on the panel
+if the disc does not come back. D81 asks MusicBrainz twice a second apart, after
+the server answered one hand-run of ten queries with five `503`s and the app
+treated the first refusal as the answer. D82 stops §5.3 searching for a sleeve by
+a name §4.1 invented, after a Bon Jovi record came up wearing an Elton John SACD
+sampler's cover — found by searching, in earnest, for *Audio CD*. **The last two
+are one fault seen twice**: the album was a placeholder because the lookup had
+been given up on, and the sleeve was wrong because the placeholder was searched
+for.
 
 **D1 — volume. Gained.** The script has none on purpose (README, *No sound, but
 the meters are moving*), but an app with its own transport and a Now Playing
@@ -2659,6 +2672,150 @@ that the panel line above is still being said, because the two belong together
 and the bug is what happens when only one of them is true. This is flagged rather
 than fixed in `burncd`, per `CLAUDE.md`: the script is not ours to change, and it
 has presumably been lived with for as long as anybody has rehearsed on it.
+
+---
+
+**D80 — the mount is borrowed for the CD-Text read, and only when a record is
+opened.** → §4.2, §19 step 8, D77
+
+D77's exclusive-open problem has a third victim and it is at the other end of the
+program: `cdda2wav` cannot read a disc's lead-in while macOS has the disc
+mounted, and macOS mounts every audio CD the moment it goes in. §19 step 8 has
+both readings off this drive. Mounted, the read returns 1,431 bytes of refusal
+naming `diskarbitrationd`. Unmounted, the identical command returns
+`Album title: 'Slippery When Wet (Special Edition)'  [from Bon Jovi]` and all
+thirteen track titles out of the 742 bytes in the lead-in. There is no third way:
+the `cdrecord -toc` fallback cannot open a mounted disc either, and on this drive
+it will not print a title even when it can. **So §4.2 on this machine has no path
+to a title that does not begin by unmounting the disc**, and the script has the
+same hole for the same reason, which is why this was held open as a question.
+
+**The answer is yes, and the whole of the decision is *when*.** A lookup happens
+on a disc the program wants the mount of, so taking the mount away is not free
+the way it is before a write — and the two moments §4 gets asked for a disc's
+titles are not the same moment at all:
+
+- **Opening a record is the user handing the disc to the program.** They have
+  chosen this disc, the next thing that happens is that it plays, and a mount
+  that goes away for the length of one `cdda2wav` and comes straight back is
+  invisible to them. That is where the borrow happens.
+- **Scanning is not.** §1's picker lists what is available; it has been given
+  nothing. A disc that is merely *offered* in a list must not be moved, and a
+  program that unmounts the drive to draw a menu row is a program that interferes
+  with a machine it was only asked to look at. So the picker still reads
+  `.TOC.plist` off the mount (D44) and touches no device.
+
+That distinction is the reason `BorrowedCDText` is its own type wrapping
+`DriveCDText` rather than three lines inside it. A decorator can only be applied
+where somebody applies it, and exactly one caller does: `SourceOpener.openDisc`.
+A line inside the reader would have been correct today and wrong the first time
+anything else read CD-Text.
+
+It borrows through `DriveRelease` — D77's, the same one §20 uses before every
+write, for D77's own stated reason that a second way of finding the drive is a
+second way of finding the wrong one.
+
+**Two conditions on it, and the first is the important one.** If the unmount
+succeeds and the remount does not, the disc has gone from Finder because this
+program took it, and nothing else on the machine will explain that to anybody. So
+`BorrowedCDText` remembers, `Opened` carries the notice up, and the panel says
+`DISC LEFT UNMOUNTED — FINDER WILL NOT SHOW IT UNTIL IT IS EJECTED`. **A disc
+that silently disappears from Finder is a worse outcome than absent CD-Text**,
+and it is the one failure here the user cannot diagnose.
+
+The second is that **failing to get CD-Text says nothing at all.** The fall-
+through to MusicBrainz is silent, because MusicBrainz answers better than CD-Text
+does — step 7 resolved this very disc to four real pressings without touching the
+device — and this is an upgrade to the chain, not a rescue of it. A message every
+time a disc turns out to have no text in its lead-in would be a message about
+most discs.
+
+**Proved against a CD-R, not a pressing.** The disc all of the above was read off
+is the one §20 burnt, and it carries CD-Text because this port wrote the CD-Text
+on. The parser boxes under §4.2 are still the only part of it proved against
+factory material.
+
+---
+
+**D81 — MusicBrainz is asked twice, a second apart. A deliberate divergence from
+`player:2180`, which asks once.** → §4.3, §5.3
+
+The disc §20 burnt played with thirteen correct tracks and thirteen rows reading
+`Track 01`…`Track 13`, and the cause was not a parse and not a tie-break. Its ID
+is `tbonDFn643nTGHTHA1pMedaG3ZI-`, MusicBrainz knows it, and asked ten times by
+hand the server answered with the album five times and with
+
+    {"error": "The MusicBrainz web server is currently busy ..."}
+
+the other five — HTTP 503, valid JSON, and no `releases` key. `parse` returns nil
+to that, correctly, and §4's chain falls through to the volume name. **So the
+failure is a load-shedding server and a program that treats one refusal as an
+answer.** The script's own disc lookup asks once too, but `mb_query`
+(`player:1815`) — the *search* half of the same API — already retries, so the
+retry is in the original; what is not is applying it here.
+
+**The retry is triggered by any answer that does not parse, and not by matching
+the server's prose or its status line.** Both of those were considered and both
+are worse. The message is the server's to reword; and the status would have to
+come up through `SleeveTransport`, whose own comment says the alternative was
+rejected because it means *trusting a status line that has been seen lying*. §5.3
+already takes that trade and documents it. An answer that does not parse is an
+answer this program cannot use, which is the only property the retry needs.
+
+**Twice and not more, a second apart, and the sleep sits between the tries rather
+than after the second.** Two covers a server shedding half its load and leaves a
+disc that genuinely is not in MusicBrainz costing one extra second before the
+track numbers come up; a third try would be the first one that makes an
+unidentifiable disc feel slow. Sleeping after the last try would charge that
+second to every lookup that already succeeded.
+
+The suites pass `retryDelay: .zero`, because what they are testing is that the
+second question gets asked.
+
+**A second bug was sitting underneath it and is fixed rather than decided.**
+`DiscTitles.Outcome` has carried `releaseID` since §4.3 was written and nothing
+ever read it: it stopped at `SourceOpener` and never reached the sleeve request,
+so §5.3 was searching by name for records it had been handed an MBID for. It now
+comes out on `Opened` and goes in, which is what `MB_RELEASE` does in the script
+(`player:1907`). That is a parity hole closed, not a divergence, and it is
+recorded here only because it is half of why the wrong sleeve was on the screen.
+
+---
+
+**D82 — a placeholder album is not searched for a sleeve.** → §5.3, §4.1
+
+The other half. With the album stuck at §4.1's fallback the faceplate read
+`ALBUM Audio CD`, and §5.3 went and searched Cover Art Archive for a record
+called *Audio CD* — which exists. MusicBrainz returns Elton John's *Super Audio
+CD Sampler* at score 77, comfortably above the floor, and a Bon Jovi disc came up
+with an Elton John sleeve beside it.
+
+§5.3's own comment says the strict Lucene phrasing is there because **a wrong
+cover drawn confidently beside the panel would be worse than none**. That
+protection is written against a *title* that nearly matches something else. It
+cannot help here, because the string being searched was never a title: `Audio CD`
+is the name macOS gave a volume it could not identify, and §4.1 put it on the
+faceplate as the honest thing to display in the absence of anything better.
+Displaying it is right. Searching for it is not — the sleeve search is the one
+place in the program where a plausible answer to the wrong question is
+indistinguishable from a right one.
+
+So `DiscTitles.Outcome` carries `albumIsPlaceholder`, set where the volume name
+is substituted and cleared the moment CD-Text or MusicBrainz supplies a real
+album, and `Sleeve.resolve` refuses to search by name when it is set. **A release
+MBID goes through regardless**, because that is an identity and not a guess.
+
+It is kept as its own flag rather than folded into `Outcome.source`, because
+`source` is a statement about where the *track list* came from (§18.11, D19) and
+these two can disagree: a disc whose titles came off filenames macOS invented
+still has no album name, and a disc with CD-Text titles and no album line has
+titles from CD-Text and a placeholder album.
+
+**The disc that shows the point is the one in the drive.** Nothing on this
+machine can name a CD-R burnt this afternoon, and the right thing for a program
+to say about it is that it does not know it. **The bug was never "wrong cover" —
+it was a confident answer where the honest one is silence.** An unknown record
+now gets an empty sleeve rather than somebody else's.
 
 ---
 

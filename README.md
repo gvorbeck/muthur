@@ -15,17 +15,35 @@ the procedure to work through with a disc in the drive).
 ## Status
 
 It builds, installs with `Scripts/install.sh`, plays records — and burns them.
-Parity stands at **319 of 324 boxes**. Of the five still open, three are what §14
+Parity stands at **321 of 325 boxes**. Of the four still open, three are what §14
 marks as blocked on hardware and material: AirPlay's unplug, hi-res output
-switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. One is
-what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere
+switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. The last
+is what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere
 above the drive, which needs two blanks to resume a job between them and there is
-none left. The last is §4.2's `cdda2wav` read of a disc's CD-Text, and it is open
-for a reason that only a disc could have supplied — it runs, it reads a real
-lead-in correctly, and it cannot open a disc macOS has mounted, which is every
-audio CD. §19 is a procedure rather than boxes and is counted separately, at
-**31 of 37**; what is left there wants a disc out of a multi-disc set, a data
+none left. §19 is a procedure rather than boxes and is counted separately, at
+**32 of 38**; what is left there wants a disc out of a multi-disc set, a data
 disc, an empty bay, and two AIFFs on an external volume.
+
+**The fifth open box closed by somebody deciding something.** §4.2's `cdda2wav`
+read of a disc's CD-Text runs and reads a real lead-in correctly, and it cannot
+open a disc macOS has mounted — which is every audio CD. The port now borrows the
+mount for the length of that one read and gives it straight back, **when the user
+opens a record and never when the picker scans the drive**: a scan has not been
+handed the disc. If the disc does not come back, the panel says so, because a
+disc that vanishes from Finder is worse than absent CD-Text and is the one
+failure here nobody could diagnose.
+
+**And the burnt disc, played, found a bug worth the whole exercise.** Thirteen
+correct tracks came up under `ALBUM Audio CD`, `ARTIST —`, thirteen rows reading
+`Track 01` … `Track 13`, and an Elton John sleeve. One fault, not three:
+MusicBrainz knows this disc, but it was shedding load — five of ten hand-run
+queries came back *the web server is currently busy* — and the port took the
+first refusal for an answer. The album fell back to the volume's own name, and
+the sleeve search went looking, in earnest, for a record called *Audio CD*.
+Which exists. It asks twice now, it does not search for a name it invented, and
+the disc's identity reaches the sleeve when there is one. **The bug was never
+the wrong cover; it was a confident answer where the honest one is *I do not
+know this disc*.**
 
 **The disc has been read back.** `--verify` came off that list against the CD-R
 the port burnt: thirteen tracks off the table of contents, 265,307 sectors read

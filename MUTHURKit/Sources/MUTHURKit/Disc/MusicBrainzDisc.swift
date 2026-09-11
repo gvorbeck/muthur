@@ -42,14 +42,48 @@ public enum MusicBrainzDisc {
         public var titles: [String] = []
     }
 
-    /// One request, and only one. Nothing is retried on a timeout, and an empty
-    /// answer is not retried either: unlike the release search (§5.3), a disc ID
-    /// either resolves or it does not, and asking twice cannot change that
-    /// (`player:2180`).
-    public static func look(up discID: String, transport: some SleeveTransport) async -> Answer? {
-        guard case .body(let data) = await transport.get(url(discID: discID), timeout: timeout)
-        else { return nil }
-        return parse(data, discID: discID)
+    /// **Asked twice, a second apart. D81 — a deliberate divergence from
+    /// `player:2180`, which asks once.**
+    ///
+    /// The script's reasoning for asking once is that a disc ID either resolves
+    /// or it does not, so asking twice cannot change the answer. That is true of
+    /// the *catalogue* and false of the *web service*, and the script knows it —
+    /// forty lines of `mb_query` up at `player:1815` say so outright, and give
+    /// the release search two tries with a sleep between them because "the
+    /// MusicBrainz web server is currently busy" comes back as a 503 whose body
+    /// is an error document rather than a release list. It simply never occurred
+    /// to anyone that the same server says the same thing to the same client on
+    /// the other endpoint.
+    ///
+    /// It does. Observed on the disc in this drive: a disc ID that MusicBrainz
+    /// resolves exactly — four releases, every one of them claiming the ID —
+    /// came back busy on two of ten plain requests and five of ten through this
+    /// chain. A busy answer parses to nil, §4.3 gives up, and the panel keeps
+    /// the §4.1 volume name. The disc is not unknown; the server was.
+    ///
+    /// So the trade §5.3 already documents is taken here too: a disc genuinely
+    /// not in the catalogue answers twice over and costs one spare request on a
+    /// record that was never going to be named anyway.
+    ///
+    /// **The sleep is between the tries and not after the second**, which is the
+    /// one place this differs from `releaseIDs`. There it falls before the next
+    /// rung of the ladder; here there is no next rung, and the panel is sitting
+    /// on `READING DISC` waiting for this.
+    public static func look(
+        up discID: String,
+        transport: some SleeveTransport,
+        retryDelay: Duration = .seconds(1)
+    ) async -> Answer? {
+        for attempt in 1...2 {
+            if Task.isCancelled { return nil }
+            if case .body(let data) = await transport.get(url(discID: discID), timeout: timeout),
+                let answer = parse(data, discID: discID)
+            {
+                return answer
+            }
+            if attempt == 1, retryDelay > .zero { try? await Task.sleep(for: retryDelay) }
+        }
+        return nil
     }
 
     // MARK: - Parsing

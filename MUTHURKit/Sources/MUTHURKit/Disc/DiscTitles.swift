@@ -51,6 +51,15 @@ public enum DiscTitles {
         /// when the lookup then failed to name a single track, because a release
         /// MBID is still the strongest identification §5 will ever be handed.
         public var releaseID: String?
+        /// **D82.** True when the album on the faceplate is still §4.1's
+        /// stand-in — the volume's own name, put there so the panel has
+        /// *something* — because nothing in the chain named this disc.
+        ///
+        /// Kept apart from `source`, which is about the **track list**. CD-Text
+        /// that gives an album and no track titles leaves the source at
+        /// `trackNumbers` and the album genuinely named (§18.11, D19), and the
+        /// two must not be read off each other.
+        public var albumIsPlaceholder = false
     }
 
     // MARK: - §4.1, the tidy default
@@ -58,7 +67,12 @@ public enum DiscTitles {
     /// Before anything is asked. A failure further down then leaves a column of
     /// `Track 01`, `Track 02` rather than a column of filenames
     /// (`player:2240`).
-    public static func applyDefaults(to record: inout Record, volumeName: String) {
+    /// **Returns whether the album is now a stand-in rather than a name.** D82
+    /// needs to know, and this is the only place that can say: two lines later
+    /// `record.album` is a non-empty string and nothing about it says where it
+    /// came from.
+    @discardableResult
+    public static func applyDefaults(to record: inout Record, volumeName: String) -> Bool {
         for index in record.tracks.indices {
             let title = record.tracks[index].title
             // The two casings the script lists, and only those. macOS writes
@@ -71,7 +85,9 @@ public enum DiscTitles {
         }
         // `basename "$SRC_PATH"` — the volume name, which for a CDDA mount is
         // whatever the disc called itself or `Audio CD` if it did not.
-        if record.album.isEmpty { record.album = volumeName }
+        guard record.album.isEmpty else { return false }
+        record.album = volumeName
+        return true
     }
 
     // MARK: - The chain
@@ -83,19 +99,24 @@ public enum DiscTitles {
         tableOfContents: (any TableOfContentsSource)? = nil,
         transport: (any SleeveTransport)? = nil,
         useMusicBrainz: Bool = true,
+        /// **D81.** Between the catalogue's two tries. `.zero` in the suites,
+        /// which are asking a stub and have no rate limiter to be patient with.
+        retryDelay: Duration = .seconds(1),
         stage: ((Stage) -> Void)? = nil
     ) async -> Outcome {
-        applyDefaults(to: &record, volumeName: volumeName)
         var outcome = Outcome(source: .trackNumbers)
+        outcome.albumIsPlaceholder = applyDefaults(to: &record, volumeName: volumeName)
 
         stage?(Stage(step: 1, of: 3, detail: "looking for CD-Text"))
-        if await readCDText(into: &record, from: cdText) {
+        if await readCDText(into: &record, outcome: &outcome, from: cdText) {
             outcome.source = .cdText
             return outcome
         }
 
         stage?(Stage(step: 2, of: 3, detail: "asking MusicBrainz"))
-        if await ask(&record, outcome: &outcome, tableOfContents, transport, useMusicBrainz) {
+        if await ask(
+            &record, outcome: &outcome, tableOfContents, transport, useMusicBrainz, retryDelay)
+        {
             outcome.source = .musicBrainz
             return outcome
         }
@@ -118,14 +139,19 @@ public enum DiscTitles {
     /// the source label is about the *track list*, which is what you are looking
     /// at. MusicBrainz overwrites what it knows better and leaves the rest
     /// alone.
-    static func readCDText(into record: inout Record, from source: (any CDTextSource)?) async
-        -> Bool
-    {
+    static func readCDText(
+        into record: inout Record, outcome: inout Outcome, from source: (any CDTextSource)?
+    ) async -> Bool {
         guard let source, let output = await source.cdTextOutput(), !output.isEmpty else {
             return false
         }
         let text = CDTextParser.parse(output)
-        if !text.album.isEmpty { record.album = text.album }
+        if !text.album.isEmpty {
+            record.album = text.album
+            // A lead-in that gave an album and no track titles still named the
+            // record, and D82 is about names and not about track lists.
+            outcome.albumIsPlaceholder = false
+        }
         if !text.albumArtist.isEmpty { record.albumArtist = text.albumArtist }
 
         var landed = 0
@@ -156,7 +182,8 @@ public enum DiscTitles {
         outcome: inout Outcome,
         _ source: (any TableOfContentsSource)?,
         _ transport: (any SleeveTransport)?,
-        _ useMusicBrainz: Bool
+        _ useMusicBrainz: Bool,
+        _ retryDelay: Duration = .seconds(1)
     ) async -> Bool {
         // `--no-mb` / `PLAYER_MB=0`, no curl, no jq: all three land in the same
         // place as a failed lookup (`player:2176`).
@@ -165,7 +192,10 @@ public enum DiscTitles {
 
         let discID = table.discID
         outcome.discID = discID
-        guard let answer = await MusicBrainzDisc.look(up: discID, transport: transport) else {
+        guard
+            let answer = await MusicBrainzDisc.look(
+                up: discID, transport: transport, retryDelay: retryDelay)
+        else {
             return false
         }
 
@@ -173,7 +203,10 @@ public enum DiscTitles {
         // the answer then turns out to name nothing — same shape as §18.11
         // above. Only when present, so a half answer does not blank the other
         // half (`player:2213`).
-        if !answer.album.isEmpty { record.album = answer.album }
+        if !answer.album.isEmpty {
+            record.album = answer.album
+            outcome.albumIsPlaceholder = false
+        }
         if !answer.albumArtist.isEmpty { record.albumArtist = answer.albumArtist }
         if !answer.year.isEmpty { record.year = answer.year }
         if !answer.releaseID.isEmpty { outcome.releaseID = answer.releaseID }

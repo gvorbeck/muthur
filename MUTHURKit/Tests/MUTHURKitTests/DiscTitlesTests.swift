@@ -343,7 +343,10 @@ struct DiscTitlesTests {
             let outcome = await DiscTitles.resolve(
                 &record, volumeName: "Audio CD",
                 tableOfContents: StubTOC(toc: DiscIDTests.sevenTrack),
-                transport: StubSleeveTransport([], otherwise: answer)
+                transport: StubSleeveTransport([], otherwise: answer),
+                // Each of these four is now asked twice (D81); what this test is
+                // about is where the second refusal lands, not the waiting.
+                retryDelay: .zero
             )
             #expect(outcome.source == .trackNumbers)
             #expect(record.running.map(\.title) == ["Track 01", "Track 02"])

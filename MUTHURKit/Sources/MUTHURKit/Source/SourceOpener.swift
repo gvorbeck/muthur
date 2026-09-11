@@ -15,6 +15,39 @@ public enum SourceOpener {
         public let titleSource: TitleSource
         public let directory: URL
         public let scratch: Scratch?
+        /// The one thing opening a record can go wrong at without failing.
+        /// **D80**: the disc was unmounted to read its lead-in and did not come
+        /// back. Nil in every other case, including a lead-in that said nothing.
+        public let notice: String?
+        /// The release §4.3 resolved the disc to. **The script keeps this in
+        /// `MB_RELEASE` and `art_fetch` uses it instead of searching by name
+        /// (`player:1907`);** the port worked it out and then dropped it here,
+        /// so every identified disc was still going through §5.3's name search.
+        public let releaseMBID: String?
+        /// **D82** — nothing named this record and the album on the faceplate is
+        /// the volume's name. Only a disc can be in this state; a folder or a
+        /// zip is named by its tags or is not named at all.
+        public let albumIsPlaceholder: Bool
+
+        public init(
+            record: Record,
+            source: SourceKind,
+            titleSource: TitleSource,
+            directory: URL,
+            scratch: Scratch?,
+            notice: String? = nil,
+            releaseMBID: String? = nil,
+            albumIsPlaceholder: Bool = false
+        ) {
+            self.record = record
+            self.source = source
+            self.titleSource = titleSource
+            self.directory = directory
+            self.scratch = scratch
+            self.notice = notice
+            self.releaseMBID = releaseMBID
+            self.albumIsPlaceholder = albumIsPlaceholder
+        }
     }
 
     public enum Failure: Error, Equatable, CustomStringConvertible {
@@ -126,14 +159,16 @@ public enum SourceOpener {
     ///
     /// **On the ordering.** The table of contents comes off `.TOC.plist` on the
     /// mount (**D44**) and opens no device. CD-Text is the one step here that
-    /// talks to the drive, and on this platform it cannot succeed: an audio CD
-    /// is always mounted, `diskarbitrationd` holds it, and cdrtools cannot get
-    /// the exclusive open it insists on. It is attempted anyway rather than
-    /// quietly dropped — it is the script's own §4.2 step, it is what an
-    /// *unmounted* disc would answer, and the failed opens were observed not to
-    /// disturb `drutil` or the mount (§19). What it costs is a handful of
-    /// subprocesses that exit 255, and what it buys is that the port does not
-    /// silently skip a step the script takes.
+    /// talks to the drive, and until **D80** it could not succeed on this
+    /// platform at all: an audio CD is always mounted, `diskarbitrationd` holds
+    /// it, and cdrtools cannot get the exclusive open it insists on. It is now
+    /// wrapped in `BorrowedCDText`, which takes the mount away for the length of
+    /// the read and gives it back. On the disc in the drive that turned 1,431
+    /// bytes of refusal into the album title and all thirteen track titles.
+    ///
+    /// **This is the only place that wrapper is used, and that is the point of
+    /// D80.** Opening a record is the user handing the disc over. §1's scan is
+    /// not, and reads `.TOC.plist` off the mount without touching a device.
     private static func openDisc(
         _ url: URL,
         useMusicBrainz: Bool,
@@ -149,10 +184,11 @@ public enum SourceOpener {
         )
 
         let drive = OpticalDrive.detect()
+        let cdText = BorrowedCDText(DriveCDText(drive: drive))
         let outcome = await DiscTitles.resolve(
             &record,
             volumeName: label,
-            cdText: DriveCDText(drive: drive),
+            cdText: cdText,
             tableOfContents: VolumeTableOfContents(volume: url),
             // A nil transport disables the lookup silently (`ask`, line 163),
             // which would make `--no-mb` and "we forgot to pass one" the same
@@ -167,9 +203,21 @@ public enum SourceOpener {
 
         return Opened(
             record: record, source: .disc, titleSource: outcome.source,
-            directory: url, scratch: nil
+            directory: url, scratch: nil,
+            notice: cdText.remountFailed ? Self.discNotReturned : nil,
+            releaseMBID: outcome.releaseID,
+            albumIsPlaceholder: outcome.albumIsPlaceholder
         )
     }
+
+    /// **D80.** Said on the panel when the disc was unmounted for the lead-in
+    /// read and did not come back.
+    ///
+    /// It names the remedy rather than the cause, because the cause is
+    /// `diskutil` and the user cannot do anything with that. What they can do is
+    /// see that the disc is missing from Finder, know that the program is what
+    /// moved it, and know that the drive still has it.
+    static let discNotReturned = "disc left unmounted — Finder will not show it until it is ejected"
 
     /// Which switch, if either, has the sleeve lookup off.
     ///

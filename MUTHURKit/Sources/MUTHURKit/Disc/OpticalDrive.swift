@@ -94,15 +94,34 @@ public struct DriveCDText: CDTextSource {
         self.environment = environment
     }
 
+    /// Where cdda2wav is allowed to leave its seventeen files. **D80.**
+    ///
+    /// A temporary directory made and removed around the read, because the only
+    /// thing wanted out of that tool is what it printed, and everything it wrote
+    /// is a by-product of asking.
+    static func scratch() -> URL? {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "muthur-cdtext-\(UUID().uuidString)")
+        guard
+            (try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true))
+                != nil
+        else { return nil }
+        return url
+    }
+
     public func cdTextOutput() async -> String? {
         var out = ""
+        let work = DriveCDText.scratch()
+        defer { if let work { try? FileManager.default.removeItem(at: work) } }
         if let cdda2wav = Tooling.locate("cdda2wav", environment: environment) {
-            out = Tooling.output(cdda2wav, ["dev=\(drive.device)", "-J", "-v", "titles"]) ?? ""
+            out =
+                Tooling.output(
+                    cdda2wav, ["dev=\(drive.device)", "-J", "-v", "titles"], in: work) ?? ""
         }
         if Self.wantsFallback(out),
             let cdrecord = Tooling.locate("cdrecord", environment: environment)
         {
-            out = Tooling.output(cdrecord, ["dev=\(drive.device)", "-toc", "-v"]) ?? ""
+            out = Tooling.output(cdrecord, ["dev=\(drive.device)", "-toc", "-v"], in: work) ?? ""
         }
         return out.isEmpty ? nil : out
     }
@@ -173,5 +192,52 @@ public struct DriveTableOfContents: TableOfContentsSource {
             let out = Tooling.output(cdrecord, ["dev=\(drive.device)", "-toc"])
         else { return nil }
         return CDRecordTOC.parse(out)
+    }
+}
+
+/// CD-Text off a disc macOS has mounted, by briefly taking the mount away.
+/// **D80.**
+///
+/// §4.2 could not reach a lead-in on this machine, and the reason was never the
+/// parser: `diskarbitrationd` mounts every audio CD, a mounted optical device is
+/// one cdrtools cannot get exclusive access to, and so both tools came back with
+/// a page of refusal instead of a title. Unmounted by hand the same command
+/// reads the lead-in perfectly. This is that unmount, done by the program.
+///
+/// **The trigger is opening a record, and it is never a scan.** That distinction
+/// is the entire reason this is a separate type rather than a line inside
+/// `DriveCDText`. Opening a record is the user handing the disc to the program —
+/// they have asked for this disc, and moving it about to learn its titles is
+/// work they asked for. A scan has been handed nothing: it is the program
+/// looking to see what is *available*, and a disc that vanishes from Finder
+/// because something went looking is the program taking a liberty with a disc
+/// nobody offered it. So §1's picker still reads `.TOC.plist` off the mount and
+/// touches no device, and only `openDisc` ever reaches for this.
+///
+/// The remount is not best-effort. See `remountFailed`.
+public final class BorrowedCDText: CDTextSource, @unchecked Sendable {
+    private let inner: any CDTextSource
+    private let release: DriveRelease
+    private let lock = NSLock()
+    private var failed = false
+
+    public init(_ inner: any CDTextSource, release: DriveRelease = DriveRelease()) {
+        self.inner = inner
+        self.release = release
+    }
+
+    /// **True only when the disc was taken and did not come back.**
+    ///
+    /// Not "the unmount failed", and not "there was no CD-Text". A disc that was
+    /// never unmounted is not a failure, and neither is a lead-in that had
+    /// nothing in it — that one falls quietly through to §4.3, which answers
+    /// better than CD-Text does anyway. This flag exists for the single outcome
+    /// the user cannot diagnose and cannot undo from the panel.
+    public var remountFailed: Bool { lock.withLock { failed } }
+
+    public func cdTextOutput() async -> String? {
+        let (out, remounted) = await release.around { await inner.cdTextOutput() }
+        lock.withLock { failed = !remounted }
+        return out
     }
 }

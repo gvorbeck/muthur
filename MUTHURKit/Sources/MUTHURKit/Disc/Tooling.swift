@@ -46,14 +46,27 @@ enum Tooling {
         let status: Int32
     }
 
-    static func output(_ executable: URL, _ arguments: [String]) -> String? {
-        run(executable, arguments)?.output
+    static func output(_ executable: URL, _ arguments: [String], in directory: URL? = nil)
+        -> String?
+    {
+        run(executable, arguments, in: directory)?.output
     }
 
-    static func run(_ executable: URL, _ arguments: [String]) -> Result? {
+    /// `directory` is where the tool is run, for the ones that write beside
+    /// themselves rather than to the pipe.
+    ///
+    /// **cdda2wav is the reason this exists, and only D80 exposed it.** Asked for
+    /// `titles` it also drops `audio.cdtext`, `audio.cddb`, `audio.cdindex` and
+    /// an `audio_NN.inf` per track into the current directory — thirteen tracks,
+    /// seventeen files. Nothing ever saw it because until the disc was unmounted
+    /// cdda2wav failed before it wrote a byte; the first lead-in it managed to
+    /// read, it littered the repository it was run from. A tool that succeeds
+    /// has to have somewhere to succeed *into*.
+    static func run(_ executable: URL, _ arguments: [String], in directory: URL? = nil) -> Result? {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
+        if let directory { process.currentDirectoryURL = directory }
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe

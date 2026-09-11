@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All seventy-nine are settled; they
+  the reasoning and the decision it came from. All eighty-two are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number had drifted to thirty-nine while
@@ -57,44 +57,61 @@ part worth porting.
 
 ## Status
 
-**319 of 324 boxes** outside §19 (§19 is a procedure, not boxes, and is not
-counted; it stands separately at 31 of 37). Re-derived by counting the files:
-315 ticked and 5 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 31 of 37 in `hardware.md` — which grew by a step this pass, because §20's
-hardware runs had been referred to as `hardware.md` step 14 by the tests that
-perform them for some time and there was no step 14.
+**321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+counted; it stands separately at 32 of 38). Re-derived by counting the files:
+317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
+and 32 of 38 in `hardware.md` — which grew by a step this pass, because the
+decision §19 step 8 had been holding open got taken and became a box of its own
+under the readings that forced it.
 
-**The five open ones are three, one and one, and not one of them is waiting on
-code being written.** Three are §14's, blocked on hardware and material as they
-have always been: AirPlay's unplug, hi-res output switching, and an Opus or Ogg
-file to make the ffmpeg fallback fail on. One is what is left of §20's stage 3b:
+**The four open ones are three and one, and not one of them is waiting on code
+being written.** Three are §14's, blocked on hardware and material as they have
+always been: AirPlay's unplug, hi-res output switching, and an Opus or Ogg file
+to make the ffmpeg fallback fail on. The last is what is left of §20's stage 3b:
 `--from-disc n`, which is written and tested everywhere above the drive — a
 resumed disc is byte-identical to the same disc in a whole-job run — and needs
 two blanks to be exercised where it matters. There is one blank in this building
-and it is now a Bon Jovi record. The last is §4.2's `cdda2wav` read: it *ran*,
-off a real lead-in, and what it proved is that cdrtools cannot open a disc macOS
-has mounted — so the parser below it is verified against 742 bytes of real
-CD-Text while the invocation above it has no path to a title on this machine.
-That is a decision to take, not a line to fix, and it is the one open box on this
-list that a person could close in an afternoon by deciding something.
+and it is now a Bon Jovi record.
 
-**`--verify` came off this list this pass, and it is the one box here that was
-closed by a disc rather than by a decision.** It was unwritten a day ago; it is
-written now, and the CD-R §20 burnt answered it the same afternoon — thirteen
-tracks off the table of contents, 265,307 sectors read back without a single
-error, and the album title out of the lead-in. Nothing else on this list can be
-closed that way, which is why the five that remain are still five.
+**The fifth came off this pass, and it is the one that was waiting on somebody to
+decide something rather than on a disc.** §4.2's `cdda2wav` read had run off a
+real lead-in and proved only that cdrtools cannot open a disc macOS has mounted:
+the parser below it verified against 742 bytes of real CD-Text, the invocation
+above it with no path to a title on this machine. **D80** is the decision. The
+port borrows the mount for the length of that one read and gives it straight
+back, when the user opens the record and never when §1 scans the drive, and says
+so on the panel if the disc does not come back. Proved against a CD-R rather than
+a pressing, which is written into the box.
 
-All five are open rather than absent for the reason §14's have always been:
+All four are open rather than absent for the reason §14's have always been:
 a green box over a path that yields nothing is worse than an honest empty one.
 **This census belongs to the count above it** — re-deriving one without
 re-reading the other is how the sentence goes stale while the number stays
 right.
 
+**The denominator moved for the tenth time, the ninth of them upward, and by one:
+324 → 325.** §5.3 gained a box because playing the burnt disc turned up a fault
+nothing on this list had a place for. Thirteen right tracks came up under `ALBUM
+Audio CD`, `ARTIST —` and thirteen rows reading `Track 01` … `Track 13`, with an
+Elton John *Super Audio CD Sampler* sleeve beside them — two symptoms and one
+cause. MusicBrainz knows this disc perfectly well; asked ten times by hand it
+answered five of them `503 — the web server is currently busy`, and the port
+treated the first refusal as the answer (**D81**, asked twice now, a second
+apart, the way `mb_query` already asks). The album then fell back to §4.1's
+volume name, and §5.3 went and searched Cover Art Archive for a record called
+*Audio CD*, which exists (**D82**, a placeholder is not a title). A third thing
+was underneath both: `Outcome.releaseID` had never once reached the sleeve
+request, so §5.3 was searching by name for discs it had been handed an identity
+for. That is a parity hole closed rather than a decision. **The bug was never
+"wrong cover" — it was a confident answer where the honest one is *I do not know
+this disc*.** An unknown record now gets an empty sleeve rather than somebody
+else's.
+
 **The laser has been on, and §19 moved further in one afternoon than in the whole
-year before it.** 12 of 33 to 27 of 33, and to 31 of 37 the pass after, when the
-burn's own procedure was finally written down as step 14. §20's blank became an
-audio CD: thirteen
+year before it.** 12 of 33 to 27 of 33, to 31 of 37 the pass after, when the
+burn's own procedure was finally written down as step 14, and to **32 of 38**
+the pass after that, when step 8's open question was answered as D80. §20's
+blank became an audio CD: thirteen
 tracks, 58:57.42, written at an average 8.0x with the drive buffer never below
 96% and the FIFO never once empty, every track boundary `pregapsize: 0`, and a
 read-back TOC whose starts are the image's own sector counts with nothing
@@ -1529,20 +1546,29 @@ rather than in a log (README, `player:2054`).
 
 ### 4.2 CD-Text
 
-- [ ] `cdda2wav dev=… -J -v titles`, falling back to `cdrecord dev=… -toc -v`
+- [x] `cdda2wav dev=… -J -v titles`, falling back to `cdrecord dev=… -toc -v`
       (`player:2070`). The fallback is on the script's own condition: the first
       tool's output not containing `title`.
 
-      *Run, and it does not reach a disc the way the program holds one — §19
-      step 8.* Unmounted by hand it works perfectly and read 742 bytes of real
-      CD-Text back; mounted, which is how macOS always has an audio CD and how §3
-      needs it to play, `diskarbitrationd` refuses cdrtools the exclusive open and
-      both tools come back empty. That is D77 at the read end of the program. The
-      **parser** half of §4.2 is proven on that real capture — the three boxes
-      below are ticked on it — but the invocation has no path to a title on this
-      machine that does not start by unmounting the disc, and whether §4 should
-      unmount and remount around a lookup the way §20 does around a write is not a
-      thing to decide quietly. Open until it is decided.
+      *Run against a disc the way the program holds one — §19 step 8, and
+      answered by **D80**.* Mounted, which is how macOS always has an audio CD
+      and how §3 needs it to play, `diskarbitrationd` refuses cdrtools the
+      exclusive open and both tools come back with a page of refusal — 1,431
+      bytes of it. So opening a record now unmounts the disc for the length of
+      the read and mounts it back, which is D77's `DriveRelease` turned round:
+      the burn *takes* the drive, the lookup *borrows* it. On the disc in this
+      machine's drive that turned those 1,431 bytes into
+      `Album title: 'Slippery When Wet (Special Edition)' [from Bon Jovi]` and
+      all thirteen track titles, and `/Volumes/Audio CD` came straight back with
+      the `.aiff` files and `.TOC.plist` where §3 and §4.3 left them.
+
+      **Proved against a CD-R, not a pressing.** The disc was one this port
+      burnt (§20), so what was read is CD-Text this program wrote into a lead-in
+      rather than CD-Text a plant pressed. The mechanism is the same one either
+      way — it is the drive's lead-in read, and `diskarbitrationd` does not know
+      what kind of disc it is holding — but a commercial pressing has not been
+      through it, and the three parser boxes below remain the only part of §4.2
+      proved against factory material.
 - [x] Both printed shapes are matched: `Track  1 title: 'X' from 'Y'` and
       `Track  1 title: 'X'`. **The quote that ends a value is the one before
       ` from '` or the one at the end of the line — not simply the next one
@@ -1617,9 +1643,20 @@ rather than in a log (README, `player:2054`).
       (`player:1915`). The cover gets the longest because it is a redirect chain
       to an Internet Archive node and nothing is waiting on it (§5); the disc ID
       gets the shortest because the panel is.
-- [x] Nothing is retried on a **timeout**, only on an empty answer, and only for
-      the searches — see §5.3 and §5.2. The disc-ID lookup is asked exactly once
-      (`player:2180`): it either resolves or the track numbers stay.
+- [x] Nothing is retried on a **timeout**, only on an empty answer — see §5.3
+      and §5.2.
+
+      **The disc-ID lookup is retried too now, and the script asks it exactly
+      once (`player:2180`). That is D81.** The script's reasoning is that a disc
+      ID either resolves or it does not, which is true of the catalogue and false
+      of the web service: MusicBrainz answers *"the MusicBrainz web server is
+      currently busy"* with a 503 whose body is an error document rather than a
+      release list, and the script already knows this — `mb_query`
+      (`player:1815`) gives the release search two tries with a sleep between
+      them for exactly that reason. It simply never occurred to anyone that the
+      same server says the same thing on the other endpoint. Measured on the disc
+      in this drive: busy on two of ten plain requests and five of ten through
+      the chain, on a disc ID MusicBrainz resolves exactly.
 - [x] **Take the medium matching the disc ID that was asked about**, not every
       medium on the release. A release is one entry per disc in the box, so
       taking them all concatenates disc two's track list onto disc one's
@@ -1648,8 +1685,11 @@ rather than in a log (README, `player:2054`).
       release exactly, which is the strongest identification anything here ever
       gets (`player:2190`, `player:2193`). Carried out on `DiscTitles.Outcome`,
       and kept even when the lookup then names no tracks — a release MBID is
-      still the strongest thing §5 will ever be handed. Nothing joins the two
-      yet; that is §1's wiring.
+      still the strongest thing §5 will ever be handed. **Joined up now**: it
+      comes out on `SourceOpener.Opened` and goes into the sleeve request, which
+      is what `MB_RELEASE` does in the script (`player:1907` — `art_fetch` uses
+      it *instead of* searching by name). It was computed and then dropped here,
+      so until now every identified disc still went through §5.3's name search.
 - [x] Every failure — no network, an unsubmitted disc, a rate limit, malformed
       JSON — means the same thing: the track numbers stay and the panel says so
       (`player:2171`). There is no error, no retry prompt and no diagnostic; the
@@ -1798,6 +1838,15 @@ Resolution order, and it is deliberate (`player:2004`, `player:2005`):
      (1998) [FLAC]`, `OK_Computer_(Remastered)`;
   3. `Artist - Album` split, **only** when no album-artist tag stands to
      contradict it.
+
+- [x] **The search is not run at all when nothing named the record. D82 — not in
+      the script.** §5.3's strictness is meant to keep a wrong cover off the
+      panel, and on a disc nothing could identify it fails on its own terms: the
+      album on the faceplate is §4.1's stand-in, the volume's own name, and a
+      quoted phrase search for `Audio CD` is perfectly well-formed and matches a
+      real release — an Elton John *Super Audio CD Sampler*, at score 77, which
+      is what turned up beside thirteen bare track numbers. A release MBID goes
+      through regardless: that is the disc's identity out of §4.3 and not a name.
 
 **§18.4, answered → D14.** The script writes the `.none` marker whatever
 happened, including after an attempt that never reached the network. We write it
@@ -3307,16 +3356,18 @@ of requirements — and it said as much itself: nothing else in this document
 assumes you have read it, and it does not assume you have read anything else.
 That is a description of a separate document.
 
-It stands at **31 of 37**, and most of that came in one afternoon by the only
+It stands at **32 of 38**, and most of that came in one afternoon by the only
 route that was ever going to work: §20 burnt a disc, and a section that had been
 waiting on material had material. Steps 4 and 6 through 10 and 13 closed against
-it. **Step 14 is new**, and it is the burn itself — building the record,
-rehearsing it, spending the blank, and reading the disc back — which the tests
-that perform it had been citing as step 14 for a while before there was one. What
-is left wants a disc out of a multi-disc set, a data disc, an empty bay, two
-AIFFs on an external volume, and one decision about §4.2. That figure is still
-kept in the Status paragraph above with every other figure, because the counts do
-not move house.
+it. Step 14 is the burn itself — building the record, rehearsing it, spending
+the blank, and reading the disc back — which the tests that perform it had been
+citing as step 14 for a while before there was one. **The newest box is step 8's
+last**, and it is the only one here that was closed by taking a decision rather
+than by reading a disc: the readings said §4.2 has no path to a title that does
+not begin by unmounting, and D80 says the port may unmount, on open and never on
+a scan. What is left wants a disc out of a multi-disc set, a data disc, an empty
+bay, and two AIFFs on an external volume. That figure is still kept in the Status
+paragraph above with every other figure, because the counts do not move house.
 
 ---
 

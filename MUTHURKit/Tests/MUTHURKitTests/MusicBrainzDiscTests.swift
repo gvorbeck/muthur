@@ -54,17 +54,56 @@ struct MusicBrainzDiscTests {
         #expect(MusicBrainzDisc.timeout < ReleaseSearch.timeout)
     }
 
-    @Test("Asked exactly once — no retry on an empty answer, none on a timeout")
-    func askedOnce() async {
-        let transport = StubSleeveTransport([], otherwise: .body(Data()))
-        _ = await MusicBrainzDisc.look(up: MusicBrainzDiscTests.discID, transport: transport)
+    @Test("Asked twice and no more, whatever the unusable answer was — D81")
+    func askedTwice() async {
+        // This read "asked exactly once" until a MusicBrainz shedding load
+        // answered five of ten hand-run queries with a 503 and the disc played
+        // as Track 01 … Track 13. Two tries, and the second is the whole point;
+        // a third would be the first one that makes a disc nobody knows feel
+        // slow. An empty body and a refusal are the same thing from here — see
+        // D81 on why the status line is not consulted.
+        let empty = StubSleeveTransport([], otherwise: .body(Data()))
+        _ = await MusicBrainzDisc.look(
+            up: MusicBrainzDiscTests.discID, transport: empty, retryDelay: .zero
+        )
+        #expect(empty.asked.count == 2)
+
+        let unreachable = StubSleeveTransport([], otherwise: .couldNotAsk)
+        _ = await MusicBrainzDisc.look(
+            up: MusicBrainzDiscTests.discID, transport: unreachable, retryDelay: .zero
+        )
+        #expect(unreachable.asked.count == 2)
+    }
+
+    @Test("An answer that parses is not asked for twice")
+    func askedOnceWhenAnswered() async {
+        let transport = StubSleeveTransport(
+            [],
+            otherwise: .body(
+                MusicBrainzDiscTests.json([
+                    MusicBrainzDiscTests.release(
+                        id: "rel-1", title: "Nonagon Infinity",
+                        media: [
+                            MusicBrainzDiscTests.medium(
+                                discIDs: [MusicBrainzDiscTests.discID], titles: ["Robot Stop"]
+                            )
+                        ]
+                    )
+                ])
+            )
+        )
+        let answer = await MusicBrainzDisc.look(
+            up: MusicBrainzDiscTests.discID, transport: transport, retryDelay: .zero
+        )
+        #expect(answer?.album == "Nonagon Infinity")
         #expect(transport.asked.count == 1)
     }
 
     @Test("A machine that could not ask gets the same nothing as one that did")
     func offline() async {
         let answer = await MusicBrainzDisc.look(
-            up: MusicBrainzDiscTests.discID, transport: OfflineSleeveTransport()
+            up: MusicBrainzDiscTests.discID, transport: OfflineSleeveTransport(),
+            retryDelay: .zero
         )
         #expect(answer == nil)
     }
