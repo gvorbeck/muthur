@@ -204,7 +204,7 @@ public enum SourceOpener {
         return Opened(
             record: record, source: .disc, titleSource: outcome.source,
             directory: url, scratch: nil,
-            notice: cdText.remountFailed ? Self.discNotReturned : nil,
+            notice: cdText.discStayedAway ? Self.discNotReturned : nil,
             releaseMBID: outcome.releaseID,
             albumIsPlaceholder: outcome.albumIsPlaceholder
         )
@@ -217,6 +217,12 @@ public enum SourceOpener {
     /// `diskutil` and the user cannot do anything with that. What they can do is
     /// see that the disc is missing from Finder, know that the program is what
     /// moved it, and know that the drive still has it.
+    ///
+    /// **It fired on every successful read until the fix to `giveBack`**, which
+    /// is the shape of a warning nobody can act on: the disc it said was gone
+    /// was on the desktop before the panel finished drawing. The condition is
+    /// now the volume's absence after the drive has been given five seconds to
+    /// produce it, not a `diskutil` exit status read a second too early.
     static let discNotReturned = "disc left unmounted — Finder will not show it until it is ejected"
 
     /// Which switch, if either, has the sleeve lookup off.

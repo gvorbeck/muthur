@@ -45,78 +45,146 @@ struct BorrowedDriveTests {
 
     @Test("Unmount, read, remount — in that order, and it says the disc came back")
     func putsTheDiscBack() async {
-        let log = Recorded()
-        let release = DriveRelease(
-            probes: DriveRelease.Probes(
-                drutil: { Self.drutil }, mounts: { Self.mounts },
-                unmount: { log.append("unmount \($0.path)") },
-                mount: { log.append("mount \($0)") }))
+        let machine = PretendDrive()
+        let release = machine.release()
 
         let outcome = await release.around { () -> String in
-            log.note("read")
+            machine.log.note("read")
             return "Album title: 'Slippery When Wet'"
         }
 
-        #expect(outcome.remounted)
+        #expect(outcome.disc == .back)
         #expect(outcome.value.contains("Slippery"))
-        #expect(log.lines == ["unmount /Volumes/Audio CD", "read", "mount /dev/disk7"])
+        #expect(
+            machine.log.lines == ["unmount /Volumes/Audio CD", "read", "mount /dev/disk7"])
+    }
+
+    /// **The bug D80 shipped with, and the reason `giveBack` waits.**
+    ///
+    /// `cdda2wav`'s exclusive open makes the kernel re-enumerate the device, so
+    /// for about a second there is no `/dev/disk7` and `diskutil mount` exits 1
+    /// with `Failed to find disk`. Asked once, at that instant, it always failed
+    /// — so the panel warned that the disc was gone after every read that
+    /// worked. Here the node is missing for five looks and the disc is back on
+    /// the sixth.
+    @Test("A node that has not re-enumerated yet is waited for, not given up on")
+    func waitsOutTheNode() async {
+        let machine = PretendDrive(nodeMissingForLooks: 5)
+        let outcome = await machine.release().around { 1 }
+
+        #expect(outcome.disc == .back)
+        // It looked more than once, which is the whole of the fix. It did *not*
+        // ask more than once: there is nothing to ask while the node is away,
+        // and a `diskutil mount` against a device that does not exist is the
+        // call that made the old version report a lost disc every time.
+        #expect(machine.looks > 1)
+        #expect(machine.mountAttempts == 1)
+        #expect(machine.isMounted)
+    }
+
+    /// **The other half: macOS puts the disc back without being asked.**
+    ///
+    /// Timed on this drive, `diskarbitrationd` re-mounted the volume at
+    /// 1.29–1.39 s of its own accord, a third of a second after the node came
+    /// back. So `diskutil mount` failing every time is *not* evidence the disc
+    /// is gone, and a `giveBack` that read its exit status said the opposite of
+    /// the truth. What is reported is the mount table.
+    @Test("A disc macOS remounted by itself came back, whatever diskutil said")
+    func theMachineCanBeatUsToIt() async {
+        let machine = PretendDrive(remountsItselfAfterLooks: 6, deafToMount: true)
+        let outcome = await machine.release().around { 1 }
+
+        #expect(outcome.disc == .back)
+        #expect(machine.isMounted)
     }
 
     /// The one outcome the user cannot diagnose: the disc is out of Finder, out
     /// of the record's own file URLs, and nothing on screen would say why.
-    @Test("A disc that does not come back is reported")
+    @Test("A disc that never comes back is reported, once the patience is spent")
     func saysWhenTheDiscStaysAway() async {
-        let release = DriveRelease(
-            probes: DriveRelease.Probes(
-                drutil: { Self.drutil }, mounts: { Self.mounts },
-                unmount: { _ in true }, mount: { _ in false }))
-        let outcome = await release.around { 1 }
-        #expect(!outcome.remounted)
+        let machine = PretendDrive(deafToMount: true)
+        let outcome = await machine.release(patience: 1).around { 1 }
+
+        #expect(outcome.disc == .stillAway)
+        // One look per step through the patience, plus the first and the last.
+        // The exact number is arithmetic and not a promise; that it kept asking
+        // rather than giving up on the first refusal is the claim.
+        #expect(machine.mountAttempts > 1)
     }
 
     /// An empty drive, or a disc macOS never mounted. Nothing was taken, so
-    /// nothing failed — and a false here would put a warning on the panel of
-    /// every machine without a disc in it.
-    @Test("Taking nothing is not a failure to give it back")
+    /// nothing failed — and a warning here would land on the panel of every
+    /// machine without a disc in it.
+    ///
+    /// **It is `nothingTaken` and not `back`, and that distinction is the fix to
+    /// the flag's quiet direction.** The two used to be one `true`. They are not
+    /// the same claim: this one is *we did not look*, and the program has no way
+    /// to tell a disc the user put away from one an earlier borrow lost.
+    @Test("Taking nothing is not a failure to give it back, and not a homecoming")
     func nothingTakenIsNotAFailure() async {
-        let release = DriveRelease(
-            probes: DriveRelease.Probes(
-                drutil: { MediaCheckTests.emptyStatus }, mounts: { Self.mounts },
-                unmount: { _ in true }, mount: { _ in false }))
-        let outcome = await release.around { 1 }
-        #expect(outcome.remounted)
+        let machine = PretendDrive(mounted: false)
+        let outcome = await machine.release().around { 1 }
+
+        #expect(outcome.disc == .nothingTaken)
+        #expect(outcome.disc != .back)
+        #expect(machine.mountAttempts == 0)
+    }
+
+    /// Read twice in a row. The first read is the one that has to work, because
+    /// the second cannot warn about a disc it never took.
+    @Test("A second read finds the disc the first one gave back")
+    func twoReadsInARow() async {
+        let machine = PretendDrive(nodeMissingForLooks: 5)
+
+        let first = await machine.release().around { 1 }
+        #expect(first.disc == .back)
+
+        let second = await machine.release().around { 1 }
+        #expect(second.disc == .back)
+        #expect(machine.isMounted)
     }
 
     @Test("The lead-in is read with the mount out of the way")
     func readsWithTheMountAway() async {
-        let log = Recorded()
-        let inner = WatchingCDText(log: log, output: "Album title: 'Slippery When Wet'")
-        let borrowed = BorrowedCDText(
-            inner,
-            release: DriveRelease(
-                probes: DriveRelease.Probes(
-                    drutil: { Self.drutil }, mounts: { Self.mounts },
-                    unmount: { log.append("unmount \($0.path)") },
-                    mount: { log.append("mount \($0)") })))
+        let machine = PretendDrive()
+        let inner = WatchingCDText(log: machine.log, output: "Album title: 'Slippery When Wet'")
+        let borrowed = BorrowedCDText(inner, release: machine.release())
 
         let out = await borrowed.cdTextOutput()
         #expect(out?.contains("Slippery") == true)
-        #expect(!borrowed.remountFailed)
-        #expect(log.lines == ["unmount /Volumes/Audio CD", "cdTextOutput", "mount /dev/disk7"])
+        #expect(!borrowed.discStayedAway)
+        #expect(borrowed.borrow == .back)
+        #expect(
+            machine.log.lines == ["unmount /Volumes/Audio CD", "cdTextOutput", "mount /dev/disk7"])
+    }
+
+    /// The notice the panel draws, and the condition it is drawn on.
+    @Test("A lead-in read that lost the disc is the one thing that warns")
+    func theNoticeIsForTheLostDisc() async {
+        let away = PretendDrive(deafToMount: true)
+        let borrowed = BorrowedCDText(
+            WatchingCDText(log: away.log, output: "Album title: 'Slippery When Wet'"),
+            release: away.release(patience: 1))
+        _ = await borrowed.cdTextOutput()
+        #expect(borrowed.discStayedAway)
+
+        // And a drive with nothing on it does not warn, however the read went.
+        let empty = PretendDrive(mounted: false)
+        let quiet = BorrowedCDText(
+            WatchingCDText(log: empty.log, output: nil), release: empty.release())
+        _ = await quiet.cdTextOutput()
+        #expect(!quiet.discStayedAway)
     }
 
     /// A lead-in with nothing in it is not a failure — §4.3 answers better than
     /// CD-Text does, and the fall-through is meant to be silent.
     @Test("An empty lead-in is not a notice")
     func silentWhenThereIsNoCDText() async {
+        let machine = PretendDrive()
         let borrowed = BorrowedCDText(
-            WatchingCDText(log: Recorded(), output: nil),
-            release: DriveRelease(
-                probes: DriveRelease.Probes(
-                    drutil: { Self.drutil }, mounts: { Self.mounts },
-                    unmount: { _ in true }, mount: { _ in true })))
+            WatchingCDText(log: machine.log, output: nil), release: machine.release())
         #expect(await borrowed.cdTextOutput() == nil)
-        #expect(!borrowed.remountFailed)
+        #expect(!borrowed.discStayedAway)
     }
 
     // MARK: - D81, busy is not missing
@@ -292,6 +360,114 @@ final class Recorded: @unchecked Sendable {
     func append(_ line: String) -> Bool {
         note(line)
         return true
+    }
+}
+
+/// A drive that changes under the program, which is the only way to test D80.
+///
+/// The old fixtures handed `DriveRelease` a mount table that said the same thing
+/// however the borrow went, so the one thing that mattered — *the machine moves
+/// while you are not looking* — was the one thing they could not express. This
+/// is that machine, with the three behaviours measured off the real drive:
+///
+/// - `nodeMissingForLooks` — the exclusive open re-enumerates the device, so
+///   `/dev/disk7` is absent for about a second (1.03–1.08 s, seven runs) and
+///   `diskutil mount` on it exits 1 in the meantime.
+/// - `remountsItselfAfterLooks` — `diskarbitrationd` puts the volume back
+///   unasked, at 1.29–1.39 s, whatever the program did or failed to do.
+/// - `deafToMount` — `diskutil mount` never works. On its own that is a lost
+///   disc; with the line above it is not, and telling those apart is the fix.
+///
+/// A "look" is one `drutil status`, which is once round `giveBack`'s loop.
+/// Counting polls rather than seconds keeps the suite instant and keeps the
+/// assertions off the wall clock, which is not a thing a test may depend on.
+final class PretendDrive: @unchecked Sendable {
+    let log = Recorded()
+
+    private let lock = NSLock()
+    private var mounted: Bool
+    private let deaf: Bool
+    private let nodeMissing: Int
+    private let selfRemount: Int?
+    private var borrowing = false
+    private var looks_ = 0
+    private var attempts = 0
+
+    init(
+        mounted: Bool = true,
+        nodeMissingForLooks: Int = 0,
+        remountsItselfAfterLooks: Int? = nil,
+        deafToMount: Bool = false
+    ) {
+        self.mounted = mounted
+        self.nodeMissing = nodeMissingForLooks
+        self.selfRemount = remountsItselfAfterLooks
+        self.deaf = deafToMount
+    }
+
+    var isMounted: Bool { lock.withLock { mounted } }
+    var mountAttempts: Int { lock.withLock { attempts } }
+    /// Looks taken since the disc came off — one per turn of `giveBack`'s loop.
+    var looks: Int { lock.withLock { looks_ } }
+
+    /// Spends no time: what is being asserted is that it kept asking, never how
+    /// long it took.
+    func release(patience: Double = 5) -> DriveRelease {
+        DriveRelease(
+            probes: DriveRelease.Probes(
+                drutil: { [self] in drutil() },
+                mounts: { [self] in mounts() },
+                unmount: { [self] in unmount($0) },
+                mount: { [self] in mount($0) },
+                pause: { _ in }),
+            patience: patience)
+    }
+
+    private func drutil() -> String {
+        lock.withLock {
+            looks_ += 1
+            if let after = selfRemount, looks_ >= after { mounted = true }
+            // The node the exclusive open took away. `drutil` naming nothing is
+            // how a torn-down device reads from up here.
+            if borrowing, looks_ <= nodeMissing { return MediaCheckTests.emptyStatus }
+            return MediaCheckTests.burntStatus
+        }
+    }
+
+    private func mounts() -> String {
+        lock.withLock {
+            let root = "/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)"
+            guard mounted else { return root }
+            return """
+                \(root)
+                /dev/disk7 on /Volumes/Audio CD (cddafs, local, nodev, nosuid, read-only, noowners)
+                """
+        }
+    }
+
+    private func unmount(_ volume: URL) -> Bool {
+        lock.withLock {
+            log.note("unmount \(volume.path)")
+            mounted = false
+            // The borrow's clock starts when the disc comes off, so a second
+            // read through the same drive gets the same second of absence.
+            borrowing = true
+            looks_ = 0
+            return true
+        }
+    }
+
+    private func mount(_ device: String) -> Bool {
+        lock.withLock {
+            attempts += 1
+            log.note("mount \(device)")
+            guard !deaf else { return false }
+            // `Failed to find disk /dev/disk7` — not a refusal, and not the disc
+            // being gone. There is simply no node yet.
+            guard !(borrowing && looks_ <= nodeMissing) else { return false }
+            mounted = true
+            return true
+        }
     }
 }
 

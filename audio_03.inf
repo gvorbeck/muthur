@@ -1,0 +1,32 @@
+#created by cdda2wav 3.02a09_darwin_24.0.0_arm64_arm64 09/11/26 11:33:43
+#
+CDINDEX_DISCID=	'tbonDFn643nTGHTHA1pMedaG3ZI-'
+CDDB_DISCID=	0xb70dd10d
+MCN=		
+ISRC=		               
+#
+Albumperformer=	'Bon Jovi'
+Performer=	'Bon Jovi'
+Albumsongwriter=''
+Songwriter=	''
+Albumcomposer=	''
+Composer=	''
+Albumarranger=	''
+Arranger=	''
+Albummessage=	''
+Message=	''
+Albumclosed_info=''
+Closed_info=	''
+Albumtitle=	'Slippery When Wet (Special Edition)'
+Tracktitle=	'Livin' On A Prayer'
+Track=		3
+Tracknumber=	3
+Trackstart=	41080
+# track length in sectors (1/75 seconds each), rest samples
+Tracklength=	18724, 0
+Pre-emphasis=	no
+Channels=	2
+Copy_permitted=	once (copyright protected)
+Endianess=	little
+# index list
+Index=		0

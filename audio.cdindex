@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE CDInfo SYSTEM "http://www.musicbrainz.org/dtd/CDInfo.dtd">
+
+<CDInfo>
+   <Title>Slippery When Wet (Special Edition)</Title>
+   <NumTracks>13</NumTracks>
+
+   <IdInfo>
+      <DiskId>
+         <Id>tbonDFn643nTGHTHA1pMedaG3ZI-</Id>
+      </DiskId>
+   </IdInfo>
+
+   <SingleArtistCD>
+      <Artist>Bon Jovi</Artist>
+      <Track Num="1">
+         <Name>Let It Rock</Name>
+      </Track>
+      <Track Num="2">
+         <Name>You Give Love A Bad Name</Name>
+      </Track>
+      <Track Num="3">
+         <Name>Livin' On A Prayer</Name>
+      </Track>
+      <Track Num="4">
+         <Name>Social Disease</Name>
+      </Track>
+      <Track Num="5">
+         <Name>Wanted Dead Or Alive</Name>
+      </Track>
+      <Track Num="6">
+         <Name>Raise Your Hands</Name>
+      </Track>
+      <Track Num="7">
+         <Name>Without Love</Name>
+      </Track>
+      <Track Num="8">
+         <Name>I'd Die For You</Name>
+      </Track>
+      <Track Num="9">
+         <Name>Never Say Goodbye</Name>
+      </Track>
+      <Track Num="10">
+         <Name>Wild In The Streets</Name>
+      </Track>
+      <Track Num="11">
+         <Name>You Give Love A Bad Name (Live)</Name>
+      </Track>
+      <Track Num="12">
+         <Name>Livin' On A Prayer (Live)</Name>
+      </Track>
+      <Track Num="13">
+         <Name>Wanted Dead Or Alive (Acoutisc Live Version)</Name>
+      </Track>
+   </SingleArtistCD>
+</CDInfo>

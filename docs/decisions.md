@@ -174,7 +174,11 @@ real straight after.
 about a program sounding more certain than it is.** D80 borrows the mount for the
 length of a CD-Text read — when the user opens the record, never when §1 scans
 the drive, because a scan has not been handed the disc — and says so on the panel
-if the disc does not come back. D81 asks MusicBrainz twice a second apart, after
+if the disc does not come back. **D80 has since been amended**: its remount never
+worked, and its warning fired on every disc that was fine, because cdrtools'
+exclusive open re-enumerates the device and macOS returns the volume unasked; the
+borrow waits for the disc now rather than for its own request. D81 asks
+MusicBrainz twice a second apart, after
 the server answered one hand-run of ten queries with five `503`s and the app
 treated the first refusal as the answer. D82 stops §5.3 searching for a sleeve by
 a name §4.1 invented, after a Bon Jovi record came up wearing an Elton John SACD
@@ -2715,13 +2719,13 @@ It borrows through `DriveRelease` — D77's, the same one §20 uses before every
 write, for D77's own stated reason that a second way of finding the drive is a
 second way of finding the wrong one.
 
-**Two conditions on it, and the first is the important one.** If the unmount
-succeeds and the remount does not, the disc has gone from Finder because this
-program took it, and nothing else on the machine will explain that to anybody. So
-`BorrowedCDText` remembers, `Opened` carries the notice up, and the panel says
-`DISC LEFT UNMOUNTED — FINDER WILL NOT SHOW IT UNTIL IT IS EJECTED`. **A disc
-that silently disappears from Finder is a worse outcome than absent CD-Text**,
-and it is the one failure here the user cannot diagnose.
+**Two conditions on it, and the first is the important one.** If the disc does
+not come back, it has gone from Finder because this program took it, and nothing
+else on the machine will explain that to anybody. So `BorrowedCDText` remembers,
+`Opened` carries the notice up, and the panel says `DISC LEFT UNMOUNTED — FINDER
+WILL NOT SHOW IT UNTIL IT IS EJECTED`. **A disc that silently disappears from
+Finder is a worse outcome than absent CD-Text**, and it is the one failure here
+the user cannot diagnose.
 
 The second is that **failing to get CD-Text says nothing at all.** The fall-
 through to MusicBrainz is silent, because MusicBrainz answers better than CD-Text
@@ -2734,6 +2738,106 @@ most discs.
 is the one §20 burnt, and it carries CD-Text because this port wrote the CD-Text
 on. The parser boxes under §4.2 are still the only part of it proved against
 factory material.
+
+**Amended, because the remount as first written never happened — and said so on
+every disc.** This entry originally described a `diskutil mount` that put the
+disc back and a flag that reported when it had not. Neither was true. The read
+worked from the first day — `Slippery When Wet (Special Edition)` and all
+thirteen titles, off a
+mounted disc, exactly as claimed — and then the panel said
+`disc left unmounted — Finder will not show it until it is ejected` about a disc
+that was already back on the desktop. **A warning that fires on every success is
+worse than no warning**, and this one fired on all of them.
+
+Reproduced at a prompt, and then timed:
+
+    diskutil unmount "/Volumes/Audio CD"       → exit 0
+    cdda2wav dev=IODVDServices/0 -J -v titles  → exit 0
+    diskutil mount /dev/disk7                  → Failed to find disk /dev/disk7
+
+**`cdda2wav`'s exclusive open makes the kernel tear the device node down and
+re-enumerate it.** That is the fact the first draft did not have. Measured across
+seven runs on this drive, from the instant `cdda2wav` exits:
+
+| | |
+|---|---|
+| `/dev/disk7` gone | immediately, every run |
+| node back | **1.03 – 1.08 s** |
+| `/Volumes/Audio CD` mounted again, unasked | **1.29 – 1.39 s** |
+| node number on return | `/dev/disk7`, all seven |
+
+So the one `diskutil mount` was made in the only window in which it could not
+work, and by the time its failure reached the panel `diskarbitrationd` had put
+the disc back on its own. **The port's remount has never once been the thing that
+returned the disc.**
+
+**And the flag was wrong in the quiet direction too.** Read twice in a row and
+the second borrow found nothing mounted, concluded nothing was owed, and reported
+success on a disc that was still away. One `Bool` was carrying two claims — *I got
+it back* and *I never took it* — and they are not the same claim.
+
+**What `giveBack` means now: the volume is on the drive, whoever put it there.**
+
+- It **waits**, up to five seconds, looking every fifth of a second. Five is
+  about three and a half times the slowest reading above, which is the headroom
+  seven runs off one drive can honestly carry; it is a bound over an observation
+  and not a promise the platform made, and it is only ever spent on a disc that
+  genuinely is not coming back.
+- It **verifies against the mount table**, not against `diskutil`'s exit status.
+  The user's question is whether the disc is there, and macOS is entitled to
+  answer it without being asked. It re-reads the node from `drutil` each look
+  rather than trusting the one it took from, because a re-enumeration is free to
+  pick another number — it did not here, seven times, and nothing is built on
+  that.
+- It **does not ask for a node that is not there.** While `drutil` names no
+  media there is nothing `diskutil mount` can do but spend a subprocess being
+  told what `drutil` just said for less.
+- It still **asks**, because an unmount that nothing re-enumerated after it is
+  durable: watched for twelve seconds here with the node present and
+  `diskarbitrationd` uninterested. That is the shape of a borrow whose read never
+  got as far as opening the device, and it is the case the first draft was
+  written for.
+- The answer is **three cases and not a `Bool`** — `nothingTaken`, `back`,
+  `stillAway`. `nothingTaken` is not a warning, because the program cannot tell a
+  disc the user put away from one an earlier borrow lost; but it is no longer
+  spelled the same as success.
+
+**It costs about two and a half seconds to open a disc, and that is not a
+regression to apologise for.** The record's own file URLs point into
+`/Volumes/Audio CD`, so a borrow that returned before the mount did would hand
+the deck a record it cannot play. The wait is a precondition, not a courtesy.
+
+**The `Taken` comment was wrong about which of the two lasts, and that is fixed
+in place.** The device is still the right string to hand `diskutil mount` — it
+takes a node, not a `/Volumes/…` path — but on a read the node is the *transient*
+one and the mount point is what reliably comes back under its own name. True for
+a burn, backwards for a read.
+
+**The write end does not have this race, and the reason is not the eject.** What
+tears the node down is the exclusive open, not the unmount: `diskutil unmount`
+left `/dev/disk7` present and the disc off for twelve seconds. So `run()`'s
+unmount holds until cdrecord opens the drive, however far apart the two are, and
+a burn owes nothing back so it never asks the question. The one exclusive open
+ahead of a write is `media_check`'s ATIP read, and the minutes of conversion
+between it and the burn are far more than the second the node needs — by which
+time `diskarbitrationd` has re-mounted the disc and `Burner.write`'s own release
+unmounts it again. Checked rather than assumed, because a silent `take()` that
+found nothing would look exactly like a successful one.
+
+**No new decision was numbered for any of this.** Nothing above is a fresh
+departure from either script — it is this same departure, described correctly.
+D83 is still free.
+
+**Proved against the drive, and pinned there.** `The disc is borrowed for its
+lead-in and comes home` in `DiscMaterialTests` runs the real `BorrowedCDText`
+against the disc in the drive and asserts the volume is back afterwards, read out
+of the mount table independently of the thing under test. It is the one test in
+the file that *moves* hardware, so it has its own switch — `MUTHUR_TEST_BORROW`,
+not `MUTHUR_TEST_CDDA`: naming a mount point for a dozen read-only checks is not
+agreeing to have the disc taken away. It asserts neither a deadline nor a device
+number, per `CLAUDE.md`: both are habits of this Matsushita rather than anything
+macOS guarantees, and a test that pinned either would fail on the first machine
+that is slower or that renumbers.
 
 ---
 

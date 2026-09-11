@@ -83,9 +83,10 @@ which is exactly what a good burn looks like.
 disc's CD-Text is an exclusive open like any other, so it is refused for as long
 as the disc is mounted — and unlike a write, a lookup happens on a disc the
 program is about to *play*, which is to say on a mount it needs. So the port
-borrows the mount for the length of the read and gives it straight back, **when
-the user opens the record and never when §1 scans the drive**: a scan has not
-been handed the disc. Step 8 has the readings on both sides of that.
+borrows the mount for the length of the read and waits for it back, **when the
+user opens the record and never when §1 scans the drive**: a scan has not been
+handed the disc. Step 8 has the readings on both sides of that, and the timings
+of the *giving back* — which turned out to be the half nobody had measured.
 
 **One more thing about this drive, and it is not in any script.** `drutil tray
 close` exits 0 and does nothing here; the tray has to be pushed shut by hand.
@@ -457,14 +458,57 @@ same reason, which is why it was a question rather than a bug to go and fix.
 - [x] **The answer is D80, and §4.2's first box is ticked on the strength of
       this step.** Mounted, the read returns 1,431 bytes of refusal. Unmounted
       with the `DriveRelease` §20 already uses, the same call returns the album,
-      the artist and all thirteen titles, and `diskutil mount /dev/disk7` puts
-      the volume back with Finder none the wiser. The port now takes the mount
-      away for the length of that one read and gives it straight back —
-      **when the user opens the record, and never when §1 merely scans the
-      drive.** The distinction is the decision; the mechanism was already here.
+      the artist and all thirteen titles, and the volume comes back with Finder
+      none the wiser. The port now takes the mount away for the length of that
+      one read and waits for it back — **when the user opens the record, and
+      never when §1 merely scans the drive.** The distinction is the decision;
+      the mechanism was already here.
 
       Proved against a CD-R burnt by §20 this afternoon, not against a pressing,
       which is the caveat carried over into §4.2's box.
+
+- [x] **How the disc actually comes back, measured, because the first answer to
+      that was wrong.** `diskutil mount /dev/disk7` was what this step claimed
+      put the volume back. It never did: it exits 1 with `Failed to find disk
+      /dev/disk7`, and it did so after every successful read on this machine
+      while the panel dutifully warned about a disc sitting on the desktop.
+      **The unmount is not what tears the node down — the exclusive open is.**
+      Timed from the instant `cdda2wav` exits, seven rounds on this Matsushita:
+
+      | | |
+      |---|---|
+      | `/dev/disk7` gone | immediately, all seven |
+      | node back | 1.03 – 1.08 s |
+      | `/Volumes/Audio CD` mounted again, **unasked** | 1.29 – 1.39 s |
+      | node number on return | `/dev/disk7`, all seven |
+
+      Against that, an unmount with **no** exclusive open after it: node present
+      throughout, `diskarbitrationd` uninterested for the full twelve seconds
+      watched, and `diskutil mount` then succeeding on the first ask. That is
+      the durable case D80's remount was written for, and it is the write end's
+      case, not the read end's — which is why §20's burn has never shown this.
+
+      So the borrow now polls up to five seconds and reads the **mount table**,
+      not `diskutil`'s exit status: the question is whether the disc is there,
+      and macOS is allowed to answer it without being asked. Five seconds is
+      three and a half times the slowest reading above and is a bound over an
+      observation, not a promise this drive made. Neither the deadline nor the
+      device number is asserted anywhere in the tests, for the same reason.
+
+- [x] **`MUTHUR_TEST_BORROW` — its own switch, because it is the one that moves
+      the disc.**
+
+      ```bash
+      MUTHUR_TEST_BORROW=1 swift test --package-path MUTHURKit \
+        --filter theBorrowReturnsTheDisc
+      ```
+
+      Runs the real `BorrowedCDText` against whatever is in the drive and then
+      re-reads `drutil` and `/sbin/mount` itself to confirm a volume is back on
+      the node — independently of the thing under test, which is the whole point
+      of having it. 3.18 s here, green. It is deliberately **not** under
+      `MUTHUR_TEST_CDDA`: naming a mount point for step 9's read-only checks is
+      not agreeing to have the disc taken off the desktop and handed back.
 
 The disc was not left unnamed even before that: §4.3 reads `.TOC.plist` off the
 mounted volume (D44), and step 7 resolved this very disc to its release through

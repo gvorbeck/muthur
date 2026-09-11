@@ -21,17 +21,29 @@ switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. The last
 is what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere
 above the drive, which needs two blanks to resume a job between them and there is
 none left. §19 is a procedure rather than boxes and is counted separately, at
-**32 of 38**; what is left there wants a disc out of a multi-disc set, a data
+**34 of 40**; what is left there wants a disc out of a multi-disc set, a data
 disc, an empty bay, and two AIFFs on an external volume.
 
 **The fifth open box closed by somebody deciding something.** §4.2's `cdda2wav`
 read of a disc's CD-Text runs and reads a real lead-in correctly, and it cannot
 open a disc macOS has mounted — which is every audio CD. The port now borrows the
-mount for the length of that one read and gives it straight back, **when the user
+mount for the length of that one read and waits for it back, **when the user
 opens a record and never when the picker scans the drive**: a scan has not been
 handed the disc. If the disc does not come back, the panel says so, because a
 disc that vanishes from Finder is worse than absent CD-Text and is the one
 failure here nobody could diagnose.
+
+**Then it said so about every disc, which is how the giving back got measured.**
+The `diskutil mount` D80 was written around never worked once: cdrtools' exclusive
+open makes the kernel tear the device node down and re-enumerate it, so the port
+was asking for a node that would not exist for another second — while
+`diskarbitrationd`, asked by nobody, put the volume back at 1.3 s. The borrow now
+waits for the disc rather than for its own request, up to five seconds, and reads
+the mount table rather than an exit status; and it distinguishes *nothing was
+taken* from *it came back*, which one `Bool` could not, and which is why a second
+read in a row used to report a still-absent disc as fine. Opening a CD costs
+about two and a half seconds now, and the record it hands back is one whose files
+are actually there.
 
 **And the burnt disc, played, found a bug worth the whole exercise.** Thirteen
 correct tracks came up under `ALBUM Audio CD`, `ARTIST —`, thirteen rows reading
@@ -90,4 +102,4 @@ one cdrtools cannot open at all, and that bites the CD-Text *reader* as well as
 the writer. And a real disc found a real bug — the CD-Text parser knew two
 printed shapes and this machine's `cdda2wav` prints two others, so a disc
 carrying its full lead-in was displayed as a disc carrying none, on screen,
-before any test failed. MUTHURKit carries 931 tests.
+before any test failed. MUTHURKit carries 953 tests.

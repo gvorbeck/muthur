@@ -330,4 +330,54 @@ struct DiscMaterialTests {
             #expect(counted == table.trackCount)
         }
     }
+
+    // MARK: - The borrow, against the drive it was written for. D80.
+
+    /// **The one test in this file that moves the disc, and it has its own
+    /// switch for exactly that reason.**
+    ///
+    /// Everything above reads. This unmounts the audio CD, reads its lead-in
+    /// with `cdda2wav`, and waits for the disc to come home — which is the whole
+    /// of D80 and the only part of it no stub can check, because what it is
+    /// checking is the kernel. `MUTHUR_TEST_CDDA` is not enough to enable it: an
+    /// operator who named their mount point for a dozen read-only checks did not
+    /// thereby agree to have the disc taken off them, and a test that moves
+    /// hardware should have to be asked for by name.
+    ///
+    /// **What it asserts is the disc, not the timing and not the node.** The
+    /// readings behind D80 are consistent — the node back at 1.03–1.08 s, the
+    /// volume at 1.29–1.39 s, seven runs on one drive, the same `/dev/disk7`
+    /// every time — and not one of them is a promise the platform made. A test
+    /// that pinned a deadline or a device number would be asserting the habits
+    /// of this Matsushita rather than anything macOS guarantees, and would fail
+    /// on the first machine that is slower or that renumbers. So: the volume is
+    /// on the drive again, and the borrow says so.
+    ///
+    /// The CD-Text itself is checked weakly for the same reason. This drive's
+    /// disc has a lead-in full of it, and a disc with an empty lead-in is
+    /// perfectly ordinary — §4.2 falls through to MusicBrainz and says nothing.
+    /// All that is claimed is that the read did not come back holding
+    /// `diskarbitrationd`'s refusal, which is the failure D80 exists to end.
+    @Test(
+        "The disc is borrowed for its lead-in and comes home",
+        .enabled(if: DiscMaterialTests.setting("MUTHUR_TEST_BORROW") != nil)
+    )
+    func theBorrowReturnsTheDisc() async throws {
+        let drive = OpticalDrive.detect()
+        let borrowed = BorrowedCDText(DriveCDText(drive: drive))
+
+        let out = await borrowed.cdTextOutput()
+
+        #expect(borrowed.borrow == .back)
+        #expect(!borrowed.discStayedAway)
+        // The mount table, asked independently of the thing under test.
+        let node = try #require(Diagnostics.mediaDevice(Diagnostics.drutilStatus()))
+        let table = DiscFinder.MountTable.parse(try #require(DiscFinder.mountOutput()))
+        #expect(!DriveRelease.entries(of: node, in: table).isEmpty)
+
+        if let out {
+            #expect(!out.contains("diskarbitrationd"))
+            #expect(!out.contains("Unable to get exclusive access"))
+        }
+    }
 }

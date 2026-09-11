@@ -37,6 +37,19 @@ import Foundation
 /// burn unmounts a disc it is about to overwrite and owes it nothing back, while
 /// a lookup has to hand the record back the files it is playing from.
 ///
+/// **The write end does not have the read end's race, and it is worth saying
+/// why, because the reason is not the eject.** What tears the device node down
+/// is the *exclusive open*, not the unmount: watched here, `diskutil unmount`
+/// left `/dev/disk7` present and the disc off for a full twelve seconds with
+/// `diskarbitrationd` showing no interest in either. So `run()`'s unmount holds
+/// until cdrecord opens the drive, however long the two are apart, and a burn
+/// that owes nothing back never asks the question `giveBack` had wrong. The one
+/// exclusive open ahead of a write is `media_check`'s ATIP read, and the minutes
+/// of conversion between it and the burn are far more than the second the node
+/// takes to come back — by which time `diskarbitrationd` has re-mounted the disc
+/// and `Burner.write`'s own release unmounts it again, which is the loop working
+/// as written rather than in spite of itself.
+///
 /// **It is one type and three callers on purpose.** It was written for the burn
 /// and then found to be needed a step earlier: `media_check` reads the ATIP with
 /// `cdrecord -atip`, which is the same exclusive open and fails the same way —
@@ -56,27 +69,57 @@ public struct DriveRelease: Sendable {
         public var mounts: @Sendable () -> String?
         /// `diskutil unmount <path>`. True where the volume let go.
         public var unmount: @Sendable (URL) -> Bool
-        /// `diskutil mount <device>`. True where it came back. **D80** — only
-        /// the read end ever calls this; a burn has nothing to put back.
+        /// `diskutil mount <device>`. **D80** — only the read end ever calls
+        /// this; a burn has nothing to put back.
+        ///
+        /// Its answer is not the answer. Whether the disc is back is read off
+        /// the mount table afterwards, because on this machine the disc mostly
+        /// comes back without being asked. See `giveBack`.
         public var mount: @Sendable (String) -> Bool
+        /// The gap between one look at the mount table and the next, while
+        /// `giveBack` waits. A closure so the suite can spend none — the same
+        /// seam, and the same reason, as `MediaCheck.Probes.pause`.
+        public var pause: @Sendable (Double) -> Void
 
         public init(
             drutil: @escaping @Sendable () -> String? = Diagnostics.drutilStatus,
             mounts: @escaping @Sendable () -> String? = DiscFinder.mountOutput,
             unmount: @escaping @Sendable (URL) -> Bool = DriveRelease.diskutilUnmount,
-            mount: @escaping @Sendable (String) -> Bool = DriveRelease.diskutilMount
+            mount: @escaping @Sendable (String) -> Bool = DriveRelease.diskutilMount,
+            pause: @escaping @Sendable (Double) -> Void = { Thread.sleep(forTimeInterval: $0) }
         ) {
             self.drutil = drutil
             self.mounts = mounts
             self.unmount = unmount
             self.mount = mount
+            self.pause = pause
         }
     }
 
     public var probes: Probes
 
-    public init(probes: Probes = Probes()) {
+    /// How long `giveBack` will wait for the disc, in seconds.
+    ///
+    /// **A bound over an observation, and not a promise the platform made.**
+    /// Timed on this drive with the disc in it: the node was gone the instant
+    /// `cdda2wav` exited and back at 1.03–1.08 s, and `diskarbitrationd` had the
+    /// volume mounted again at 1.29–1.39 s, seven runs, every one of them inside
+    /// a tenth of a second of the last. Five seconds is roughly three and a half
+    /// times the slowest of those, which is the headroom seven readings off one
+    /// drive can honestly carry.
+    ///
+    /// It is only ever spent on a disc that is genuinely not coming back: the
+    /// loop returns the moment the mount table says the volume is there.
+    public var patience: Double
+
+    /// A fifth of a second between looks. Small enough that the ordinary case
+    /// costs about what the disc costs, large enough that a five-second wait is
+    /// twenty-five looks and not a spin.
+    public static let step: Double = 0.2
+
+    public init(probes: Probes = Probes(), patience: Double = 5) {
         self.probes = probes
+        self.patience = patience
     }
 
     /// Unmount whatever is sitting on the drive's node.
@@ -95,10 +138,23 @@ public struct DriveRelease: Sendable {
 
     /// What was unmounted, and therefore what is owed back.
     ///
-    /// The **device** and not the mount point, because a mount point is where a
-    /// volume was and a device is what it is. `diskutil mount` is given a node;
-    /// giving it the old `/Volumes/…` path asks the machine to remount something
-    /// that, by then, is not there.
+    /// The **device** and not the mount point, because `diskutil mount` is given
+    /// a node: handing it the old `/Volumes/…` path asks the machine to remount
+    /// something that, by then, is not there.
+    ///
+    /// **That is an argument about what `diskutil` takes, and it used to be
+    /// written here as an argument about which of the two lasts. It is not.** On
+    /// this drive the node is the transient one: an exclusive open makes the
+    /// kernel tear it down and re-enumerate, so `/dev/disk7` is *missing* for
+    /// about a second after `cdda2wav` exits, while `/Volumes/Audio CD` comes
+    /// back under exactly that name every time. So this is the right string to
+    /// ask with and the wrong thing to wait on, which is why `giveBack` waits on
+    /// the mount table instead.
+    ///
+    /// Seven runs put the same `/dev/disk7` back each time. Nothing is built on
+    /// that — a re-enumeration is free to pick another number, and the check
+    /// that decides the outcome re-reads the node from `drutil` rather than
+    /// trusting this one.
     public struct Taken: Sendable, Equatable {
         public var devices: [String]
         public var isEmpty: Bool { devices.isEmpty }
@@ -124,20 +180,104 @@ public struct DriveRelease: Sendable {
         return taken
     }
 
-    /// Put back everything `take` got. **False if any of it stayed off.**
+    /// How the borrow ended. **D80.**
+    ///
+    /// Three cases and not a `Bool`, because the two ways of not warning are not
+    /// the same thing and folding them together is what made the flag lie in the
+    /// quiet direction: a borrow that never took the disc used to report the
+    /// same `true` as a borrow that got it back, so a second read on a disc the
+    /// first read had lost said the disc was fine.
+    public enum Outcome: Sendable, Equatable {
+        /// Nothing was mounted when we looked, so nothing was moved and nothing
+        /// is owed. **Not the same as `back`** — it is *we did not check*, and
+        /// the program has no way to tell a disc the user unmounted from one an
+        /// earlier borrow lost. It is not a warning, because a warning here
+        /// would fire on every machine whose disc somebody else had put away.
+        case nothingTaken
+        /// A volume is on the drive's node again. Whose request put it there is
+        /// not asked and cannot be told: on this machine `diskarbitrationd`
+        /// mostly gets there first, and the user's question is whether the disc
+        /// is back, not which process it came back for.
+        case back
+        /// It was taken, the patience ran out, and the drive still has no volume
+        /// on it. The one outcome the user cannot diagnose from the panel.
+        case stillAway
+    }
+
+    /// Put the disc back, wait for it, and say whether it is there.
     ///
     /// This one has a return value where the unmount deliberately does not, and
     /// the asymmetry is the whole of D80. An unmount that fails costs a lookup:
     /// cdrtools refuses, §4 falls through, and the panel is a track list short
-    /// of ideal. A *remount* that fails costs the disc — it is gone from Finder,
-    /// gone from the record's own file URLs, and nothing on screen says why. The
-    /// program took it; the program says so when it cannot give it back.
-    public func giveBack(_ taken: Taken) -> Bool {
-        var whole = true
-        for device in taken.devices where !probes.mount(device) {
-            whole = false
+    /// of ideal. A disc that stays away costs the disc — gone from Finder, gone
+    /// from the record's own file URLs, and nothing on screen says why.
+    ///
+    /// **What it used to do was ask `diskutil mount` once and believe the
+    /// answer, and that was wrong twice over.** `cdda2wav`'s exclusive open
+    /// makes the kernel tear the device node down and re-enumerate it, so at the
+    /// instant the read returns there is no `/dev/disk7` to mount and `diskutil`
+    /// says `Failed to find disk`. A second later the node is back; a third of a
+    /// second after that `diskarbitrationd` has mounted the volume of its own
+    /// accord. So the one call was made in the only window where it could not
+    /// work, and the disc it declared lost was on the desktop by the time the
+    /// notice was drawn. Every successful read said the disc had gone.
+    ///
+    /// So it waits, and **it asks the mount table rather than `diskutil`'s exit
+    /// status**. Asking still matters — an unmount that nothing re-enumerated
+    /// after it is durable, watched here for twelve seconds with the node
+    /// present and `diskarbitrationd` uninterested, and that is the shape of a
+    /// borrow where the read never got as far as opening the device. But what is
+    /// *reported* is the volume, because the volume is the thing the user is
+    /// looking for and macOS is entitled to put it back without being asked.
+    public func giveBack(_ taken: Taken) -> Outcome {
+        guard !taken.isEmpty else { return .nothingTaken }
+        var waited = 0.0
+        while true {
+            switch look() {
+            case .mounted:
+                return .back
+            // Nothing to ask yet. The node the exclusive open took away has not
+            // come back, and `diskutil mount` on a device that is not there is
+            // the mistake this whole function is a fix for — a third of a second
+            // of subprocess to be told what `drutil` just said for less.
+            case .noNode:
+                break
+            case .bare:
+                for device in taken.devices { _ = probes.mount(device) }
+            }
+            guard waited < patience else { break }
+            probes.pause(DriveRelease.step)
+            waited += DriveRelease.step
         }
-        return whole
+        // The last ask has not been looked at yet, and on a node that came back
+        // at the end of the patience it is the one that worked.
+        return look() == .mounted ? .back : .stillAway
+    }
+
+    /// One look at the machine. `take`'s own question, asked the other way
+    /// round, and with the answer split where `giveBack` has to act differently.
+    ///
+    /// Deliberately the same two probes and the same matching rule, so that the
+    /// thing being verified is the thing that was taken. The node is re-read
+    /// rather than remembered: a re-enumeration is free to hand the drive a new
+    /// number, and a disc that came home under a different one is still home.
+    enum Look: Equatable {
+        /// `drutil` names no media. On this machine that is mostly not an empty
+        /// drive — it is the second after an exclusive open, before the device
+        /// has re-enumerated.
+        case noNode
+        /// The node is there with nothing mounted on it. The one state in which
+        /// asking for the disc back can do anything.
+        case bare
+        /// A volume is on the drive's node. Whoever put it there.
+        case mounted
+    }
+
+    func look() -> Look {
+        guard let node = Diagnostics.mediaDevice(probes.drutil()) else { return .noNode }
+        guard let mounts = probes.mounts() else { return .bare }
+        return DriveRelease.entries(of: node, in: DiscFinder.MountTable.parse(mounts)).isEmpty
+            ? .bare : .mounted
     }
 
     /// Unmount, do the thing, put it back — and say whether the disc came home.
@@ -145,11 +285,9 @@ public struct DriveRelease: Sendable {
     /// One function because the two halves must not be able to drift apart: any
     /// path that takes the drive has to reach the giving back, including the one
     /// where the work in the middle threw.
-    public func around<T>(_ body: () async -> T) async -> (value: T, remounted: Bool) {
+    public func around<T>(_ body: () async -> T) async -> (value: T, disc: Outcome) {
         let taken = take()
         let value = await body()
-        // Nothing was taken, so nothing is owed — and *not* a remount failure.
-        guard !taken.isEmpty else { return (value, true) }
         return (value, giveBack(taken))
     }
 
@@ -182,8 +320,11 @@ public struct DriveRelease: Sendable {
     }
 
     /// **D80.** `diskutil mount <device>` — observed to bring `/Volumes/Audio CD`
-    /// straight back on the disc in the drive, under its own name, with the
-    /// `.aiff` files and `.TOC.plist` where §3 and §4.3 left them.
+    /// back on the disc in the drive, under its own name, with the `.aiff` files
+    /// and `.TOC.plist` where §3 and §4.3 left them, **once the node it names
+    /// exists**. Asked in the second after an exclusive open it exits 1 with
+    /// `Failed to find disk /dev/disk7`, which is not the drive refusing and not
+    /// the disc being gone. `giveBack` is where that second is waited out.
     public static let diskutilMount: @Sendable (String) -> Bool = { device in
         guard let diskutil = Tooling.locate("diskutil") else { return false }
         return Tooling.run(diskutil, ["mount", device])?.status == 0

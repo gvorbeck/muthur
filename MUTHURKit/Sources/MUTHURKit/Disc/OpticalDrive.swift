@@ -214,30 +214,39 @@ public struct DriveTableOfContents: TableOfContentsSource {
 /// nobody offered it. So §1's picker still reads `.TOC.plist` off the mount and
 /// touches no device, and only `openDisc` ever reaches for this.
 ///
-/// The remount is not best-effort. See `remountFailed`.
+/// Giving it back is not best-effort, and it is not instant either. See
+/// `discStayedAway` and `DriveRelease.giveBack`.
 public final class BorrowedCDText: CDTextSource, @unchecked Sendable {
     private let inner: any CDTextSource
     private let release: DriveRelease
     private let lock = NSLock()
-    private var failed = false
+    private var outcome: DriveRelease.Outcome = .nothingTaken
 
     public init(_ inner: any CDTextSource, release: DriveRelease = DriveRelease()) {
         self.inner = inner
         self.release = release
     }
 
+    /// How the borrow ended, unabridged, for anyone who needs to tell the two
+    /// quiet outcomes apart.
+    public var borrow: DriveRelease.Outcome { lock.withLock { outcome } }
+
     /// **True only when the disc was taken and did not come back.**
     ///
-    /// Not "the unmount failed", and not "there was no CD-Text". A disc that was
-    /// never unmounted is not a failure, and neither is a lead-in that had
-    /// nothing in it — that one falls quietly through to §4.3, which answers
-    /// better than CD-Text does anyway. This flag exists for the single outcome
-    /// the user cannot diagnose and cannot undo from the panel.
-    public var remountFailed: Bool { lock.withLock { failed } }
+    /// Not "the unmount failed", not "`diskutil mount` exited non-zero", and not
+    /// "there was no CD-Text". It used to be the second of those, which meant it
+    /// was true after every successful read on this machine: the node is torn
+    /// down by the exclusive open and the one remount was asked for in the
+    /// second before it came back. A disc that was never unmounted is not a
+    /// failure either, and neither is a lead-in that had nothing in it — that
+    /// one falls quietly through to §4.3, which answers better than CD-Text does
+    /// anyway. This flag exists for the single outcome the user cannot diagnose
+    /// and cannot undo from the panel.
+    public var discStayedAway: Bool { borrow == .stillAway }
 
     public func cdTextOutput() async -> String? {
-        let (out, remounted) = await release.around { await inner.cdTextOutput() }
-        lock.withLock { failed = !remounted }
+        let (out, disc) = await release.around { await inner.cdTextOutput() }
+        lock.withLock { outcome = disc }
         return out
     }
 }

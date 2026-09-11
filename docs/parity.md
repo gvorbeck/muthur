@@ -58,11 +58,12 @@ part worth porting.
 ## Status
 
 **321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
-counted; it stands separately at 32 of 38). Re-derived by counting the files:
+counted; it stands separately at 34 of 40). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 32 of 38 in `hardware.md` — which grew by a step this pass, because the
-decision §19 step 8 had been holding open got taken and became a box of its own
-under the readings that forced it.
+and 34 of 40 in `hardware.md`. **The count outside §19 did not move this pass
+and should not have** — nothing new was claimed. §19 grew by two, both of them
+readings taken to find out that a thing already ticked was ticked over a
+mechanism that had never worked.
 
 **The four open ones are three and one, and not one of them is waiting on code
 being written.** Three are §14's, blocked on hardware and material as they have
@@ -73,15 +74,20 @@ resumed disc is byte-identical to the same disc in a whole-job run — and needs
 two blanks to be exercised where it matters. There is one blank in this building
 and it is now a Bon Jovi record.
 
-**The fifth came off this pass, and it is the one that was waiting on somebody to
-decide something rather than on a disc.** §4.2's `cdda2wav` read had run off a
-real lead-in and proved only that cdrtools cannot open a disc macOS has mounted:
-the parser below it verified against 742 bytes of real CD-Text, the invocation
-above it with no path to a title on this machine. **D80** is the decision. The
-port borrows the mount for the length of that one read and gives it straight
-back, when the user opens the record and never when §1 scans the drive, and says
-so on the panel if the disc does not come back. Proved against a CD-R rather than
-a pressing, which is written into the box.
+**The fifth came off the pass before, and this pass went back and found out that
+half of it was untrue.** §4.2's `cdda2wav` read is genuinely working — the album,
+the artist and all thirteen titles come off a real lead-in through **D80**'s
+borrow. What was not working was the *giving back*. The one `diskutil mount` D80
+described lands in the second after `cdda2wav`'s exclusive open has made the
+kernel re-enumerate the device, so it failed on every successful read, and the
+panel warned `disc left unmounted` about a disc `diskarbitrationd` had already
+put back unasked at 1.3 s. Read twice and the flag went the other way, calling a
+still-absent disc fine. **A warning that fires on every success and stays quiet
+on the one failure it exists for is worse than no warning.** The borrow now waits
+for the mount table to show the volume, bounded at five seconds, and answers in
+three cases rather than a `Bool`. D80 was amended rather than added beside — the
+entry described a remount that does not happen — and no new decision was
+numbered, so D83 is still free.
 
 All four are open rather than absent for the reason §14's have always been:
 a green box over a path that yields nothing is worse than an honest empty one.
@@ -89,8 +95,10 @@ a green box over a path that yields nothing is worse than an honest empty one.
 re-reading the other is how the sentence goes stale while the number stays
 right.
 
-**The denominator moved for the tenth time, the ninth of them upward, and by one:
-324 → 325.** §5.3 gained a box because playing the burnt disc turned up a fault
+**The parity denominator has not moved this pass and stands where the last one
+left it — 325, its tenth move and the ninth of those upward, 324 → 325.** The
+only denominator that moved here was §19's, 38 → 40, and §19 is not counted with
+these. §5.3 gained the box because playing the burnt disc turned up a fault
 nothing on this list had a place for. Thirteen right tracks came up under `ALBUM
 Audio CD`, `ARTIST —` and thirteen rows reading `Track 01` … `Track 13`, with an
 Elton John *Super Audio CD Sampler* sleeve beside them — two symptoms and one
@@ -109,8 +117,10 @@ else's.
 
 **The laser has been on, and §19 moved further in one afternoon than in the whole
 year before it.** 12 of 33 to 27 of 33, to 31 of 37 the pass after, when the
-burn's own procedure was finally written down as step 14, and to **32 of 38**
-the pass after that, when step 8's open question was answered as D80. §20's
+burn's own procedure was finally written down as step 14, to 32 of 38 the pass
+after that, when step 8's open question was answered as D80, and to **34 of 40**
+now, when step 8 was made to say how the disc actually comes back and got a
+switch of its own for the one test that moves it. §20's
 blank became an audio CD: thirteen
 tracks, 58:57.42, written at an average 8.0x with the drive buffer never below
 96% and the FIFO never once empty, every track boundary `pregapsize: 0`, and a
@@ -863,18 +873,20 @@ What has landed:
   security-scoped bookmark behind — there is no Settings screen for it to live in
   until §11 and §13, and what matters about it is the bookmark rather than where
   the control is drawn.
-- **531 tests in 40 suites**, `swift test --package-path MUTHURKit`. Two tiers,
+- **953 tests in 64 suites**, `swift test --package-path MUTHURKit`. Two tiers,
   and the distinction is the whole value of the number: the **rules** tier runs
   anywhere, and the **material** tier reads files already on the machine and
-  skips itself when they are absent. On the machine this was last run,
-  **five skipped and every other material test ran** — the five are §4's, and
-  they need a disc in the drive, which is what §19 is for. The others gate on
-  `ffmpeg` (the cross-decoder seam and §9's three against the script's own filter
-  chain), on a record with continuous audio across a track boundary, on a music
-  library, and on §8's catalogue being beside this repository. Each is
-  overridable by environment variable — `MUTHUR_TEST_MUSIC`, `MUTHUR_TEST_ZIPS`,
-  `MUTHUR_TEST_TOC`, `MUTHUR_TEST_COLLECTION` — and nothing in either tier copies
-  material into the tree.
+  skips itself when they are absent. The material gates are `ffmpeg` (the
+  cross-decoder seam and §9's three against the script's own filter chain), a
+  record with continuous audio across a track boundary, a music library, §8's
+  catalogue being beside this repository, and — since §19 — the drive itself.
+  Each is overridable by environment variable: `MUTHUR_TEST_MUSIC`,
+  `MUTHUR_TEST_ZIPS`, `MUTHUR_TEST_TOC`, `MUTHUR_TEST_COLLECTION`,
+  `MUTHUR_TEST_CDDA` for the mounted volume, and `MUTHUR_TEST_BORROW` for the
+  one test that takes the disc away and waits for it back — **its own switch on
+  purpose**, because naming a mount point for a dozen read-only checks is not
+  agreeing to have the disc unmounted. Nothing in either tier copies material
+  into the tree.
 - Not in it: the three §2 boxes that are about *when* teardown runs rather than
   what it does — those need the app's exit path, and there is no app yet.
 
@@ -1555,12 +1567,26 @@ rather than in a log (README, `player:2054`).
       and how §3 needs it to play, `diskarbitrationd` refuses cdrtools the
       exclusive open and both tools come back with a page of refusal — 1,431
       bytes of it. So opening a record now unmounts the disc for the length of
-      the read and mounts it back, which is D77's `DriveRelease` turned round:
-      the burn *takes* the drive, the lookup *borrows* it. On the disc in this
-      machine's drive that turned those 1,431 bytes into
+      the read and waits for it back, which is D77's `DriveRelease` turned
+      round: the burn *takes* the drive, the lookup *borrows* it. On the disc in
+      this machine's drive that turned those 1,431 bytes into
       `Album title: 'Slippery When Wet (Special Edition)' [from Bon Jovi]` and
       all thirteen track titles, and `/Volumes/Audio CD` came straight back with
       the `.aiff` files and `.TOC.plist` where §3 and §4.3 left them.
+
+      **The giving back is not what it was first written as, and D80 has been
+      amended rather than argued with.** `cdda2wav`'s exclusive open makes the
+      kernel tear the device node down and re-enumerate it, so the single
+      `diskutil mount` the first draft made was made in the one second in which
+      no such node existed — `Failed to find disk /dev/disk7`, exit 1, on every
+      successful read — while `diskarbitrationd` put the disc back unasked at
+      1.29–1.39 s. The borrow now waits for the mount rather than for its own
+      request to be honoured, bounded at five seconds, and answers in three
+      cases instead of a `Bool` so that *nothing was taken* stops being spelled
+      the same as *it came back*. The panel notice fires on the volume's absence
+      and no longer on a disc that is fine. It costs about two and a half
+      seconds to open a CD, which is the price of handing §3 a record whose file
+      URLs resolve.
 
       **Proved against a CD-R, not a pressing.** The disc was one this port
       burnt (§20), so what was read is CD-Text this program wrote into a lead-in
@@ -3356,18 +3382,22 @@ of requirements — and it said as much itself: nothing else in this document
 assumes you have read it, and it does not assume you have read anything else.
 That is a description of a separate document.
 
-It stands at **32 of 38**, and most of that came in one afternoon by the only
+It stands at **34 of 40**, and most of that came in one afternoon by the only
 route that was ever going to work: §20 burnt a disc, and a section that had been
 waiting on material had material. Steps 4 and 6 through 10 and 13 closed against
 it. Step 14 is the burn itself — building the record, rehearsing it, spending
 the blank, and reading the disc back — which the tests that perform it had been
-citing as step 14 for a while before there was one. **The newest box is step 8's
-last**, and it is the only one here that was closed by taking a decision rather
-than by reading a disc: the readings said §4.2 has no path to a title that does
-not begin by unmounting, and D80 says the port may unmount, on open and never on
-a scan. What is left wants a disc out of a multi-disc set, a data disc, an empty
-bay, and two AIFFs on an external volume. That figure is still kept in the Status
-paragraph above with every other figure, because the counts do not move house.
+citing as step 14 for a while before there was one. **The two newest boxes are
+step 8's last two, and they are there because the box above them was right about
+the read and wrong about the return.** D80 said the port unmounts the disc and
+mounts it back; it does unmount, and the mounting back never once worked — the
+device node is gone for a second after cdrtools closes it, and macOS returns the
+volume unasked at 1.3 s. Seven timed rounds are written down there now, next to
+the twelve seconds an unmount lasts when nothing re-enumerates after it, which
+is what the write end has always been doing. What is left wants a disc out of a
+multi-disc set, a data disc, an empty bay, and two AIFFs on an external volume.
+That figure is still kept in the Status paragraph above with every other figure,
+because the counts do not move house.
 
 ---
 
