@@ -67,8 +67,13 @@ app and nothing else.
 
 ## Status
 
-It builds, installs with `Scripts/install.sh`, plays records — and burns them.
-Parity stands at **321 of 325 boxes**. Of the four still open, three are what §14
+It builds, installs with `Scripts/install.sh`, plays records — and burns them
+**from the panel**, which until this release it did not. Every part of §20 stage
+3 was written, tested and had burnt a real disc, and nothing under `App/` called
+a line of it: `B` on the plan screen set a message saying the drive was not
+wired up, because it was not. It is now.
+Parity stands at **321 of 325 boxes**, unchanged — no box had ever described
+that gap, which is how it went out in two releases. Of the four still open, three are what §14
 marks as blocked on hardware and material: AirPlay's unplug, hi-res output
 switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. The last
 is what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere

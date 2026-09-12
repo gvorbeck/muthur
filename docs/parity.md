@@ -60,10 +60,16 @@ part worth porting.
 **321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 34 of 40). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 34 of 40 in `hardware.md`. **The count outside §19 did not move this pass
-and should not have** — nothing new was claimed. §19 grew by two, both of them
-readings taken to find out that a thing already ticked was ticked over a
-mechanism that had never worked.
+and 34 of 40 in `hardware.md`. **The count did not move this pass, and this is
+the one time that fact is worth distrusting rather than reporting.** The burn
+arrived in the window — `B` on the plan screen starts a real job now, where it
+used to set a string saying it could not — and the count is unchanged because
+no box ever described the gap. §20.5's third box said the cap *refuses cleanly
+and says why*, and it was ticked, and it was true: the refusal was written and
+measured and honest. What no box anywhere asserted was that anything under
+`App/` could reach `BurnJob` at all, and nothing could. **A denominator counts
+what somebody thought to ask for**, and a green field says only that every
+question asked so far has an answer.
 
 **The four open ones are three and one, and not one of them is waiting on code
 being written.** Three are §14's, blocked on hardware and material as they have
@@ -87,7 +93,11 @@ on the one failure it exists for is worse than no warning.** The borrow now wait
 for the mount table to show the volume, bounded at five seconds, and answers in
 three cases rather than a `Bool`. D80 was amended rather than added beside — the
 entry described a remount that does not happen — and no new decision was
-numbered, so D83 is still free.
+numbered there. **D83 and D84 were spent on this pass**, on the burn reaching
+the panel: the job raising `BurnStage` rather than the window guessing at it,
+`--demo` and `--dummy` arriving as environment variables because the panel has
+no command line, and the summary answering any key where `stage_done` wants
+`q`.
 
 All four are open rather than absent for the reason §14's have always been:
 a green box over a path that yields nothing is worse than an honest empty one.
@@ -3543,11 +3553,20 @@ it is the property most easily lost by a later edit that means well.
 - [x] **It opens on the record already on the deck** — no second chooser and no
       second scan, because the record whose tags you want to fix is the one you
       are listening to.
-- [x] **`B` at the end of the editor refuses cleanly and says why**, in the
-      voice `--rip` is refused in (`LaunchOptions.swift:54`): *burning is not
-      wired up yet — the plan is right, the drive is not*. The cap stays live
-      rather than dimmed, on D57's reasoning about ⌘O — a control that looks
-      unavailable teaches nothing about why.
+- [x] **`B` at the end of the editor starts the burn** — and is not itself a
+      burn, which is the script's own shape: `tui_edit` breaks out to the disc
+      prompt and the prompt is what asks (`burncd:1201`). No audio is decoded
+      and no laser comes on until `⏎` on `stage_insert`.
+
+      **This box described a stub until D83.** Everything above the drive was
+      written, tested and had burnt a real disc, and nothing under `App/`
+      called any of it: the cap answered *burning is not wired up yet — the
+      plan is right, the drive is not*, which was honest and was the only
+      honest thing on the subject in this file. The engine could burn and the
+      app could not, and no box said so, which is exactly how it went
+      unnoticed through two releases. `BurnRun` and `BurnView` are the wiring;
+      `BurnStage`, complete and documented and never once constructed, was the
+      seam it was missing.
 
 ### Stage 2 — the conversion (no hardware, written)
 

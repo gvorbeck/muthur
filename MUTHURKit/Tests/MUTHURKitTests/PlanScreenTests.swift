@@ -176,12 +176,4 @@ struct PlanScreenTests {
         let empty = PlanScreen.refusal(.nothingToBurn)
         #expect(Columns.width(of: Readout.status(empty)) <= PanelGrid.width)
     }
-
-    /// The key stays live and answers, because dimming it would be the same lie
-    /// the dead ⌘O was.
-    @Test("The burn refusal fits the status row it is printed on")
-    func burnRefusalFits() {
-        #expect(
-            Columns.width(of: Readout.status(PlanScreen.burnNotYet)) <= PanelGrid.width)
-    }
 }

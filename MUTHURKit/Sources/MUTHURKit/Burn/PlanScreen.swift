@@ -108,20 +108,6 @@ public enum PlanScreen {
         }
     }
 
-    /// **The refusal at the end of the editor, until stage 3.**
-    ///
-    /// Worded the way `LaunchOptions.Failure` refuses a flag it does not have:
-    /// what is true, in one line, with no apology and no offer to do it later.
-    /// The drive is not connected and there is no `cdrecord` here — dimming the
-    /// cap instead would be the same lie the dead ⌘O was, so the key stays live
-    /// and answers.
-    ///
-    /// In the panel's voice rather than the command line's, because this is
-    /// printed on the status row beside `TRACK DROPPED — PRESS U TO UNDO` and
-    /// not to a terminal.
-    public static let burnNotYet =
-        "BURNING IS NOT WIRED UP YET — THE PLAN IS RIGHT, THE DRIVE IS NOT"
-
     /// The four columns a track row is laid out in (`track_cells`,
     /// `burncd:919`).
     ///
