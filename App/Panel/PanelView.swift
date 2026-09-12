@@ -49,6 +49,22 @@ struct PanelView: View {
             }
             .onDisappear { stopWheel() }
             .onKeyPress(phases: [.down, .repeat]) { press in handle(press) }
+            // The prompt *borrows* the focus; it does not get to keep it.
+            //
+            // `PlanPromptView` takes the focus on appearing, because a field you
+            // have to click into first is not a prompt. But when it goes away
+            // SwiftUI does not hand the focus back — the first responder becomes
+            // the window itself, and a panel that is not the first responder
+            // never sees `onKeyPress` at all. Every key then falls through to
+            // AppKit, which has nothing to do with it and beeps. The program is
+            // not wedged, it is deaf, which from the outside is worse: it looks
+            // wedged the moment you finish typing a year, and the next key you
+            // try is the `B` that was the whole point.
+            //
+            // ⏎ and ⎋ both end up here, since both are the prompt going nil.
+            .onChange(of: model.planPrompt == nil) { _, noPrompt in
+                if noPrompt { focused = true }
+            }
             .onReceive(
                 NotificationCenter.default.publisher(
                     for: NSApplication.didChangeOcclusionStateNotification)
