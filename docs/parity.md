@@ -93,11 +93,16 @@ on the one failure it exists for is worse than no warning.** The borrow now wait
 for the mount table to show the volume, bounded at five seconds, and answers in
 three cases rather than a `Bool`. D80 was amended rather than added beside — the
 entry described a remount that does not happen — and no new decision was
-numbered there. **D83 and D84 were spent on this pass**, on the burn reaching
-the panel: the job raising `BurnStage` rather than the window guessing at it,
-`--demo` and `--dummy` arriving as environment variables because the panel has
-no command line, and the summary answering any key where `stage_done` wants
-`q`.
+numbered there. **D83 to D85 were spent on this pass.** The first two are the
+burn reaching the panel: the job raising `BurnStage` rather than the window
+guessing at it, `--demo` and `--dummy` arriving as environment variables because
+the panel has no command line, and the summary answering any key where
+`stage_done` wants `q`. **D85 is the year on the panel being the year you
+meant** — a correction kept beside the program, never written into anybody's
+files, applied to the `Record` so it reaches a lead-in as well as a faceplate,
+and said out loud on the plan screen so the program is never quietly disagreeing
+with what is on disk. It is the first thing in the port that outranks the tags,
+and the entry argues why a person should.
 
 All four are open rather than absent for the reason §14's have always been:
 a green box over a path that yields nothing is worse than an honest empty one.

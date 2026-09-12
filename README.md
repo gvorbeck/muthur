@@ -73,7 +73,15 @@ It builds, installs with `Scripts/install.sh`, plays records — and burns them
 a line of it: `B` on the plan screen set a message saying the drive was not
 wired up, because it was not. It is now.
 Parity stands at **321 of 325 boxes**, unchanged — no box had ever described
-that gap, which is how it went out in two releases. Of the four still open, three are what §14
+that gap, which is how it went out in two releases.
+
+**A year you correct now stays corrected** (D85). `2001 - Drukqs.zip` shows
+`Aphex Twin (2017)` because 33 of its 35 files say so, and both numbers are
+true: the tag names the pressing, the folder names the album. Fix it on the plan
+screen and the correction is kept beside the program — never written into your
+files — and reaches the faceplate, the plan and the disc's own lead-in alike.
+The plan screen says when it is disagreeing with your tags, and deleting
+`corrections.json` puts every record back to what they say. Of the four still open, three are what §14
 marks as blocked on hardware and material: AirPlay's unplug, hi-res output
 switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. The last
 is what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere
