@@ -24,10 +24,15 @@
 	<string>APPL</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<!-- Quoted from the build settings, not written down a second time. The
+	     number lived here as a literal while MARKETING_VERSION sat in the
+	     project file being ignored, which is the same trap docs/parity.md's
+	     count keeps falling into: one number written twice is two numbers the
+	     moment only one of them is updated. -->
 	<key>CFBundleShortVersionString</key>
-	<string>0.1</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>NSHighResolutionCapable</key>
