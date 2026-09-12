@@ -170,6 +170,14 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
+**D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
+shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
+faithful in showing it — the tag names the pressing, the folder names the album,
+and both are true. Corrections are kept beside the program rather than pressed
+into anybody's files, are applied to the `Record` so they reach the lead-in as
+well as the faceplate, and are said out loud on the plan screen so the program is
+never quietly disagreeing with what is on disk.
+
 **D83 and D84 are the burn arriving in the window.** The plan editor had always
 been a finished front end onto a burn that never started: every part of §20
 stage 3 was written and tested and had driven the drive, and not one line under
@@ -3626,3 +3634,83 @@ does nothing at all, which is what `BurnStage.keys` says by handing back no caps
 there is no safe way to stop a `cdrecord` halfway, the script does not offer one,
 and a cap that appeared to offer one would be the worst kind of lie this panel
 could tell.
+
+---
+
+**D85 — a correction is kept beside the program, and beats the tags.** → §1.2,
+§8, §20.4
+
+Neither script has anything like this, and the reason it exists here is a window.
+`burncd`'s editor is a screen you pass through on the way to a disc: the names it
+fixes are the names that go in that lead-in, the process ends, and next time you
+fix them again. That is a fair bargain for a program you run to burn one disc. It
+is not a fair bargain for an app you leave open, where the same wrong year is in
+front of you every time you put the record on — and where the plan editor is the
+only place in the whole program you can type.
+
+**The record that forced it.** `2001 - Drukqs.zip` shows `Aphex Twin (2017)`,
+and the port is right to show it: 33 of its 35 files carry `date=2017`, and
+`player:1400` takes the year from the first tag that has one with no fallback to
+the folder's name. The two files with no date are the *avril 14th* variants. So
+the panel was faithful and the number was still not the one anybody wanted.
+
+**The tag is not wrong, which is the whole difficulty.** A rip tagged from
+MusicBrainz carries `.releases[0].date` — *this pressing* — and `ripper` does
+exactly that (`lib/disc.sh:341`), deliberately, keeping the year out of folder
+names so two pressings of one album do not land in two folders. `2001 - Drukqs`
+with `date=2017` is a 2017 pressing of a 2001 album and **both numbers are
+true**. Overwriting one with the other destroys a fact in order to display a
+different one. This keeps both and records which to show.
+
+**It corrects; it does not tag.** `PlanEditor`'s promise that the plan screen
+does not touch the record on disk is kept exactly as written. Two reasons, and
+the first is decisive on this machine:
+
+- **A zip cannot be corrected in place at all.** Its audio is unpacked into §2's
+  scratch, which sweeps itself, so a tag written there is gone at the next
+  launch. Persisting into the archive means rebuilding a 232 MB file to change
+  four characters, over the only copy.
+- **Tags are shared with every other program.** A correction that is this
+  program's opinion should live where this program's opinions live, not be
+  pressed into files that `mpv`, `ripper` and the bash `player` all read.
+
+**It is applied to the `Record` and not to the panel**, at the door in
+`adopt`. Everything downstream reads the record — the faceplate, the columns,
+the shelf lookup, the plan draft, the CD-Text, the `REM DATE` in the cue — so
+correcting it once corrects all of them. A correction that only reached the
+header would put 2001 on the panel and burn 2017 into the lead-in, which is worse
+than not having one. Verified against the real zip: read as 2017, corrected,
+re-read as 2001, and the cue sheet the burn would write carries `REM DATE 2001`.
+
+**This reverses D6's order for one of its three sources.** D6 settled
+MusicBrainz → tags → collection, and that ordering is the script's: `player:2215`
+lets the lookup be the last writer. A correction is ahead of all three and is not
+a fourth source of the same kind — the others are things *found out* about a
+record and this is a thing *said* about it, by the one person the program is for.
+Where a lookup and a person disagree the person is not overruled by a server.
+
+**Keyed on the source's path, and discs are not keyed at all.**
+`/Volumes/Audio CD` belongs to whatever is in the drive this minute, so keying on
+it would hand one disc's correction to the next disc that mounted there. §4 names
+discs from CD-Text and MusicBrainz, which is a better answer than a note about a
+disc that is no longer in the machine. Track titles are keyed by *filename*
+rather than by position, because a running order is the one thing the plan editor
+exists to rearrange.
+
+**A correction that agrees with the tags is deleted rather than stored.** Typing
+the year the file already carries is not a correction, and a store that
+accumulated those would slowly become a second copy of everyone's tags — and
+would go on asserting them after the tags themselves were fixed elsewhere. It is
+also the undo: type the original back and the entry goes.
+
+**The panel says when it is disagreeing with your files**, on the plan screen
+beside D67's two notes, with the path to the file that holds it. A program
+quietly showing something other than what is in your files is what this feature
+could most easily become. Delete `~/.local/share/muthur/corrections.json` and
+every record goes back to what its tags say.
+
+`XDG_DATA_HOME` and not `XDG_CACHE_HOME`, which is the one thing about the path
+worth an argument: `LevelCache` is a cache in the true sense — throw it away and
+the program recomputes it, slowly — and this cannot be recomputed by anything. It
+is the only copy of something a person typed, and a directory whose contract is
+*may be deleted at any time* is the wrong place for the only copy of anything.

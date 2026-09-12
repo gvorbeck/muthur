@@ -142,6 +142,11 @@ public enum Usage {
                                  what is in it; everybody else wants the look.
                                  BURNCD_NO_MEDIA_CHECK is read too.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
+              XDG_DATA_HOME      where your corrections live (D85) — the year
+                                 or title you typed on the plan screen, kept
+                                 beside the program and never written into your
+                                 files. Delete corrections.json under it and
+                                 every record goes back to what its tags say.
               XDG_STATE_HOME     where the resume file lives
 
             MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read under their

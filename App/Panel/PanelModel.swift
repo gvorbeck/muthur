@@ -25,6 +25,36 @@ final class PanelModel {
     private(set) var titleSource: TitleSource?
     private(set) var sourceKind: SourceKind = .folder
 
+    /// Where this record was opened from, kept so a correction can find it again
+    /// next time (**D85**). Nil for a disc, which has no path worth keeping.
+    private(set) var sourceURL: URL?
+
+    /// **D85** — what the user has told this program about their records.
+    /// Loaded once and written through, because it is small and because a
+    /// correction typed now has to survive the app being closed a second later.
+    private var corrections = Corrections(at: Corrections.location())
+
+    /// This record's key in that store.
+    private var correctionKey: String? {
+        Corrections.key(source: sourceURL, kind: sourceKind)
+    }
+
+    /// Whether the panel is showing anything the files do not say.
+    var isCorrected: Bool { corrections.corrects(correctionKey) }
+
+    /// **D85** — said on the plan screen, beside D67's other two notes, because
+    /// this is the screen the correction was typed on and the last screen before
+    /// a lead-in makes it permanent.
+    ///
+    /// A program quietly showing something other than what is in your files is
+    /// the failure this whole feature could most easily become, so a corrected
+    /// record says so and says where the correction lives. It is one line and it
+    /// is only there when there is something to say.
+    var correctionNote: String? {
+        guard isCorrected else { return nil }
+        return "Corrected here, not in the files — \(Corrections.location().path)"
+    }
+
     /// What the panel has to say when there is no record yet and nothing is
     /// being loaded either — a refusal, or an empty scan. **A port invention
     /// both times**: the script says one line and exits.
@@ -305,6 +335,7 @@ final class PanelModel {
                     }
                 )
                 self.scratch = opened.scratch
+                self.sourceURL = url
                 adopt(
                     opened.record, source: opened.source,
                     titleSource: opened.titleSource, directory: opened.directory,
@@ -449,6 +480,14 @@ final class PanelModel {
         _ read: Record, source: SourceKind, titleSource: TitleSource?, directory: URL?,
         notice: String? = nil, releaseMBID: String? = nil, albumIsPlaceholder: Bool = false
     ) {
+        var read = read
+        // **D85, and it happens here for a reason.** Everything below reads the
+        // record — the faceplate, the columns, the shelf lookup, and later the
+        // plan draft and the CD-Text that goes into a lead-in. Correcting it
+        // once at the door corrects all of them; correcting the header alone
+        // would put 2001 on the panel and burn 2017 onto the disc.
+        sourceKind = source
+        read.correct(with: corrections.entry(for: Corrections.key(source: sourceURL, kind: source)))
         record = read
         stage = nil
         loading = nil
@@ -947,6 +986,63 @@ final class PanelModel {
         case .rename: editing { $0.rename(to: text) }
         case .artist: editing { $0.setArtist(to: text) }
         }
+        remember(prompt.field)
+    }
+
+    /// **D85** — the edit that was just made, written down so it survives.
+    ///
+    /// Taken from the editor *after* the change rather than from the prompt,
+    /// because the editor is what decides which row `⏎` was on: `rename` on a
+    /// header row sets a field and on a track row sets a title, and the prompt
+    /// only knows that somebody typed. Reading it back is also what makes an
+    /// edit the editor declined — a name it would not take, a row that is no
+    /// longer there — not get written down as though it had happened.
+    ///
+    /// **The original is handed over with it** so a correction that agrees with
+    /// the tags can be dropped rather than stored; `Corrections.set` says why.
+    private func remember(_ field: PlanPrompt.Field) {
+        guard let editor = plan, let record, let key = correctionKey else { return }
+        switch field {
+        case .artist:
+            corrections.set(
+                .albumArtist, to: editor.draft.albumArtist,
+                was: record.albumArtist, for: key)
+        case .rename:
+            switch editor.row {
+            case .album:
+                corrections.set(.album, to: editor.draft.album, was: record.album, for: key)
+            case .albumArtist:
+                corrections.set(
+                    .albumArtist, to: editor.draft.albumArtist,
+                    was: record.albumArtist, for: key)
+            case .year:
+                corrections.set(.year, to: editor.draft.year, was: record.year, for: key)
+            // Keyed by the file's own name, which is the one thing about a track
+            // that a reorder cannot move — see `Corrections.Entry.titles`.
+            case .track(let position):
+                guard let source = editor.draft.order.indices.contains(position)
+                        ? editor.draft.order[position] : nil,
+                    record.tracks.indices.contains(source)
+                else { return }
+                corrections.set(
+                    .title(file: record.tracks[source].url.lastPathComponent),
+                    to: editor.draft.rows[source].title,
+                    was: record.tracks[source].title, for: key)
+            }
+        }
+        corrections.save()
+        // The deck is showing the old value behind the plan screen, and will go
+        // on showing it after `ESC`. The record is the thing everything reads,
+        // so it is the thing that is corrected — the panel follows.
+        applyCorrectionsToRecord()
+    }
+
+    /// Re-read the record through the store, and refresh what hangs off it.
+    private func applyCorrectionsToRecord() {
+        guard var read = record else { return }
+        read.correct(with: corrections.entry(for: correctionKey))
+        record = read
+        header = HeaderBlock(record: read, shelf: shelf(for: read))
     }
 
     func planCancel() { planPrompt = nil }

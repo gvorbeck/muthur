@@ -192,6 +192,7 @@ struct PanelView: View {
                         visibleRange: model.planVisible,
                         below: model.planBelow,
                         prompt: model.planPrompt,
+                        correction: model.correctionNote,
                         click: { model.planClick(row: $0) },
                         typed: { model.planPrompt?.value = $0 },
                         commit: { model.planCommit() },

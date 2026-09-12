@@ -17,6 +17,9 @@ struct PlanView: View {
     let visibleRange: Range<Int>
     let below: Int
     let prompt: PanelModel.PlanPrompt?
+    /// **D85** — one line when the panel is showing something the files do not
+    /// say, and nothing at all when it is not.
+    let correction: String?
     let click: (Int) -> Void
     let typed: (String) -> Void
     let commit: () -> Void
@@ -77,7 +80,7 @@ struct PlanView: View {
     // MARK: - What the plan has to say (D67)
 
     private var notes: some View {
-        let lines = PlanScreen.notes(editor.plan)
+        let lines = PlanScreen.notes(editor.plan) + (correction.map { [$0] } ?? [])
         return Group {
             if !lines.isEmpty {
                 ForEach(lines, id: \.self) { line in
