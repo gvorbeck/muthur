@@ -140,10 +140,19 @@ public enum BesideTheRecord {
 
     /// Every file with a picture's extension, no deeper than `maximumDepth`.
     ///
-    /// Hidden files are included, because `find` includes them: an AppleDouble
-    /// `._cover.jpg` out of a zip ranks as a cover and is then refused by the
-    /// probe, which is the same two steps the script takes and one fewer rule
-    /// to keep in step with the unpacker.
+    /// `.skipsHiddenFiles` is deliberately not passed, because `find` has no
+    /// such filter either and a dotted picture is still a picture.
+    ///
+    /// It buys nothing against the case it looks like it is for. An AppleDouble
+    /// `._cover.jpg` never reaches this loop: `FileManager` treats those as the
+    /// fork carriers they are and does not enumerate them at all — with the
+    /// option or without it, on APFS and on the exFAT a travelling library
+    /// lives on — where `find` hands the script all of them. So the two
+    /// programs agree on the answer by different routes, and there is no rule
+    /// here to keep in step with the unpacker; `ZipArchive.isAudioMember` needs
+    /// its own only because it reads names out of the archive, where the
+    /// filesystem is not yet involved. A stub that did arrive would rank and
+    /// then be refused by the probe, which is the script's own second step.
     public static func scan(_ directory: URL) -> [URL] {
         let manager = FileManager.default
         guard
