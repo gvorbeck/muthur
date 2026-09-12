@@ -170,6 +170,17 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
+**D83 and D84 are the burn arriving in the window.** The plan editor had always
+been a finished front end onto a burn that never started: every part of §20
+stage 3 was written and tested and had driven the drive, and not one line under
+`App/` called any of it, so `B` set a string saying as much. D83 wires it and
+names the three choices the script had no answer for — the job raising
+`BurnStage` rather than the window guessing at it, the summary's clock belonging
+to the window, and `--demo` / `--dummy` arriving as environment variables because
+the panel has no command line and its legend is measured to the column. D84 lets
+any key dismiss the summary, and says why the conversion and the write answer no
+key at all.
+
 **D80 to D82 came from playing the disc §20 had just burnt, and all three are
 about a program sounding more certain than it is.** D80 borrows the mount for the
 length of a CD-Text read — when the user opens the record, never when §1 scans
@@ -2826,7 +2837,7 @@ found nothing would look exactly like a successful one.
 
 **No new decision was numbered for any of this.** Nothing above is a fresh
 departure from either script — it is this same departure, described correctly.
-D83 is still free.
+D83 went to the burn being reachable from the panel at all.
 
 **Proved against the drive, and pinned there.** `The disc is borrowed for its
 lead-in and comes home` in `DiscMaterialTests` runs the real `BorrowedCDText`
@@ -3552,3 +3563,66 @@ found by writing the second one.
     be stated exactly rather than argued about — three shapes where the port and
     the script agree, one where they differ, and that one is the fault. **D43**
     has the table and the reasoning. §19 step 8 is where it meets a real tool.
+
+---
+
+**D83 — `B` on the plan screen starts a real burn, and `--demo` / `--dummy` are
+environment variables rather than flags.** → §20.5, §20 stage 3
+
+The plan editor was a complete front end onto a burn that never started.
+`BurnJob`, `Burner`, `Cdrecord` and `BurnPanel` were all written, tested, and
+had driven the drive — every burn in `hardware.md` went through `swift test
+--filter BurnMaterialTests` — but nothing under `App/` referenced any of them,
+and `PanelModel.burn()` was four lines that set a string saying so. The engine
+could burn; the app could not. That is now wired, and three choices in the wiring
+are this program's rather than the script's.
+
+**`BurnStage` is emitted by the job.** Its four cases were written, documented
+and never once constructed — a screen that cannot be drawn because nothing tells
+it what to draw. `BurnJob.run` takes a `stage` callback now and raises them where
+the loop already knew: `.insert` before each `waitForBlank`, `.converting` per
+track inside `build`, `.written` beside the log line that already said it. This
+is an addition rather than a departure — it is `stage`'s own argument in
+`burncd:1386`, which a terminal gets for free by being *inside* the job and a
+window cannot.
+
+**`.done` is composed by the app and not by the job.** It needs an elapsed time,
+and a clock is the one thing a job that can be run headlessly in a test should
+not start. The app knows when it pressed the key.
+
+**The flags are environment variables.** `burncd` takes `--demo` and `--dummy` on
+a command line; the panel has no command line to take them on, and a cap for
+either would be a fourth key on a legend `KeycapTests.fits` has already measured
+to the column. So `MUTHUR_DEMO` runs the whole screen against `FakeDrive` —
+which is what `--demo` has always been (`burncd:2592`) and the only way to watch
+this screen without spending a blank — and `MUTHUR_DUMMY` is `--dummy`: a real
+drive, a real conversion, and the write laser off. **This is the weakest part of
+the port's §20 and it is written down as such.** A rehearsal is *the last thing
+between a vector and a coaster*, and putting it behind a variable makes it
+something you have to know about rather than something the screen offers. A cap
+on the insert stage would be better and costs a re-measured legend; it was not
+taken now because the legend is ported to the column and that is a change worth
+making deliberately rather than in passing.
+
+**Nothing about the burn is reachable without the prompt.** `B` does not burn: it
+starts a job whose first act is `stage_insert`, exactly as `tui_edit` breaks out
+to the prompt and the prompt is what asks (`burncd:1201`). No audio is decoded
+and no laser comes on until `⏎` is pressed on that screen.
+
+---
+
+**D84 — the summary is dismissed by any key; the script wants `q`.** → §20 stage 3
+
+`stage_done` binds `q` alone (`burncd:1566`). The check screen made the same
+choice the other way and for a reason that applies here unchanged: a person
+reading `2 DISCS · 78:12 · 21:04 ELAPSED` is *finished*, and making them find the
+one right key is the machine being precious about a screen that has nothing left
+to do. `Q` still means the program, here as everywhere.
+
+**The keys that do nothing are also a decision.** A burn has exactly two moments
+that take an answer — the prompt before each disc and the summary at the end —
+and the conversion and the write are not among them. A key pressed during either
+does nothing at all, which is what `BurnStage.keys` says by handing back no caps:
+there is no safe way to stop a `cdrecord` halfway, the script does not offer one,
+and a cap that appeared to offer one would be the worst kind of lie this panel
+could tell.

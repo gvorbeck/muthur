@@ -180,6 +180,12 @@ struct PanelView: View {
                 // is clipped at the bottom loses its verdict.
                 if let report = model.report {
                     CheckView(report: report)
+                } else if let burning = model.burning {
+                    BurnView(
+                        burn: burning, rows: rows,
+                        press: { performBurn($0) }
+                    )
+                    .frame(height: Grid.rows(rows + 4))
                 } else if let editor = model.plan {
                     PlanView(
                         editor: editor,
@@ -250,7 +256,12 @@ struct PanelView: View {
                 // panel is not answering anything until it has a record, and a
                 // row of caps that light up and do nothing is the same lie the
                 // dead ⌘O was.
-                if !model.isLoading {
+                // Nor while a burn is up: its prompt and its caps are one foot
+                // and `BurnView` draws them together, because `stage` takes them
+                // as one string for the same reason (`burncd:1546`) — the prompt
+                // is what the keys are answering, and a legend that drifted a row
+                // away from it would be answering nothing.
+                if !model.isLoading && !model.isBurning {
                     PanelBlank()
                     KeycapsView(
                         legend: legend,
@@ -550,6 +561,7 @@ struct PanelView: View {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if model.isChecking { return handleCheck(press) }
+        if model.isBurning { return handleBurn(press) }
         if model.isPlanning { return handlePlan(press) }
         if model.isPicking { return handlePicker(press) }
         let shift = press.modifiers.contains(.shift)
@@ -583,6 +595,60 @@ struct PanelView: View {
         default: model.closeCheck()
         }
         return .handled
+    }
+
+    /// `stage_insert`'s key loop (`burncd:2425`), and the summary's one key.
+    ///
+    /// **Almost everything is ignored on purpose.** A burn has exactly two
+    /// moments that take an answer — the prompt before each disc, and the
+    /// summary at the end — and the conversion and the write are not among them:
+    /// there is no safe way to stop a `cdrecord` halfway and the script does not
+    /// offer one either. A key pressed at those moments does nothing, which is
+    /// what `BurnStage.keys` says by handing back no caps at all.
+    private func handleBurn(_ press: KeyPress) -> KeyPress.Result {
+        guard let burning = model.burning else { return .ignored }
+        if burning.finished {
+            // The summary is dismissed by anything, the way the check screen is:
+            // a person reading `2 DISCS · 78:12` is done, and making them find
+            // the one right key is the machine being precious.
+            model.closeBurn()
+            return .handled
+        }
+        guard burning.isWaitingForDisc else { return .handled }
+        switch press.key {
+        case .return: performBurn(.burn)
+        case .escape: performBurn(.close)
+        default:
+            switch press.characters.lowercased() {
+            case "e": performBurn(.close)
+            case "q": performBurn(.quit)
+            default: return .handled
+            }
+        }
+        return .handled
+    }
+
+    /// The burn screen's caps, which are the same three the legend prints.
+    private func performBurn(_ press: Readout.Press) {
+        guard let burning = model.burning else { return }
+        switch press {
+        case .burn: burning.go()
+        // `E EDIT` is the plan screen's `ESC BACK` — the same movement backwards
+        // out of a screen, arriving at the editor it came from. The job is told
+        // no first, so the thread unwinds rather than being left on a semaphore.
+        case .close:
+            burning.cancel()
+            model.closeBurn()
+        // `Q CANCEL` stops the job and stays where it is, so the reason it gives
+        // can be read. `Q` on the summary is the program, as everywhere else.
+        case .quit:
+            if burning.finished {
+                NSApplication.shared.terminate(nil)
+            } else {
+                burning.cancel()
+            }
+        default: break
+        }
     }
 
     /// `tui_edit`'s `read_key` (`burncd:1181`).

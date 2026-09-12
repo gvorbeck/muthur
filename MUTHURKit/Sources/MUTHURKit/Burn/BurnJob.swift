@@ -268,7 +268,8 @@ public struct BurnJob: Sendable {
         insert: Insert? = nil,
         verify: DiscVerify? = nil,
         frame: (BurnPanel) -> Void = { _ in },
-        note: (String) -> Void = { _ in }
+        note: (String) -> Void = { _ in },
+        stage: (BurnStage) -> Void = { _ in }
     ) throws -> Outcome {
         guard files.count == draft.rows.count else {
             throw Failure.sourceMismatch(files: files.count, rows: draft.rows.count)
@@ -364,13 +365,13 @@ public struct BurnJob: Sendable {
         for number in max(1, from)...max(1, plan.discCount) {
             if stop == .throughTheBurn {
                 try waitForBlank(
-                    disc: number, want: plan.runtime(onDisc: number), device: device,
-                    insert: &insert, say: say)
+                    disc: number, of: plan.discCount, want: plan.runtime(onDisc: number),
+                    device: device, insert: &insert, say: say, stage: stage)
             }
 
             let disc = try build(
                 disc: number, plan: plan, text: texts[number - 1],
-                level: decision, ffmpeg: ffmpeg, note: say
+                level: decision, ffmpeg: ffmpeg, note: say, stage: stage
             )
             discs.append(disc)
             guard stop == .throughTheBurn else { continue }
@@ -405,6 +406,10 @@ public struct BurnJob: Sendable {
             say(
                 BurnStage.writtenNote(
                     disc: number, of: plan.discCount, rehearsal: rehearsal))
+            // A stage of its own so the burn screen's last frame is not left
+            // sitting at 100% while the next disc is being asked for
+            // (`burncd:2680`, and `BurnStage.written` says the same).
+            stage(.written(disc: number, of: plan.discCount, rehearsal: rehearsal))
 
             // The image has been written to a disc and is now the largest thing
             // in the scratch directory by three orders of magnitude (D79). It
@@ -452,10 +457,17 @@ public struct BurnJob: Sendable {
     /// a `while` and not a `guard`. The only ways out are a disc the check will
     /// take and a person who has stopped putting them in.
     private func waitForBlank(
-        disc: Int, want: Int, device: String, insert: inout Insert?, say: (String) -> Void
+        disc: Int, of discs: Int, want: Int, device: String, insert: inout Insert?,
+        say: (String) -> Void, stage: (BurnStage) -> Void
     ) throws {
         guard insert != nil else { return }
         while true {
+            // Going back is only offered on the first disc of the job, and only
+            // when the job started there (`burncd:1541`). Once a disc is written
+            // the plan it came from is a fact about a physical object, and
+            // re-cutting the running order underneath it would renumber discs
+            // that are already in a sleeve.
+            stage(.insert(disc: disc, of: discs, canEdit: disc == 1 && from <= 1))
             guard insert!.wait(disc) else { throw Failure.cancelled }
             let verdict = insert!.check.look(
                 disc: disc, want: want, capacity: capacity, device: device)
@@ -472,7 +484,8 @@ public struct BurnJob: Sendable {
         text: DiscText,
         level decision: LevelDecision,
         ffmpeg: URL,
-        note say: (String) -> Void
+        note say: (String) -> Void,
+        stage: (BurnStage) -> Void = { _ in }
     ) throws -> Disc {
         let entries = plan.entries(onDisc: disc)
 
@@ -486,9 +499,23 @@ public struct BurnJob: Sendable {
         let logHandle = try? FileHandle(forWritingTo: log)
         defer { try? logHandle?.close() }
 
+        // The head is where the seconds already converted put it, not where the
+        // track count does (`burncd:1556`): a long track moves the bar the way
+        // it moves the number, which is the whole reason the conversion and the
+        // burn are drawn against the same bands.
+        let total = entries.reduce(0) { $0 + $1.duration }
+        let units = PanelGrid.stripWidth * Meter.unitsPerCell
+        var converted = 0
+
         let writer = try ImageWriter(at: image)
         for (index, entry) in entries.enumerated() {
             say("Converting \(index + 1) of \(entries.count) — \(entry.title)")
+            stage(
+                .converting(
+                    disc: disc, of: plan.discCount, track: index + 1,
+                    ofTracks: entries.count, title: entry.title,
+                    head: total > 0 ? converted * units / total : 0))
+            converted += entry.duration
             try Converter.convert(
                 entry,
                 file: files[entry.source],

@@ -574,6 +574,13 @@ final class PanelModel {
                 failures: report.checks.filter { $0.mark == .fail }.count
             )
         }
+        // Ahead of the plan's, because the burn goes over the plan screen and
+        // the faceplate names whatever is on top. While the drive is talking the
+        // panel names itself — `WRITING · DISC 1 OF 2 ·  42%` — and between
+        // discs the stage does (`burncd:1706`, `burncd:1386`).
+        if let burning {
+            return burning.panel?.meta ?? burning.stage.meta
+        }
         if let plan {
             return PlanScreen.meta(plan.plan)
         }
@@ -602,6 +609,10 @@ final class PanelModel {
         // The check has its own legend and its rows are the message; a status
         // line under it would be the deck talking over the diagnosis.
         if isChecking { return nil }
+        // And the burn has its log, which is the same argument: the deck's last
+        // message about a track change has nothing to say to somebody watching a
+        // disc being written.
+        if isBurning { return nil }
         // Nor while a source is coming open: `load_stage` has no status row
         // (`player:1162`), and the offer it would carry is about the record
         // that is still being read.
@@ -817,10 +828,69 @@ final class PanelModel {
         planStatus = nil
     }
 
-    /// `B` at the end of the editor. Stage 3, and it says so rather than
-    /// nothing (`PlanScreen.burnNotYet`).
+    // MARK: - The burn itself (§20 stage 3)
+
+    /// The run in flight, and nil the rest of the time. It goes over the plan
+    /// screen the way the plan screen goes over the deck.
+    private(set) var burning: BurnRun?
+
+    var isBurning: Bool { burning != nil }
+
+    /// `B` at the end of the editor (`burncd:1201`).
+    ///
+    /// **It is not itself a burn**, and that is the script's shape rather than
+    /// caution added here: `tui_edit` breaks out to the disc prompt, and the
+    /// prompt is what asks. So this starts a job whose first act is to put
+    /// `stage_insert` up and wait — nothing is converted and no laser comes on
+    /// until `⏎` is pressed on that screen.
+    ///
+    /// **`MUTHUR_DEMO` runs the whole of it against `FakeDrive`**, which is
+    /// `--demo` (`burncd:2592`) and the only way to watch this screen without
+    /// spending a blank. `MUTHUR_DUMMY` is `--dummy`: a real drive, a real
+    /// conversion, and the write laser off.
     func burn() {
-        planStatus = Readout.status(PlanScreen.burnNotYet)
+        guard let editor = plan, let record else { return }
+        guard let work = burnWork() else {
+            planStatus = Readout.status("NO ROOM TO BUILD THE IMAGE")
+            return
+        }
+        let environment = ProcessInfo.processInfo.environment
+        burning = BurnRun(
+            editor: editor,
+            files: record.tracks.map(\.url),
+            work: work.url,
+            ownWork: work.ours ? work.url : nil,
+            demo: !(environment["MUTHUR_DEMO"] ?? "").isEmpty,
+            rehearsal: !(environment["MUTHUR_DUMMY"] ?? "").isEmpty
+        )
+    }
+
+    /// Where the images and cue sheets go.
+    ///
+    /// §2's scratch when there is one — a zip has already opened one and it
+    /// sweeps itself — and otherwise a directory of our own beside it, because a
+    /// folder source never opened a scratch and an image still has to land
+    /// somewhere. `ours` is which, so only the one we made gets swept.
+    private func burnWork() -> (url: URL, ours: Bool)? {
+        if let scratch {
+            let inside = scratch.url.appending(path: "burn")
+            try? FileManager.default.createDirectory(
+                at: inside, withIntermediateDirectories: true)
+            return (inside, false)
+        }
+        let own = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appending(path: "muthur-burn-\(UUID().uuidString)")
+        guard
+            (try? FileManager.default.createDirectory(
+                at: own, withIntermediateDirectories: true)) != nil
+        else { return nil }
+        return (own, true)
+    }
+
+    /// The burn screen coming off, which is only offered once it is over.
+    func closeBurn() {
+        burning?.discard()
+        burning = nil
     }
 
     /// Every editor verb, through one door.
