@@ -3697,6 +3697,19 @@ disc that is no longer in the machine. Track titles are keyed by *filename*
 rather than by position, because a running order is the one thing the plan editor
 exists to rearrange.
 
+**All five editable fields are corrected, not just the year.** The plan editor
+can type into the three header fields, a track's title and a track's artist, and
+every one of them persists. The first cut of this got the last one wrong, and the
+way it got it wrong is worth keeping: `A` is not a key about the album. Its rule
+is `tui_artist`'s — *the artist of the thing I am looking at* (`burncd:1285`) —
+so above the tracks it sets the record's artist and on a track row it sets that
+track's. The store was written as though `A` always meant the album, so `A` on a
+track row filed the *album* artist, which had not changed, and a correction that
+agrees with the tags is dropped. The edit appeared on screen and was gone at the
+next launch. **Both keys ask the editor which row they were on now**, which is
+the one place that knows: writing the rule down twice, once per key, is what let
+the two drift apart.
+
 **A correction that agrees with the tags is deleted rather than stored.** Typing
 the year the file already carries is not a correction, and a store that
 accumulated those would slowly become a second copy of everyone's tags — and

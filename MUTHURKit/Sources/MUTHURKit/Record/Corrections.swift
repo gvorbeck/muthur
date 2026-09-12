@@ -52,18 +52,30 @@ public struct Corrections: Sendable, Equatable {
         /// unpack of a zip, which an absolute path is not.
         public var titles: [String: String]
 
+        /// Track artists, keyed the same way.
+        ///
+        /// **Separate from `albumArtist` because the editor treats them
+        /// separately.** `A` on a header row sets the record's artist and on a
+        /// track row sets that track's — `tui_artist`'s own rule, that the key
+        /// means *the artist of the thing I am looking at* (`burncd:1285`). A
+        /// compilation is the case that needs it, and a compilation is exactly
+        /// the kind of record whose tags are wrong.
+        public var artists: [String: String]
+
         public init(
             album: String? = nil, albumArtist: String? = nil, year: String? = nil,
-            titles: [String: String] = [:]
+            titles: [String: String] = [:], artists: [String: String] = [:]
         ) {
             self.album = album
             self.albumArtist = albumArtist
             self.year = year
             self.titles = titles
+            self.artists = artists
         }
 
         public var isEmpty: Bool {
-            album == nil && albumArtist == nil && year == nil && titles.isEmpty
+            album == nil && albumArtist == nil && year == nil
+                && titles.isEmpty && artists.isEmpty
         }
     }
 
@@ -152,6 +164,12 @@ public struct Corrections: Sendable, Equatable {
             } else {
                 entry.titles[file] = value
             }
+        case .artist(let file):
+            if agrees {
+                entry.artists.removeValue(forKey: file)
+            } else {
+                entry.artists[file] = value
+            }
         }
         if entry.isEmpty {
             entries.removeValue(forKey: key)
@@ -166,6 +184,10 @@ public struct Corrections: Sendable, Equatable {
         case year
         /// Keyed by the track's filename — see `Entry.titles`.
         case title(file: String)
+        /// One track's artist, keyed the same way. **Not `albumArtist`**: `A` on
+        /// a track row is about that track, and conflating the two would let a
+        /// compilation's per-track correction quietly overwrite the record's.
+        case artist(file: String)
     }
 
     /// Write it out, and say nothing if it cannot be written.
@@ -206,11 +228,11 @@ extension Record {
         if let album = entry.album { self.album = album }
         if let albumArtist = entry.albumArtist { self.albumArtist = albumArtist }
         if let year = entry.year { self.year = year }
-        guard !entry.titles.isEmpty else { return }
+        guard !entry.titles.isEmpty || !entry.artists.isEmpty else { return }
         for index in tracks.indices {
-            if let title = entry.titles[tracks[index].url.lastPathComponent] {
-                tracks[index].title = title
-            }
+            let file = tracks[index].url.lastPathComponent
+            if let title = entry.titles[file] { tracks[index].title = title }
+            if let artist = entry.artists[file] { tracks[index].artist = artist }
         }
     }
 }

@@ -1002,32 +1002,47 @@ final class PanelModel {
     /// the tags can be dropped rather than stored; `Corrections.set` says why.
     private func remember(_ field: PlanPrompt.Field) {
         guard let editor = plan, let record, let key = correctionKey else { return }
-        switch field {
-        case .artist:
+
+        // **Both keys ask the editor which row they were on**, rather than one
+        // of them assuming. `A` is not a key about the album: `tui_artist`'s
+        // rule is that it means *the artist of the thing I am looking at*
+        // (`burncd:1285`), so on a track row it sets that track's artist and
+        // above the tracks it sets the record's. `⏎` is the same shape. Writing
+        // this down twice, once per key, is what let `A` on a track row store
+        // the album artist — which, being unchanged, was then dropped as a
+        // correction that agreed with the tags. The edit happened on screen and
+        // vanished at the next launch.
+        switch (field, editor.row) {
+        case (.rename, .album):
+            corrections.set(.album, to: editor.draft.album, was: record.album, for: key)
+
+        // `A` anywhere above the tracks, and `⏎` on the ARTIST row, are the
+        // same edit to the same field.
+        case (_, .albumArtist), (.artist, .album), (.artist, .year):
             corrections.set(
                 .albumArtist, to: editor.draft.albumArtist,
                 was: record.albumArtist, for: key)
-        case .rename:
-            switch editor.row {
-            case .album:
-                corrections.set(.album, to: editor.draft.album, was: record.album, for: key)
-            case .albumArtist:
+
+        case (.rename, .year):
+            corrections.set(.year, to: editor.draft.year, was: record.year, for: key)
+
+        // Keyed by the file's own name, which is the one thing about a track
+        // that a reorder cannot move — see `Corrections.Entry.titles`.
+        case (let key_, .track(let position)):
+            guard let source = editor.draft.order.indices.contains(position)
+                    ? editor.draft.order[position] : nil,
+                record.tracks.indices.contains(source)
+            else { return }
+            let file = record.tracks[source].url.lastPathComponent
+            switch key_ {
+            case .rename:
                 corrections.set(
-                    .albumArtist, to: editor.draft.albumArtist,
-                    was: record.albumArtist, for: key)
-            case .year:
-                corrections.set(.year, to: editor.draft.year, was: record.year, for: key)
-            // Keyed by the file's own name, which is the one thing about a track
-            // that a reorder cannot move — see `Corrections.Entry.titles`.
-            case .track(let position):
-                guard let source = editor.draft.order.indices.contains(position)
-                        ? editor.draft.order[position] : nil,
-                    record.tracks.indices.contains(source)
-                else { return }
-                corrections.set(
-                    .title(file: record.tracks[source].url.lastPathComponent),
-                    to: editor.draft.rows[source].title,
+                    .title(file: file), to: editor.draft.rows[source].title,
                     was: record.tracks[source].title, for: key)
+            case .artist:
+                corrections.set(
+                    .artist(file: file), to: editor.draft.rows[source].artist,
+                    was: record.tracks[source].artist, for: key)
             }
         }
         corrections.save()

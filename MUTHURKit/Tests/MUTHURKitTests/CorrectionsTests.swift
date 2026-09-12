@@ -68,6 +68,65 @@ struct CorrectionsTests {
         #expect(read.tracks[1].title == "Vordhösbn")
     }
 
+    /// **Every field the plan editor can type into, and all of them together.**
+    ///
+    /// Written as one test on purpose: the bug it exists for was a *missing*
+    /// field, and a per-field test suite would have had exactly the same hole in
+    /// it as the code. `PlanEditor` can change five things — the three header
+    /// fields, a track's title, and a track's artist — and this asserts all five
+    /// survive a round trip at once.
+    @Test("every field the editor can change survives the round trip")
+    func everyFieldSurvives() throws {
+        let url = try scratch().appending(path: "corrections.json")
+        let key = "/x/2001 - Drukqs.zip"
+        let original = record()
+
+        var store = Corrections(at: url)
+        store.set(.album, to: "drukQs", was: original.album, for: key)
+        store.set(.albumArtist, to: "AFX", was: original.albumArtist, for: key)
+        store.set(.year, to: "2001", was: original.year, for: key)
+        store.set(
+            .title(file: "02 Vordhosbn.mp3"), to: "Vordhösbn",
+            was: original.tracks[1].title, for: key)
+        store.set(
+            .artist(file: "02 Vordhosbn.mp3"), to: "Richard D. James",
+            was: original.tracks[1].artist, for: key)
+        store.save()
+
+        var read = record()
+        read.correct(with: Corrections(at: url).entry(for: key))
+        #expect(read.album == "drukQs")
+        #expect(read.albumArtist == "AFX")
+        #expect(read.year == "2001")
+        #expect(read.tracks[1].title == "Vordhösbn")
+        #expect(read.tracks[1].artist == "Richard D. James")
+        // And the track nobody touched is untouched, in both of its fields.
+        #expect(read.tracks[0].title == "Jynweythek")
+        #expect(read.tracks[0].artist == "Aphex Twin")
+    }
+
+    /// A track's artist is not the record's artist. Correcting one track on a
+    /// compilation must not restate the album artist, and must not be mistaken
+    /// for it.
+    @Test("a track's artist is stored apart from the record's")
+    func trackArtistIsNotAlbumArtist() throws {
+        let url = try scratch().appending(path: "corrections.json")
+        var store = Corrections(at: url)
+        store.set(
+            .artist(file: "02 Vordhosbn.mp3"), to: "Richard D. James",
+            was: "Aphex Twin", for: "/x.zip")
+        store.save()
+
+        let entry = try #require(Corrections(at: url).entry(for: "/x.zip"))
+        #expect(entry.albumArtist == nil)
+        #expect(entry.artists["02 Vordhosbn.mp3"] == "Richard D. James")
+
+        var read = record()
+        read.correct(with: entry)
+        #expect(read.albumArtist == "Aphex Twin")
+        #expect(read.tracks[1].artist == "Richard D. James")
+    }
+
     // MARK: - What is not stored
 
     /// Typing the year the file already carries is not a correction. A store
