@@ -29,7 +29,7 @@ It is a port of two bash programs, `player` and `burncd`, which live in the
 
 **Needs:** macOS 15 or later, Apple silicon or Intel.
 
-░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
+░░▒▒▓▓█████████████████████████████████████████████████▓▓▒▒░░
 
 ## ▓▒░ INSTALL
 
