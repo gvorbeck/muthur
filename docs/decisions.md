@@ -170,14 +170,15 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
-**D86 to D89 came from using it.** D86 is the Burn menu: every flag `burncd`
+**D86 to D90 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
 now a switch — not saved across launches, because a rehearsal remembered from
 last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
 missing drive in `burncd:316`'s own words. D88 puts the version beside the
 wordmark and takes it away again on the one status line too wide to share. D89
 runs a cut title past its column, on the playing row and the one under the
-pointer, by whole columns so the grid never moves.
+pointer, by whole columns so the grid never moves. D90 sets the plan and the
+insert stage on the deck's grid, so a record carried to the burn does not move.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -3848,3 +3849,34 @@ width at every step — a two-place character cut by either edge is drawn as a
 blank, as `Columns.truncate` does at its own edge — so the artist beside it
 never moves. **Reduce Motion keeps the cut.** `MUTHUR_CRT=0` does not: it holds
 the tube still, and this is the type, not the tube.
+
+---
+
+**D90 — the plan and the insert stage are set on the deck's grid.** → §10, §20
+
+`burncd` lays its listing out in fixed cells — `%02d`, 34 of title, 20 of
+artist, `%5s` — from column 4 (`track_cells`, `burncd:919`), and its fields in a
+seven-place label (`tui_field`, `burncd:960`). `player` lays its own out from a
+mark in column 4 and a number in column 6, in columns decided by the record
+(`player:2284`), under an eight-place label. Each is right on its own terminal,
+where the two programs never share a screen. Here they share a window: carry a
+record from the deck to the plan and every title moved two places left, every
+field one, and the artist column changed width — and the port had drawn it
+three times, in three views, so it could.
+
+**One row and one field, and the deck's.** `TrackRowView` is the listing on the
+deck, in the editor and on the insert stage; `FieldRow` is the header, the
+loading screen, the editor's three fields and the insert stage's two. The mark
+column is blank where nothing is playing. The columns come from
+`TrackColumns.decide` over the names the plan is holding and the album artist
+it is holding, so an album with one artist all the way down loses the column on
+the plan exactly as it does on the deck — the `ARTIST` field above it already
+says it — and a compilation keeps a column sized to its longest name, right
+aligned. The insert stage decides over the whole plan rather than its disc, so
+disc 2 is set in disc 1's columns. Field values are cut at the deck's 52.
+
+**The sleeve is sized by the deck's arithmetic on every screen.** It was sized
+from the rows the screen underneath it had, and the plan has a different
+number of rows than the deck, so the cover changed size as the screen did.
+`burncd` never drew a cover, so there is no rule of its own to keep: the
+cover is the deck's, and it stays the deck's size.

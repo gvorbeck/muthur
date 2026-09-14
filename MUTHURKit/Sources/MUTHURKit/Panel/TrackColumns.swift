@@ -52,21 +52,24 @@ public struct TrackColumns: Sendable, Equatable {
     public static func decide(for record: Record, textWidth: Int = standardTextWidth)
         -> TrackColumns
     {
-        var one: String? = nil
-        var same = true
-        var longest = 0
-        for track in record.running {
-            if let one {
-                if track.artist != one { same = false }
-            } else {
-                one = track.artist
-            }
-            longest = max(longest, Columns.width(of: track.artist))
-        }
+        decide(
+            artists: record.running.map(\.artist), albumArtist: record.albumArtist,
+            textWidth: textWidth)
+    }
+
+    /// The same decision from the names alone, for a list that is not a
+    /// `Record` — the burn plan and the insert stage's listing (D90). One rule
+    /// rather than a second table of widths, so a record carried from the deck
+    /// to the plan keeps its columns exactly where they were.
+    public static func decide(
+        artists: [String], albumArtist: String, textWidth: Int = standardTextWidth
+    ) -> TrackColumns {
+        let longest = artists.map(Columns.width(of:)).max() ?? 0
+        let same = Set(artists).count <= 1
 
         // An empty artist all the way down is the same case as the album's own
         // name all the way down: there is nothing a column would be carrying.
-        let repeated = one.map { $0.isEmpty || $0 == record.albumArtist } ?? true
+        let repeated = artists.first.map { $0.isEmpty || $0 == albumArtist } ?? true
         if same && repeated {
             return TrackColumns(title: textWidth, artist: 0)
         }

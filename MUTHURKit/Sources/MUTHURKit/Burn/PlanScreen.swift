@@ -107,24 +107,4 @@ public enum PlanScreen {
             "NOTHING ON THE DECK TO BURN"
         }
     }
-
-    /// The four columns a track row is laid out in (`track_cells`,
-    /// `burncd:919`).
-    ///
-    /// Fixed, where the deck's `TrackColumns` are worked out from the record.
-    /// The editor and the disc prompt are showing the same list on purpose —
-    /// "the prompt is where the editor's work gets checked, and a listing you
-    /// cannot compare at a glance is not a check" — so the widths are one fact
-    /// in one place and the two screens move together.
-    public enum Cells {
-        public static let number = 2
-        public static let title = 34
-        public static let artist = 20
-        public static let time = 5
-        public static let gap = 2
-
-        /// 67 — the panel less the two columns the cursor mark stands in, which
-        /// is why the selected row's reverse bar is exactly this wide.
-        public static var width: Int { number + gap + title + gap + artist + gap + time }
-    }
 }

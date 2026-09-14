@@ -59,9 +59,15 @@ struct BurnView: View {
             field("ARTIST", burn.albumArtist)
             field("YEAR", burn.year)
             PanelBlank()
+            // The whole plan's names and not this disc's, so disc 2 is set in
+            // the columns disc 1 was.
+            let columns = TrackColumns.decide(
+                artists: burn.plan.entries.map(\.artist), albumArtist: burn.albumArtist)
             ForEach(Array(entries.prefix(max(1, shown)).enumerated()), id: \.offset) {
                 index, entry in
-                BurnRowView(number: index + 1, entry: entry)
+                TrackRowView(
+                    row: index, title: entry.title, artist: entry.artist,
+                    duration: entry.duration, columns: columns)
             }
             if shown < entries.count {
                 HStack(spacing: 0) {
@@ -156,14 +162,7 @@ struct BurnView: View {
     // MARK: - The furniture
 
     private func field(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 0) {
-            Spacer().frame(width: Grid.columns(PanelGrid.gutter))
-            MatrixText(text: label, colour: Theme.etch, columns: 8)
-            Spacer().frame(width: Grid.columns(1))
-            run(value.isEmpty ? "—" : value, Theme.text).font(Theme.swiftUIFont)
-            Spacer(minLength: 0)
-        }
-        .gridLine()
+        FieldRow(label: label, value: value.isEmpty ? "—" : value)
     }
 
     private func line(_ label: String, _ value: String) -> some View {
@@ -273,39 +272,5 @@ private struct LampView: View {
                 max(0, Double(Lamp.trailLength - behind)) / Double(Lamp.trailLength))
         case .dark: Color.clear
         }
-    }
-}
-
-/// One track on the insert stage's listing — the editor's row, with no cursor on
-/// it. Nothing here is selectable: this is the listing being checked, not
-/// edited (`burncd:1517`).
-private struct BurnRowView: View {
-    let number: Int
-    let entry: BurnPlan.Entry
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Spacer().frame(width: Grid.margin)
-            Spacer().frame(width: Grid.columns(2))
-            run(String(format: "%02d", number), Theme.etch)
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(PlanScreen.Cells.number), alignment: .leading)
-            Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-            run(entry.title, Theme.text, columns: PlanScreen.Cells.title)
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(PlanScreen.Cells.title), alignment: .leading)
-            Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-            run(entry.artist, Theme.dim, columns: PlanScreen.Cells.artist)
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(PlanScreen.Cells.artist), alignment: .leading)
-            Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-            run(
-                Readout.mmss(entry.duration), Theme.etch,
-                columns: PlanScreen.Cells.time, align: .trailing
-            )
-            .font(Theme.swiftUIFont)
-            Spacer(minLength: 0)
-        }
-        .gridLine()
     }
 }

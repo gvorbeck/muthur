@@ -66,12 +66,14 @@ before wired the burn into the window and found that nothing under `App/` had
 ever reached `BurnJob`. This one went one layer down and found the same shape
 again — every flag `burncd` parses was a field on the job, six of them finished
 and tested, and the app built every job with the defaults. They are a Burn menu
-now (**D86**). The rest of the pass is three things noticed by using the program
+now (**D86**). The rest of the pass is four things noticed by using the program
 rather than by reading the script: §11 telling an empty bay from a missing drive
-in `burncd:316`'s words (**D87**), the version beside the wordmark (**D88**), and
-a cut title that runs past its column on the playing row and under the pointer
-(**D89**). **A denominator counts what somebody thought to ask for**, and a
-green field says only that every question asked so far has an answer.
+in `burncd:316`'s words (**D87**), the version beside the wordmark (**D88**), a
+cut title that runs past its column on the playing row and under the pointer
+(**D89**), and the plan and insert stage drawn on the deck's own rows, so a
+record carried to the burn keeps its columns and its sleeve (**D90**). **A
+denominator counts what somebody thought to ask for**, and a green field says
+only that every question asked so far has an answer.
 
 Everything waiting on hardware — the four boxes below and §19's six — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for

@@ -19,7 +19,7 @@ struct TrackListView: View {
             ForEach(Array(model.visible), id: \.self) { row in
                 TrackRowView(
                     row: row,
-                    track: record.tracks[record.order[row]],
+                    track: record.running[row],
                     columns: model.columns,
                     mark: model.mark(for: row),
                     cursor: row == model.cursor.row
@@ -49,12 +49,23 @@ struct TrackListView: View {
     }
 }
 
+/// One track on any listing the panel draws — the deck, the burn plan, and the
+/// insert stage's last look before the disc (D90).
+///
+/// One view rather than one per screen, because three rows that each *meant* to
+/// be the same grid were three grids: the plan's was a column to the left of
+/// the deck's and its artist a different width, and carrying a record from one
+/// screen to the other moved every title on it. A screen with no playing mark
+/// leaves the mark's column blank, and a screen with no cursor never sets it.
 struct TrackRowView: View {
+    /// Where the row is in the list, from zero — what the number column counts.
     let row: Int
-    let track: Track
+    let title: String
+    let artist: String
+    let duration: Int
     let columns: TrackColumns
-    let mark: Readout.Mark
-    let cursor: Bool
+    var mark: Readout.Mark = .none
+    var cursor: Bool = false
 
     @State private var hovering = false
     @Environment(\.accessibilityReduceMotion) private var still
@@ -63,7 +74,7 @@ struct TrackRowView: View {
     /// track the music is coming out of, and a row under the pointer, and only
     /// when the title does not fit. Reduce Motion keeps the cut.
     private var moving: Bool {
-        !still && (mark != .none || hovering) && Marquee.runs(track.title, in: columns.title)
+        !still && (mark != .none || hovering) && Marquee.runs(title, in: columns.title)
     }
 
     /// The body of the row: everything from the playing mark to the duration.
@@ -78,7 +89,7 @@ struct TrackRowView: View {
     /// A run of fields rather than one concatenated line, because the number and
     /// the duration are readouts now and a readout is drawn, not typed.
     private var body65: some View {
-        let duration = Readout.mmss(track.duration)
+        let duration = Readout.mmss(self.duration)
         return HStack(spacing: 0) {
             run(mark.glyph, cursor ? Theme.text : Theme.lit)
                 .font(Theme.swiftUIFont)
@@ -90,9 +101,9 @@ struct TrackRowView: View {
             Spacer().frame(width: Grid.columns(2))
             Group {
                 if moving {
-                    MarqueeText(text: track.title, columns: columns.title)
+                    MarqueeText(text: title, columns: columns.title)
                 } else {
-                    run(track.title, Theme.text, columns: columns.title)
+                    run(title, Theme.text, columns: columns.title)
                 }
             }
             .font(Theme.swiftUIFont)
@@ -103,7 +114,7 @@ struct TrackRowView: View {
             // simply runs on to where the artist used to start (`player:2352`).
             if columns.artist > 0 {
                 Spacer().frame(width: Grid.columns(2))
-                run(track.artist, Theme.dim, columns: columns.artist, align: .trailing)
+                run(artist, Theme.dim, columns: columns.artist, align: .trailing)
                     .font(Theme.swiftUIFont)
                     .frame(width: Grid.columns(columns.artist), alignment: .leading)
             }
@@ -142,6 +153,14 @@ struct TrackRowView: View {
         }
         .gridLine()
         .onHover { hovering = $0 }
+    }
+}
+
+extension TrackRowView {
+    init(row: Int, track: Track, columns: TrackColumns, mark: Readout.Mark, cursor: Bool) {
+        self.init(
+            row: row, title: track.title, artist: track.artist, duration: track.duration,
+            columns: columns, mark: mark, cursor: cursor)
     }
 }
 

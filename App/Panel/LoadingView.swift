@@ -40,13 +40,6 @@ struct LoadingView: View {
     /// is the same column and a loading screen that indented differently would
     /// read as a different instrument for the two seconds it is up.
     private func row(label: String, value: String) -> some View {
-        HStack(spacing: 0) {
-            Spacer().frame(width: Grid.columns(PanelGrid.gutter))
-            MatrixText(text: label, colour: Theme.etch, columns: HeaderBlock.labelWidth)
-            Spacer().frame(width: Grid.columns(1))
-            run(value, Theme.text).font(Theme.swiftUIFont)
-            Spacer(minLength: 0)
-        }
-        .gridLine()
+        FieldRow(label: label, value: value)
     }
 }

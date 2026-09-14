@@ -51,29 +51,9 @@ struct PlanView: View {
     private var fields: some View {
         let values = PlanScreen.headerFields(editor.draft)
         return ForEach(Array(values.enumerated()), id: \.offset) { slot, field in
-            let selected = editor.cursor == slot
-            HStack(spacing: 0) {
-                Spacer().frame(width: Grid.margin)
-                run(selected ? Readout.cursorGlyph : " ", Theme.lit)
-                    .font(Theme.swiftUIFont)
-                    .frame(width: Grid.columns(1), alignment: .leading)
-                Spacer().frame(width: Grid.columns(1))
-                HStack(spacing: 0) {
-                    MatrixText(
-                        text: field.label, colour: selected ? Theme.text : Theme.etch,
-                        columns: 7)
-                    Spacer().frame(width: Grid.columns(1))
-                    run(field.value, Theme.text, columns: PlanScreen.Cells.width - 8)
-                        .font(Theme.swiftUIFont)
-                    Spacer(minLength: 0)
-                }
-                .frame(width: Grid.columns(PlanScreen.Cells.width), alignment: .leading)
-                .background(selected ? Theme.cursorPlate : Color.clear)
-                Spacer(minLength: 0)
-            }
-            .gridLine()
-            .contentShape(Rectangle())
-            .onTapGesture { click(slot) }
+            FieldRow(label: field.label, value: field.value, cursor: editor.cursor == slot)
+                .contentShape(Rectangle())
+                .onTapGesture { click(slot) }
         }
     }
 
@@ -104,6 +84,11 @@ struct PlanView: View {
     /// a boundary belongs to the disc its row says it starts on.
     private var tracks: some View {
         let order = editor.draft.order
+        // The deck's rule over the plan's own names (D90), so the record keeps
+        // its columns when it comes across — and an artist typed in here to
+        // match the header takes the column away, as it would on the deck.
+        let columns = TrackColumns.decide(
+            artists: editor.draft.rows.map(\.artist), albumArtist: editor.draft.albumArtist)
         return ForEach(Array(visibleRange), id: \.self) { position in
             let source = order[position]
             let disc = editor.plan.firstDisc(ofSource: source) ?? 1
@@ -125,9 +110,10 @@ struct PlanView: View {
                     }
                     .gridLine()
                 }
-                PlanRowView(
-                    number: position + 1,
-                    row: editor.draft.rows[source],
+                let row = editor.draft.rows[source]
+                TrackRowView(
+                    row: position, title: row.title, artist: row.artist,
+                    duration: row.duration, columns: columns,
                     cursor: editor.cursor == PlanEditor.headerRows + position
                 )
                 .contentShape(Rectangle())
@@ -175,53 +161,6 @@ struct PlanView: View {
     }
 }
 
-/// One track in the editor's four columns (`track_row`, `burncd:927`).
-///
-/// The selected row is one reverse bar across all four cells rather than four
-/// highlighted cells, which is why the widths are laid out inside a single
-/// frame: an inner colour reset would punch a hole in the highlight partway
-/// along, and the script says so at `burncd:916`.
-private struct PlanRowView: View {
-    let number: Int
-    let row: PlanDraft.Row
-    let cursor: Bool
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Spacer().frame(width: Grid.margin)
-            run(cursor ? Readout.cursorGlyph : " ", Theme.lit)
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(1), alignment: .leading)
-            Spacer().frame(width: Grid.columns(1))
-            HStack(spacing: 0) {
-                run(String(format: "%02d", number), cursor ? Theme.text : Theme.etch)
-                    .font(Theme.swiftUIFont)
-                    .frame(width: Grid.columns(PlanScreen.Cells.number), alignment: .leading)
-                Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-                run(row.title, Theme.text, columns: PlanScreen.Cells.title)
-                    .font(Theme.swiftUIFont)
-                    .frame(width: Grid.columns(PlanScreen.Cells.title), alignment: .leading)
-                Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-                run(row.artist, cursor ? Theme.text : Theme.dim, columns: PlanScreen.Cells.artist)
-                    .font(Theme.swiftUIFont)
-                    .frame(width: Grid.columns(PlanScreen.Cells.artist), alignment: .leading)
-                Spacer().frame(width: Grid.columns(PlanScreen.Cells.gap))
-                run(
-                    Readout.mmss(row.duration), cursor ? Theme.text : Theme.etch,
-                    columns: PlanScreen.Cells.time, align: .trailing
-                )
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(PlanScreen.Cells.time), alignment: .leading)
-                Spacer(minLength: 0)
-            }
-            .frame(width: Grid.columns(PlanScreen.Cells.width), alignment: .leading)
-            .background(cursor ? Theme.cursorPlate : Color.clear)
-            Spacer(minLength: 0)
-        }
-        .gridLine()
-    }
-}
-
 /// `tui_prompt` (`burncd:893`) — the one row on the panel you can type into.
 ///
 /// A real text field rather than a hand-rolled key buffer, because the script's
@@ -245,7 +184,7 @@ private struct PlanPromptView: View {
             Spacer().frame(width: Grid.margin)
             run(Readout.cursorGlyph, Theme.lit).font(Theme.swiftUIFont)
             Spacer().frame(width: Grid.columns(1))
-            MatrixText(text: prompt.label, colour: Theme.etch, columns: 7)
+            MatrixText(text: prompt.label, colour: Theme.etch, columns: HeaderBlock.labelWidth)
             Spacer().frame(width: Grid.columns(1))
             TextField(
                 "",

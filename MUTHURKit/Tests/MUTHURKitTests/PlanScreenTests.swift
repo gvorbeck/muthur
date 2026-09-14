@@ -81,14 +81,27 @@ struct PlanScreenTests {
 
     // MARK: The row
 
-    /// The four cells add up to the panel less the two columns the cursor mark
-    /// stands in, which is why the selected row's reverse bar is exactly that
-    /// wide (`burncd:919`).
-    @Test("A track row is exactly as wide as the bar that highlights it")
-    func cellsFillTheRow() {
-        #expect(PlanScreen.Cells.width == 67)
-        #expect(
-            PlanScreen.Cells.width == PanelGrid.width - (PanelGrid.gutter - PanelGrid.margin))
+    /// The plan is the deck's record carried to another screen, so its listing
+    /// is set in the deck's columns — worked out by the one rule, from the names
+    /// the plan is holding — and nothing moves when the screen changes (D90).
+    @Test("The plan's columns are the deck's columns for the same names")
+    func columnsFollowTheDeck() {
+        let albums = [
+            (albumArtist: "Miles Davis", artists: Array(repeating: "Miles Davis", count: 4)),
+            (albumArtist: "Various", artists: ["Can", "Neu!", "Amon Düül II"]),
+        ]
+        for album in albums {
+            let record = Record(
+                tracks: album.artists.enumerated().map { index, artist in
+                    Track(
+                        url: URL(fileURLWithPath: "/r/\(index).flac"), duration: 60,
+                        title: "T", artist: artist, number: index + 1, disc: 1)
+                },
+                album: "A", albumArtist: album.albumArtist, year: "", sourceLabel: "r")
+            #expect(
+                TrackColumns.decide(artists: album.artists, albumArtist: album.albumArtist)
+                    == TrackColumns.decide(for: record))
+        }
     }
 
     // MARK: The meter

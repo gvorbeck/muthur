@@ -134,7 +134,9 @@ struct PanelView: View {
                 // too narrow rather than a failure: the panel is unchanged either
                 // way (`player:1746`).
                 if let sleeve = model.sleeve,
-                    let side = sleeveSide(width: geometry.size.width, trackRows: rows)
+                    let side = sleeveSide(
+                        width: geometry.size.width,
+                        trackRows: deckRows(in: geometry.size.height))
                 {
                     Color.clear.frame(width: Theme.sleeveGutter)
                     SleeveView(
@@ -427,10 +429,26 @@ struct PanelView: View {
     /// while the record plays, so this is arithmetic on every frame rather than
     /// on every `SIGWINCH`.
     private func trackRows(in height: CGFloat) -> Int {
+        if model.isPlanning {
+            return planRows(lines: Int((height / Theme.cell.height).rounded(.down)))
+        }
+        return deckRows(in: height, status: model.statusLine != nil)
+    }
+
+    /// The deck's own budget, whichever screen is up.
+    ///
+    /// **The sleeve is sized from this and from nothing else.** Every screen
+    /// draws the same cover beside it, and `burncd` never drew one at all, so
+    /// there is no second rule to be faithful to — only the deck's, where the
+    /// analyser is the bound (`player:3145`). Sized off the plan's budget it was
+    /// several rows taller on `b` than on the deck, and the cover grew and shrank
+    /// every time the screen changed. A status line is left out for the same
+    /// reason: it comes and goes on its own clock, and the cover should not
+    /// breathe with it.
+    private func deckRows(in height: CGFloat, status: Bool = false) -> Int {
         let lines = Int((height / Theme.cell.height).rounded(.down))
-        if model.isPlanning { return planRows(lines: lines) }
         var chrome = 17 + (model.header?.rows.count ?? 3)
-        if model.statusLine != nil { chrome += 2 }
+        if status { chrome += 2 }
         if trackCount > lines - chrome { chrome += 1 }
         return max(1, lines - chrome)
     }
