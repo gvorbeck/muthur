@@ -40,7 +40,9 @@ public struct PlanEditor: Sendable {
     /// `ORDER_ORIG` — the running order as the folder gave it, kept for `R`.
     private let originalOrder: [Int]
     private let capacity: Int
-    private let splitLong: Bool
+    /// `--split-long`, which the Burn menu can move while the editor is up
+    /// (D86) — see `setSplitLong`.
+    public private(set) var splitLong: Bool
     private var undoStack: [Undo] = []
 
     /// `UNDO_MAX` (`burncd:1111`). Bounded because an hour of nudging a running
@@ -347,11 +349,30 @@ public struct PlanEditor: Sendable {
     /// that made a plan at `init` still makes one. Holding the last good plan
     /// rather than crashing is the answer that costs nothing if that ever stops
     /// being true.
+    ///
+    /// `setSplitLong` is the other way a plan is remade, and the opposite
+    /// choice: there the switch is the whole change, so a plan that cannot be
+    /// made is an answer to give back, not a keystroke to swallow.
     private mutating func replan() {
         if let fresh = try? BurnPlan.make(
             draft: draft, capacity: capacity, splitLong: splitLong
         ) {
             plan = fresh
         }
+    }
+
+    // MARK: - Splitting long tracks
+
+    /// The Burn menu's `Split Long Tracks`, moved with the editor up (D86).
+    ///
+    /// The draft, the running order, the undo stack and `R`'s original order
+    /// all stay: a flag the script takes before it plans is, here, a switch
+    /// flipped after, and the edits already made are not the switch's to
+    /// throw away. Throws, and changes nothing, when the plan it asks for
+    /// cannot be made — turning the split off under a track longer than a disc.
+    public mutating func setSplitLong(_ on: Bool) throws {
+        guard on != splitLong else { return }
+        plan = try BurnPlan.make(draft: draft, capacity: capacity, splitLong: on)
+        splitLong = on
     }
 }

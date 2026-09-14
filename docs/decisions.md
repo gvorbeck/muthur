@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-eighty-two are settled. Recorded here with the answer so that a departure from
+eighty-nine are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -169,6 +169,15 @@ script's `rm -f` is about peak disk usage on a five-disc job and not about
 tidiness, so the deletion is kept and moved — below the rehearsal's `continue`,
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
+
+**D86 to D89 came from using it.** D86 is the Burn menu: every flag `burncd`
+parses was already a field on `BurnJob` and none could be reached, so each is
+now a switch — not saved across launches, because a rehearsal remembered from
+last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
+missing drive in `burncd:316`'s own words. D88 puts the version beside the
+wordmark and takes it away again on the one status line too wide to share. D89
+runs a cut title past its column, on the playing row and the one under the
+pointer, by whole columns so the grid never moves.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -3598,7 +3607,8 @@ window cannot.
 and a clock is the one thing a job that can be run headlessly in a test should
 not start. The app knows when it pressed the key.
 
-**The flags are environment variables.** `burncd` takes `--demo` and `--dummy` on
+**The flags are environment variables.** *Amended by D86: they are a Burn menu
+now, and the variables only set where it starts.* `burncd` takes `--demo` and `--dummy` on
 a command line; the panel has no command line to take them on, and a cap for
 either would be a fourth key on a legend `KeycapTests.fits` has already measured
 to the column. So `MUTHUR_DEMO` runs the whole screen against `FakeDrive` —
@@ -3727,3 +3737,105 @@ worth an argument: `LevelCache` is a cache in the true sense — throw it away a
 the program recomputes it, slowly — and this cannot be recomputed by anything. It
 is the only copy of something a person typed, and a directory whose contract is
 *may be deleted at any time* is the wrong place for the only copy of anything.
+
+---
+
+**D86 — every `burncd` flag is a switch in a Burn menu, and none of them is
+saved.** → §20, amends D83
+
+D83 put `--demo` and `--dummy` behind environment variables and wrote down that
+this was the weakest part of §20. It was weaker than it said. `BurnJob` had a
+field for every flag the script parses (`burncd:197–215`) — `--split-long`,
+`--no-cdtext`, `--verify`, `--level`, `--from-disc`, `--no-media-check` — and
+every one was written, tested, and had driven the drive where a drive was
+needed, and the app built every job with the defaults. Six finished features,
+reachable by nothing.
+
+**A menu and not a cap**, which is the choice D83 deferred. The legend is ported
+to the column (`KeycapTests.fits`), and eight switches would not fit on it at any
+width. A menu bar is where a Mac already keeps the settings of the thing in the
+window, it costs the panel nothing, and every switch in it is visible with its
+state ticked — which answers D83's actual complaint, that a rehearsal behind a
+variable is something you have to know about rather than something offered.
+
+**`BurnOptions` is the flag parse, and the one value a job is made from.** The
+menu edits it, `PanelModel` holds it, and `BurnOptions.job` builds the
+`BurnJob`. Two flags are not in it because they are not about a burn: `--check`
+is §11, and `-n` is `BurnJob.Stop` (D70).
+
+**Nothing is saved across launches.** A flag is typed per invocation, and
+forgetting one is forgetting to type it; a switch that survived a relaunch would
+be a flag set last month that nobody can see. `Rehearse` is the one that makes
+it matter — a menu that remembered it would one day spend an hour rehearsing a
+burn somebody meant to keep. The variables D83 introduced, and the script's own
+`BURNCD_LEVEL` and `BURNCD_NO_MEDIA_CHECK`, still set where the menu *starts* at
+launch; the menu has the last word.
+
+**The menu is locked while a burn runs.** A switch flipped half-way through a
+job would describe a job that is not the one running.
+
+**Split Long Tracks is a plan switch and the others are burn switches.** It
+changes what the plan *is*, so flipping it with the plan screen up rebuilds the
+plan and keeps the edits made on it (`PlanEditor.setSplitLong`). Turning it off
+under a track longer than a disc is refused and changes nothing, and the plan
+screen says so — the refusal that used to end in a flag name nobody could type
+now names the menu item: `LONGER THAN A DISC · BURN ▸ SPLIT LONG TRACKS`.
+
+**Start at Disc only exists against a plan**, and goes back to 1 when the plan
+screen comes off, because `n` means nothing without the plan it counts discs
+in. **Verify is honoured only on a real burn** — `burncd:2665` skips it for
+`--demo`, and a rehearsal `continue`s past it (`burncd:2655`) with a blank still
+in the tray. A disc that fails the read-back is named on the summary line, as
+`burncd:2723` prints `VERIFY_FAILED` after the screen.
+
+---
+
+**D87 — an empty bay is not a missing drive.** → §11
+
+§11's optical-drive row said `no disc, or no drive` for every answer that was
+not a disc, and someone with a drive plugged in and nothing in it read that as
+the drive not being seen. `burncd` already tells the two apart, at `burncd:316`:
+`drutil status` with nothing in it is `no optical drive visible to drutil`, and
+one saying `No Media` is `drive found, no disc inserted`. Those are now the
+row's words. Anything else `drutil` says that is neither a disc nor one of those
+two keeps the old sentence, because a program whose output we have only seen in
+two shapes should not be read as promising a third.
+
+---
+
+**D88 — the version is on the faceplate, and gives way to the status.** → §10
+
+Neither script has a version to show. A personal app installed on two machines
+from a release zip does, and the question *which one is this* was being
+answered by opening the About box. It is drawn `v0.4.0` in the etch colour
+directly after the wordmark, and the rule shortens to make room.
+
+**It is the first thing to go when the line is full.** The faceplate's status
+text is never abbreviated (`PanelTests.neverAbbreviated`), and the widest one —
+`FINISHED`, 99 tracks, a source, `VOL 100` — leaves a rule of three. So the
+version is drawn only when there would still be a rule after it
+(`Faceplate.stamp`); on that one line it is simply absent. The status is
+information about the record, and the version is information about the program.
+
+---
+
+**D89 — a cut title runs past its column, a place at a time.** → §10
+
+`panel.sh:338` cuts a title to its column with a `…` and leaves it there, and a
+terminal has good reason to: a row that changed eight times a second is a row
+flooding the pipe it is drawn down. A window has no such cost, and a cut title
+is the one thing on the panel you cannot find out any other way.
+
+**Two rows move, and only when the title is actually cut:** the track the music
+is coming out of, and a row under the pointer. Every other row keeps the `…`,
+so a long record does not become a screen of moving type. The title rests at
+its first word for a second and a half, walks eight places a second, and comes
+round after a three-place gap.
+
+**Whole columns, never pixels.** A smooth scroll would be the one piece of type
+on the panel standing between two columns. The window is a string, measured by
+the same `Columns.width` that cut the title, and it is exactly the column's
+width at every step — a two-place character cut by either edge is drawn as a
+blank, as `Columns.truncate` does at its own edge — so the artist beside it
+never moves. **Reduce Motion keeps the cut.** `MUTHUR_CRT=0` does not: it holds
+the tube still, and this is the type, not the tube.

@@ -25,8 +25,20 @@ struct FaceplateView: View {
     /// to say about whether the tube is behaving.
     var glitching = false
 
+    /// `CFBundleShortVersionString`, which `Info.plist` quotes from
+    /// `MARKETING_VERSION` — so it is the number the release was cut as.
+    private static let version =
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+
+    /// D88: after the wordmark, while there is room for it.
+    private var stamp: String? {
+        Faceplate.stamp(version: Self.version, meta: meta, plate: WordmarkView.columns)
+    }
+
     private var rule: Int {
-        Faceplate.rule(meta: meta, plate: WordmarkView.columns)
+        Faceplate.rule(
+            meta: meta,
+            plate: WordmarkView.columns + (stamp.map { Columns.width(of: $0) } ?? 0))
     }
 
     var body: some View {
@@ -34,6 +46,10 @@ struct FaceplateView: View {
             Spacer().frame(width: Grid.margin)
 
             WordmarkView(glitching: glitching)
+
+            if let stamp {
+                MatrixText(text: stamp, colour: Theme.etch)
+            }
 
             // Drawn, not typed, for the same reason `Bezel` is: the glyph is a
             // heavy horizontal that fills its em box, and a rule made of them

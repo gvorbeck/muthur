@@ -94,15 +94,15 @@ public enum PlanScreen {
     /// A plan that could not be made at all, in one line, for the status row.
     ///
     /// `PlanFailure.description` is two lines — the refusal and its remedy —
-    /// and the remedy is `--split-long`, a flag on `burncd`'s command line that
-    /// this panel has no switch for. Printing a fix nobody on this screen can
-    /// reach is the dead ⌘O again, so the panel says the half it can act on, in
-    /// the panel's voice; the whole message is still what the command line
-    /// prints when there is a command line to print it.
+    /// and the remedy is `--split-long`, a flag on `burncd`'s command line.
+    /// Here it is the Burn menu's `Split Long Tracks` (D86), so the one line
+    /// names that instead: the fix this screen can reach, in the panel's voice.
+    /// The disc's own length is what gave way to make room for it — a track of
+    /// ten hours still leaves the line inside `PanelGrid.width`.
     public static func refusal(_ failure: PlanFailure) -> String {
         switch failure {
-        case .trackLongerThanDisc(_, let duration, let capacity):
-            "A TRACK IS \(Readout.mmss(duration)) — LONGER THAN A \(Readout.mmss(capacity)) DISC"
+        case .trackLongerThanDisc(_, let duration, _):
+            "A TRACK IS \(Readout.mmss(duration)) — LONGER THAN A DISC · BURN ▸ SPLIT LONG TRACKS"
         case .nothingToBurn:
             "NOTHING ON THE DECK TO BURN"
         }

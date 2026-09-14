@@ -21,15 +21,6 @@ public struct Sleeve: Sendable, Equatable {
         self.url = url
         self.source = source
     }
-
-    /// What the panel does with a picture that will not decode. §5.2.
-    ///
-    /// It will not decode next second either, so stop asking — and it is
-    /// *cleared*, not deleted, because another player may be part way through
-    /// writing that very file (`player:3162`). A function that returns nothing
-    /// and touches nothing is the whole of the rule: what it is here to forbid
-    /// is the `rm` that looks obvious at the call site.
-    public func discarded() -> Sleeve? { nil }
 }
 
 /// The resolution order, and it is deliberate. §5.

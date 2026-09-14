@@ -240,11 +240,28 @@ public struct Diagnostics: Sendable {
     /// (`player:396`), with where it is mounted; media the disc source cannot
     /// open stays a warning, because `media: DVD-R` alone would read as a
     /// promise.
+    ///
+    /// **An empty bay and a missing drive are told apart (D87)**, the way
+    /// `burncd:316–320` tells them apart and `player:397` does not. The player's
+    /// `no disc, or no drive` was one sentence for two answers `drutil` gives
+    /// differently — nothing at all, or a drive row and `No Media Inserted` — and
+    /// read on a machine with a USB drive plugged in and empty, it says the drive
+    /// may not be there. The later script's two sentences are used as it words
+    /// them. The player's survives for output that is neither, which has not
+    /// been seen and is not guessed at.
     static func opticalDrive(_ probes: Probes) -> Check {
         guard probes.tool("drutil") != nil else {
             return Check(.warn, "optical drive", "drutil not found — CDs cannot be detected")
         }
-        guard let media = mediaType(probes.drutil()) else {
+        let status = probes.drutil()
+        guard let media = mediaType(status) else {
+            let said = (status ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if said.isEmpty {
+                return Check(.warn, "optical drive", "no optical drive visible to drutil")
+            }
+            if said.range(of: "no media", options: .caseInsensitive) != nil {
+                return Check(.warn, "optical drive", "drive found, no disc inserted")
+            }
             return Check(.warn, "optical drive", "no disc, or no drive")
         }
         guard let disc = probes.disc() else {

@@ -189,20 +189,4 @@ struct SleeveCacheTests {
             .contentModificationDate!
         #expect(Date().timeIntervalSince(modified) < 60)
     }
-
-    // MARK: - Cleared, not deleted
-
-    @Test("A sleeve that will not decode is dropped without touching the file")
-    func discardedDeletesNothing() throws {
-        let temp = TempDirectory("art")
-        let cache = SleeveCache(directory: temp.url)
-        cache.writePart(TestPictures.jpeg(500), forKey: "k")
-        let file = cache.commitPart(forKey: "k")!
-
-        let sleeve = Sleeve(url: file, source: .coverArtArchive)
-        #expect(sleeve.discarded() == nil)
-        // Another player may be part way through writing that very name
-        // (`player:3162`), so the panel forgets it and the file stays.
-        #expect(FileManager.default.fileExists(atPath: file.path))
-    }
 }

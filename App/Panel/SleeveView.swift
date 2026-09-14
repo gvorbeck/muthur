@@ -148,6 +148,9 @@ struct SleeveView: View {
         let made = await Task.detached(priority: .userInitiated) {
             () -> (shown: CGImage, truth: CGImage?)? in
             guard let decoded = SleeveImage.decode(url, side: side, scale: scale) else {
+                // §5.2: a picture that will not decode is cleared, never
+                // deleted — another player may be part way through writing
+                // that very file (`player:3162`).
                 return nil
             }
             switch treatment {

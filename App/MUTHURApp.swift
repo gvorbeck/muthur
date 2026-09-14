@@ -56,6 +56,7 @@ struct MUTHURApp: App {
                     .keyboardShortcut("o")
                 Button("Collection…") { chooseCollection() }
             }
+            BurnCommands(model: model)
         }
     }
 
@@ -88,6 +89,70 @@ struct MUTHURApp: App {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         CatalogueFile.remember(url)
         model.catalogueChanged()
+    }
+}
+
+/// `burncd`'s command line, as a menu (D86).
+///
+/// The flags were each ported, tested and wired into `BurnJob`, and the app
+/// built every job with none of them. A window has no argument list, so the
+/// argument list is here — the kind of burn first, what goes on the disc next,
+/// the drive last — and it is read at the one moment it matters: `⏎ BURN`.
+struct BurnCommands: Commands {
+    let model: PanelModel
+
+    var body: some Commands {
+        CommandMenu("Burn") {
+            Button("Plan a Burn") { model.openPlan() }
+                .disabled(model.record == nil || model.plan != nil || model.isBurning)
+
+            Divider()
+
+            // Not while a job is running: it has its own copy on another
+            // thread, and a switch that moved under it would be one that lied.
+            Group {
+                Toggle("Rehearse — Laser Off", isOn: option(\.rehearsal))
+                Toggle("Verify After Burning", isOn: option(\.verify))
+                Toggle("Write CD-Text", isOn: option(\.cdText))
+                Toggle(
+                    "Split Long Tracks",
+                    isOn: Binding(
+                        get: { model.burnOptions.splitLong },
+                        set: { model.setSplitLong($0) }))
+
+                Picker("Level Loudness", selection: option(\.level)) {
+                    Text("Off").tag(LevelMode.off)
+                    Text("Album — One Gain for All").tag(LevelMode.album)
+                    Text("Track — Each on Its Own").tag(LevelMode.track)
+                }
+
+                // Only against a plan: the discs are the plan's, and there is no
+                // disc two until there is a plan to have one.
+                Picker(
+                    "Start at Disc",
+                    selection: Binding(
+                        get: { model.burnOptions.from },
+                        set: { model.setFromDisc($0) })
+                ) {
+                    ForEach(1...max(1, model.plan?.plan.discCount ?? 1), id: \.self) { disc in
+                        Text("Disc \(disc)").tag(disc)
+                    }
+                }
+                .disabled(model.plan == nil || (model.plan?.plan.discCount ?? 1) < 2)
+
+                Divider()
+
+                Toggle("Check the Blank First", isOn: option(\.mediaCheck))
+                Toggle("Demo — No Drive, No Disc", isOn: option(\.demo))
+            }
+            .disabled(model.isBurning)
+        }
+    }
+
+    private func option<Value>(_ key: WritableKeyPath<BurnOptions, Value>) -> Binding<Value> {
+        Binding(
+            get: { model.burnOptions[keyPath: key] },
+            set: { value in model.setBurnOptions { $0[keyPath: key] = value } })
     }
 }
 

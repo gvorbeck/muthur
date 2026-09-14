@@ -243,9 +243,24 @@ struct DiagnosticsTests {
         #expect(report.exitCode == 0)
     }
 
-    @Test func anEmptyBayIsTheScriptsOwnSentence() {
-        let report = Diagnostics.run(DiagnosticsTests.probes(drutil: "  Type: No Media\n"))
-        #expect(DiagnosticsTests.row(report, "optical drive")?.detail == "no disc, or no drive")
+    /// **D87.** `burncd:316–320`'s two sentences, not `player:397`'s one: a
+    /// drive that answers with an empty bay is not a drive that may be missing.
+    @Test func anEmptyBayIsNotAMissingDrive() {
+        let empty = Diagnostics.run(DiagnosticsTests.probes(drutil: DiscFinderTests.drutilEmpty))
+        #expect(
+            DiagnosticsTests.row(empty, "optical drive")?.detail
+                == "drive found, no disc inserted")
+
+        for nothing in [nil, "", "\n  \n"] as [String?] {
+            let none = Diagnostics.run(DiagnosticsTests.probes(drutil: nothing))
+            #expect(
+                DiagnosticsTests.row(none, "optical drive")?.detail
+                    == "no optical drive visible to drutil")
+        }
+
+        // Output that is neither has not been seen, so it is not named.
+        let odd = Diagnostics.run(DiagnosticsTests.probes(drutil: "  Vendor   Product\n"))
+        #expect(DiagnosticsTests.row(odd, "optical drive")?.detail == "no disc, or no drive")
     }
 
     @Test func noDrutilMeansCDsCannotBeDetected() {

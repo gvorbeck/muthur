@@ -141,6 +141,10 @@ public enum Usage {
                                  it. For the drive whose reporting lies about
                                  what is in it; everybody else wants the look.
                                  BURNCD_NO_MEDIA_CHECK is read too.
+              MUTHUR_DUMMY       set to start with Burn ▸ Rehearse on: the laser off
+              MUTHUR_DEMO        set to start with Burn ▸ Demo on: no drive, no disc
+                                 Every burn variable above only sets where the
+                                 Burn menu starts; the menu has the last word.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_DATA_HOME      where your corrections live (D85) — the year
                                  or title you typed on the plan screen, kept

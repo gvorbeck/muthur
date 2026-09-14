@@ -76,28 +76,27 @@ final class BurnRun {
         files: [URL],
         work: URL,
         ownWork: URL?,
-        demo: Bool,
-        rehearsal: Bool
+        options: BurnOptions
     ) {
         self.plan = editor.plan
         self.albumArtist = editor.draft.albumArtist
         self.year = editor.draft.year
-        self.rehearsal = rehearsal
+        self.rehearsal = options.rehearsal
         self.ownWork = ownWork
 
         // A demo is never asked for a disc (`BurnJob.Insert` says why: nil is
         // `--demo`), so it opens on the conversion rather than on a prompt that
         // is not coming. A real burn opens on the prompt, which is the first
         // thing the job will raise.
-        let first = plan.entries(onDisc: 1)
+        let first = plan.entries(onDisc: options.from)
         self.stage =
-            demo
+            options.demo
             ? .converting(
-                disc: 1, of: plan.discCount, track: 1, ofTracks: first.count,
+                disc: options.from, of: plan.discCount, track: 1, ofTracks: first.count,
                 title: first.first?.title ?? "", head: 0)
-            : .insert(disc: 1, of: plan.discCount, canEdit: true)
+            : .insert(disc: options.from, of: plan.discCount, canEdit: options.from <= 1)
 
-        start(draft: editor.draft, files: files, work: work, demo: demo)
+        start(draft: editor.draft, files: files, work: work, options: options)
     }
 
     // MARK: - Answering the prompt
@@ -120,8 +119,9 @@ final class BurnRun {
 
     // MARK: - The thread
 
-    private func start(draft: PlanDraft, files: [URL], work: URL, demo: Bool) {
+    private func start(draft: PlanDraft, files: [URL], work: URL, options: BurnOptions) {
         let rehearsal = self.rehearsal
+        let demo = options.demo
         let gate = self.gate
         let began = self.began
         let ffmpeg = Diagnostics.locate("ffmpeg")
@@ -147,13 +147,9 @@ final class BurnRun {
             }
         }
 
-        let job = BurnJob(
-            draft: draft,
-            files: files,
-            work: work,
-            stop: .throughTheBurn,
-            rehearsal: rehearsal
-        )
+        // Every switch in the Burn menu reaches the job through these three and
+        // nowhere else (D86).
+        let job = options.job(draft: draft, files: files, work: work)
 
         Thread.detachNewThread {
             let outcome: BurnJob.Outcome?
@@ -162,9 +158,8 @@ final class BurnRun {
                 outcome = try job.run(
                     ffmpeg: ffmpeg,
                     drive: demo ? FakeDrive() : Burner(),
-                    insert: demo
-                        ? nil
-                        : BurnJob.Insert(check: MediaCheck(), wait: { _ in gate.wait() }),
+                    insert: options.insert(wait: { _ in gate.wait() }),
+                    verify: options.verifier(),
                     frame: { panel in
                         sink.send(.frame(panel))
                         // The stand-in has no drive to wait for and emits its
@@ -194,14 +189,20 @@ final class BurnRun {
 
             let elapsed = Int(Date().timeIntervalSince(began))
             if let outcome {
-                let wrote = Array(1...max(1, outcome.plan.discCount))
+                // A resumed job wrote from the disc it resumed at, and the
+                // closing screen strips only those (`stage_done`, `burncd:2701`).
+                let wrote = Array(options.from...max(options.from, outcome.plan.discCount))
                 let runtime = wrote.reduce(0) { $0 + outcome.plan.runtime(onDisc: $1) }
-                sink.send(
-                    .over(
-                        BurnStage.summary(
-                            discs: outcome.plan.discCount, runtime: runtime,
-                            elapsed: elapsed, rehearsal: rehearsal),
-                        wrote))
+                var closing = BurnStage.summary(
+                    discs: wrote.count, runtime: runtime,
+                    elapsed: elapsed, rehearsal: rehearsal)
+                // The one result the script keeps after its screen is gone
+                // (`burncd:2723`), so it is on the line that stays up here.
+                if !outcome.verifyFailures.isEmpty {
+                    let discs = outcome.verifyFailures.map(String.init).joined(separator: " ")
+                    closing += " · DID NOT VERIFY: \(discs)"
+                }
+                sink.send(.over(closing, wrote))
             } else {
                 sink.send(.over(trouble ?? "STOPPED", []))
             }

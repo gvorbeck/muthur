@@ -600,11 +600,6 @@ public actor PlaybackEngine {
         if running { analyser.tap(player) }
     }
 
-    public func stopListening(_ analyser: Analyser) {
-        if running { analyser.untap(player) }
-        if listener === analyser { listener = nil }
-    }
-
     // MARK: - §6.4 The meters as controls
 
     /// Click the **track** meter.

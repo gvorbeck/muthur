@@ -189,13 +189,22 @@ outside it.
 
 ## Status
 
-It builds, installs with `Scripts/install.sh`, plays records — and burns them
-**from the panel**, which until this release it did not. Every part of §20 stage
-3 was written, tested and had burnt a real disc, and nothing under `App/` called
-a line of it: `B` on the plan screen set a message saying the drive was not
-wired up, because it was not. It is now.
+It builds, installs with `Scripts/install.sh`, plays records, and burns them
+from the panel. **Every `burncd` switch is now in a Burn menu** (D86) —
+rehearse, verify, CD-Text, split long tracks, loudness levelling, start at disc
+n, the media check and demo — where before this release the app built every
+burn with the defaults and none of them could be reached. They are not
+remembered between launches, on purpose: a rehearsal left on from last month is
+a burn nobody meant to rehearse. The panel also shows its version beside the
+wordmark (D88), runs a cut-off title past its column on the playing row and the
+row under the pointer (D89), and Health Check tells an empty drive from a
+missing one (D87).
+
+Everything waiting on a drive, a blank or a particular file is in
+[`TODO.md`](TODO.md).
+
 Parity stands at **321 of 325 boxes**, unchanged — no box had ever described
-that gap, which is how it went out in two releases. Of the four still open,
+the unreachable switches either. Of the four still open,
 three are what §14 marks as blocked on hardware and material: AirPlay's unplug,
 hi-res output switching, and an Opus or Ogg file to make the ffmpeg fallback
 fail on. The last is what is left of §20's stage 3b: `--from-disc n`, written

@@ -120,11 +120,6 @@ public enum CatalogueFile {
         return true
     }
 
-    /// Forget the picked file and go back to the default.
-    public static func forget(defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: bookmarkKey)
-    }
-
     private static func resolveBookmark(defaults: UserDefaults) -> Location? {
         guard let data = defaults.data(forKey: bookmarkKey) else { return nil }
         var stale = false

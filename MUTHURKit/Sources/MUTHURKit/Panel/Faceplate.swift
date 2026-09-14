@@ -118,6 +118,27 @@ public enum Faceplate {
         max(2, width - plate - 2 - Columns.width(of: meta))
     }
 
+    /// The version engraved after the badge, `v0.4.0`, or nil — **D88**.
+    ///
+    /// Nothing in either script has one to show; the port is the thing that
+    /// gets released, and a machine with two copies of it on two desks is owed
+    /// a way to tell which it is looking at without opening an About box.
+    ///
+    /// **It is the first thing on the line to give way.** The meta is the
+    /// machine's state and may not lose a letter (`panel.sh:257`); the version
+    /// is a fact about the program that does not change while it runs. So it is
+    /// stamped only where the rule would still stand above its floor with it
+    /// there, and the plate with the longest meta simply goes without — never
+    /// a line that overruns the panel on the version's account.
+    public static func stamp(
+        version: String?, meta: String, width: Int = PanelGrid.width, plate: Int = plateColumns
+    ) -> String? {
+        guard let version, !version.isEmpty else { return nil }
+        let text = "v\(version)"
+        let room = width - plate - Columns.width(of: text) - 2 - Columns.width(of: meta)
+        return room > 2 ? text : nil
+    }
+
     /// The finished line, margin and all: `  ␣MU/TH/UR␣ ━━━━━ PLAYING · …`.
     ///
     /// **Nothing here is ever cut.** `repv '━'` cannot truncate and neither can
@@ -133,11 +154,18 @@ public enum Faceplate {
     /// A wider badge than bash's — the wordmark at twice the dot pitch — is
     /// still this arithmetic; the plate is simply a different number of columns
     /// wide and the rule gives way by that much more.
+    ///
+    /// A `version` is engraved straight after the plate — the badge's own
+    /// trailing space is its gap — when `stamp` says there is room for it, and
+    /// the rule gives way by exactly its width.
     public static func line(
-        meta: String, width: Int = PanelGrid.width, plate: Int = plateColumns
+        meta: String, width: Int = PanelGrid.width, plate: Int = plateColumns,
+        version: String? = nil
     ) -> String {
-        let bar = String(repeating: "━", count: rule(meta: meta, width: width, plate: plate))
+        let stamp = stamp(version: version, meta: meta, width: width, plate: plate) ?? ""
+        let plated = plate + Columns.width(of: stamp)
+        let bar = String(repeating: "━", count: rule(meta: meta, width: width, plate: plated))
         return String(repeating: " ", count: PanelGrid.margin)
-            + String(repeating: "▓", count: plate) + " " + bar + " " + meta
+            + String(repeating: "▓", count: plate) + stamp + " " + bar + " " + meta
     }
 }

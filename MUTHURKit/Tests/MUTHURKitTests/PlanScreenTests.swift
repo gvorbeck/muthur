@@ -164,14 +164,19 @@ struct PlanScreenTests {
 
     // MARK: The two refusals
 
-    /// One line, in the panel's voice, and only the half this screen can act
-    /// on — `--split-long` is a flag on a command line the panel does not have.
+    /// One line, in the panel's voice, naming the remedy the way this app
+    /// offers it — `--split-long` is the Burn menu here (D86).
     @Test("A plan that cannot be made is refused in one line that fits")
     func refusals() {
         let long = PlanScreen.refusal(
             .trackLongerThanDisc(title: "The Set", duration: 5700, capacity: 4797))
-        #expect(long == "A TRACK IS 1:35:00 — LONGER THAN A 1:19:57 DISC")
+        #expect(long == "A TRACK IS 1:35:00 — LONGER THAN A DISC · BURN ▸ SPLIT LONG TRACKS")
         #expect(Columns.width(of: Readout.status(long)) <= PanelGrid.width)
+
+        // Ten hours is the widest `mmss` a track will plausibly give it.
+        let longest = PlanScreen.refusal(
+            .trackLongerThanDisc(title: "The Set", duration: 36_000, capacity: 4797))
+        #expect(Columns.width(of: Readout.status(longest)) <= PanelGrid.width)
 
         let empty = PlanScreen.refusal(.nothingToBurn)
         #expect(Columns.width(of: Readout.status(empty)) <= PanelGrid.width)

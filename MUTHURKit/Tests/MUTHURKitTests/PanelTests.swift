@@ -600,6 +600,22 @@ struct ReadoutTests {
         #expect(Faceplate.rule(meta: long) == 2)
     }
 
+    /// D88: the version goes on the ordinary plate, and gives way before the
+    /// meta does.
+    @Test("The version is stamped where it fits and dropped where it does not")
+    func versionStamp() {
+        let plate = Columns.width(of: Faceplate.badge) * 2 + 2
+        let ordinary = Faceplate.meta(
+            mode: .playing, trackCount: 8, source: .tags, level: "VOL 100")
+        #expect(Faceplate.stamp(version: "0.4.0", meta: ordinary, plate: plate) == "v0.4.0")
+        #expect(Faceplate.stamp(version: nil, meta: ordinary, plate: plate) == nil)
+        #expect(Faceplate.stamp(version: "", meta: ordinary, plate: plate) == nil)
+
+        let widest = Faceplate.meta(
+            mode: .finished, trackCount: 99, source: .trackNumbers, level: "VOL 100")
+        #expect(Faceplate.stamp(version: "0.4.0", meta: widest, plate: plate) == nil)
+    }
+
     @Test("The level is chrome and says which of the two things it is")
     func level() {
         #expect(Faceplate.level(volume: 0.8, muted: false) == "VOL 80")
@@ -653,6 +669,17 @@ struct ReadoutTests {
                     // No room: the rule has hit its floor and the line runs past
                     // the panel rather than the mode losing a letter.
                     #expect(Columns.width(of: reference) >= PanelGrid.line)
+                }
+
+                // D88: the version never costs the meta anything. Stamped, the
+                // line is still flush; where it would not be, it is not stamped.
+                let versioned = Faceplate.line(meta: meta, plate: plate, version: "10.10.10")
+                #expect(versioned.hasSuffix(meta), "\(versioned)")
+                if Faceplate.stamp(version: "10.10.10", meta: meta, plate: plate) != nil {
+                    #expect(versioned.contains("v10.10.10"))
+                    #expect(Columns.width(of: versioned) == PanelGrid.line, "\(versioned)")
+                } else {
+                    #expect(versioned == reference)
                 }
 
                 // And the sweep. Every window width the app will ever be given,

@@ -60,16 +60,22 @@ part worth porting.
 **321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 34 of 40). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 34 of 40 in `hardware.md`. **The count did not move this pass, and this is
-the one time that fact is worth distrusting rather than reporting.** The burn
-arrived in the window — `B` on the plan screen starts a real job now, where it
-used to set a string saying it could not — and the count is unchanged because
-no box ever described the gap. §20.5's third box said the cap *refuses cleanly
-and says why*, and it was ticked, and it was true: the refusal was written and
-measured and honest. What no box anywhere asserted was that anything under
-`App/` could reach `BurnJob` at all, and nothing could. **A denominator counts
-what somebody thought to ask for**, and a green field says only that every
-question asked so far has an answer.
+and 34 of 40 in `hardware.md`. **The count did not move this pass either, and
+for the same reason as the last: the gap was one no box described.** The pass
+before wired the burn into the window and found that nothing under `App/` had
+ever reached `BurnJob`. This one went one layer down and found the same shape
+again — every flag `burncd` parses was a field on the job, six of them finished
+and tested, and the app built every job with the defaults. They are a Burn menu
+now (**D86**). The rest of the pass is three things noticed by using the program
+rather than by reading the script: §11 telling an empty bay from a missing drive
+in `burncd:316`'s words (**D87**), the version beside the wordmark (**D88**), and
+a cut title that runs past its column on the playing row and under the pointer
+(**D89**). **A denominator counts what somebody thought to ask for**, and a
+green field says only that every question asked so far has an answer.
+
+Everything waiting on hardware — the four boxes below and §19's six — is also
+written out as a plain checklist in `TODO.md` at the top of the repository, for
+whoever is next at the machine with the burner.
 
 **The four open ones are three and one, and not one of them is waiting on code
 being written.** Three are §14's, blocked on hardware and material as they have
@@ -93,7 +99,7 @@ on the one failure it exists for is worse than no warning.** The borrow now wait
 for the mount table to show the volume, bounded at five seconds, and answers in
 three cases rather than a `Bool`. D80 was amended rather than added beside — the
 entry described a remount that does not happen — and no new decision was
-numbered there. **D83 to D85 were spent on this pass.** The first two are the
+numbered there. **D83 to D85 were spent on the pass after that.** The first two are the
 burn reaching the panel: the job raising `BurnStage` rather than the window
 guessing at it, `--demo` and `--dummy` arriving as environment variables because
 the panel has no command line, and the summary answering any key where
@@ -2816,7 +2822,8 @@ speaks in MU/TH/UR's voice (D8, §16).
       the question and none of bash's answers, which were all about columns and
       iTerm2 — a window has pixels.
 - [x] Warnings are usually fine — "no disc, or no drive" just means the drive is
-      empty (README). Said in the verdict's middle case, which is the one most
+      empty (README). The port says which it is — `drive found, no disc
+      inserted` — in `burncd`'s words (**D87**). Said in the verdict's middle case, which is the one most
       machines land on.
 
 **Two more rows than bash has, and both are §8's and §1's doing.** `the shelf`
@@ -2861,7 +2868,7 @@ and no terminal.
 | 4 | `analyser` | `player:371` | **ok** `<ffmpeg version>` · **warn** `no ffmpeg — the columns fall back to a pattern` | Becomes: is the audio tap running (§9) |
 | 5 | `zips` | `player:379` | **ok** `<tar version>` · **warn** `<unzip version> — no bsdtar, so accented track names may not unpack` · **fail** `no tar and no unzip — zips cannot be opened` | Drops if the zip is read directly (§2.2) |
 | 6 | `unix sockets` | `player:386` | **ok** `nc -U present — mpv can be driven` · **warn** `nc present, -U undocumented — probably fine` · **fail** `nc not found — mpv cannot be driven` | Drops with mpv |
-| 7 | `optical drive` | `player:395` | **ok** `media: <type>` · **warn** `no disc, or no drive` · **warn** `drutil not found — CDs cannot be detected` | Keep, re-pointed at the native disc layer |
+| 7 | `optical drive` | `player:395` | **ok** `media: <type>` · **warn** `no disc, or no drive` · **warn** `drutil not found — CDs cannot be detected` | Keep, re-pointed at the native disc layer; the empty bay told apart from the missing drive (D87) |
 | 8 | `CD-Text` | `player:402` | **ok** `cdda2wav present` / `cdrecord present` · **warn** `no cdrtools — discs fall back to MusicBrainz or numbers` | Keep — this is the §4 fallback chain, on screen |
 | 9 | `MusicBrainz` | `player:410` | **warn** `disabled with --no-mb — untitled discs stay untitled` · **ok** `curl and jq present — untitled discs can be looked up` · **warn** `no curl — untitled discs stay untitled. brew install curl` (likewise `jq`) | Becomes: reachability, and whether it is switched off |
 | 10 | `scratch space` | `player:423` | **warn** `<N> free in <dir> — cache dir unwritable, so long albums may be reclaimed mid-play` · **ok** `<N> free in <dir>` · **fail** `cannot write to <dir> — zips cannot be opened` | **Keep, and it is the important one** — §2's whole argument is in that warning |
@@ -2909,7 +2916,7 @@ a terminal report would be the port inventing chrome the original never had.
 | `metadata` | `ffprobe` (`player:361`) | **ok** `AVFoundation, with ffprobe at <path>` · **warn** `AVFoundation only — no ffprobe, so Opus and Ogg may not read. brew install ffmpeg`. **A fail becomes a warn**: bash needed ffprobe for every tag, this needs it only for what AVFoundation will not take |
 | `analyser` | `analyser` (`player:371`) | **ok** `an AVAudioEngine tap — the columns are the audio itself`. §9's FFT is the audio, so the pattern fallback has nothing left to fall back from |
 | `zips` | `mpv archives` + `zips` (`player:355`, `player:379`) | **ok** `read where they lie — no tar, no unzip, no charset to get wrong`. Two rows collapse into one and bash's hard fail disappears with them (§2.2, `player:256`) |
-| `optical drive` | `optical drive` (`player:395`) | **ok** `media: <type> — mounted at <path>` · **warn** `media: <type> — not mounted as an audio CD, so --cd has nothing to open` · **warn** `no disc, or no drive` · **warn** `drutil not found — CDs cannot be detected`. Four outcomes where bash has three: §1.3 split the media case in two |
+| `optical drive` | `optical drive` (`player:395`) | **ok** `media: <type> — mounted at <path>` · **warn** `media: <type> — not mounted as an audio CD, so --cd has nothing to open` · **warn** `drive found, no disc inserted` · **warn** `no optical drive visible to drutil` · **warn** `no disc, or no drive`, for output that is neither · **warn** `drutil not found — CDs cannot be detected`. Six outcomes where bash has three: §1.3 split the media case in two, and D87 split the empty one in `burncd:316`'s words |
 | `CD-Text` | `CD-Text` (`player:402`) | **ok** `cdda2wav present` / `cdrecord present` · **warn** `no cdrtools — discs fall back to MusicBrainz or numbers`. Presence only — **nothing here opens the drive** |
 | `MusicBrainz` | `MusicBrainz` (`player:410`) | **ok** `URLSession — no curl, no jq. Reached when a disc needs naming, never before` · **warn** `disabled with --no-mb — untitled discs stay untitled` · **warn** `disabled with MUTHUR_NO_MB — …`, the same row naming whichever switch is set |
 | `scratch space` | `scratch space` (`player:423`) | **ok** `<N> free in <dir>` · **warn** `<N> free in <dir> — cache dir unwritable, so long albums may be reclaimed mid-play` · **fail** `cannot write to <dir> — zips cannot be opened`. All three, and it is the only row that can fail |
@@ -3221,7 +3228,8 @@ only the first existed, so the boxes stayed open because half a box is not a box
       needed asking. Only the `/Volumes` fallback is switched off, which is
       right — it is the branch that has nothing to check its guess against.
 - [x] `drutil` present, tray empty → `--check` warns `no disc, or no drive`
-      (`player:397`) — **done**; the picker simply has no disc row
+      (`player:397`) — **done**, and since D87 in `burncd:320`'s words,
+      `drive found, no disc inserted`; the picker simply has no disc row
       (`player:1018`) and `--cd` dies with `no audio CD in the drive`
       (`player:3528`) — **done**, the script's words kept. The empty-drive half
       is the one half of §1.3 that **was** exercised on this machine's real
@@ -3497,8 +3505,9 @@ it is the property most easily lost by a later edit that means well.
       (`burncd:780`).
 - [x] **A track longer than a disc is refused in the script's own words, both
       lines** (`burncd:631`), the second of which is the entire remedy. The
-      panel prints the half it can act on (`PlanScreen.refusal`) because
-      `--split-long` is a flag on a command line the window has not got.
+      panel prints the half it can act on (`PlanScreen.refusal`), and since
+      **D86** the remedy it names is the menu item that is `--split-long`:
+      `Burn ▸ Split Long Tracks`.
 
 ### 20.3 CD-Text
 
@@ -3769,6 +3778,7 @@ actionable, which is the standard the rest of this port's failures are held to.
       `cdda2wav` reads the whole of the CD-Text back off the lead-in.
 - [x] `--dummy` — rehearse with the laser off. The verb it changes is in the
       panel; the drive to rehearse on is here, and it has rehearsed three times.
+      Every flag in this list is a switch in the Burn menu (**D86**).
 - [x] `--verify` — read the disc back afterwards and check it. Three checks and
       not a comparison, because every drive reads audio at a small fixed offset
       from where it wrote it and a byte-for-byte compare fails on a perfectly

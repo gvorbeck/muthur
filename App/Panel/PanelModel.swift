@@ -853,7 +853,8 @@ final class PanelModel {
         planStatus = nil
         planPrompt = nil
         do {
-            plan = try PlanEditor(draft: PlanDraft(record: record))
+            plan = try PlanEditor(
+                draft: PlanDraft(record: record), splitLong: burnOptions.splitLong)
         } catch let failure as PlanFailure {
             planStatus = Readout.status(PlanScreen.refusal(failure))
         } catch {
@@ -865,6 +866,58 @@ final class PanelModel {
         plan = nil
         planPrompt = nil
         planStatus = nil
+        burnOptions.from = 1
+    }
+
+    // MARK: - The Burn menu (D86)
+
+    /// `burncd`'s flags, as the Burn menu holds them. Seeded from the
+    /// environment once and never saved — `BurnOptions` says why.
+    private(set) var burnOptions = BurnOptions.atLaunch()
+
+    /// Whether the menu can be touched at all. Not while a job is running: the
+    /// job has its own copy on another thread, and a switch that moved under it
+    /// would be a switch that lied about the burn on screen.
+    var canSetBurnOptions: Bool { !isBurning }
+
+    /// Every switch but `Split Long Tracks` and `Start at Disc`, which change
+    /// the plan and are below.
+    func setBurnOptions(_ change: (inout BurnOptions) -> Void) {
+        guard canSetBurnOptions else { return }
+        var next = burnOptions
+        change(&next)
+        next.splitLong = burnOptions.splitLong
+        next.from = burnOptions.from
+        burnOptions = next
+    }
+
+    /// `--split-long`. With a plan up, the plan is remade under it; a plan
+    /// that cannot be remade leaves the switch where it was and says why on
+    /// the plan's own status line.
+    func setSplitLong(_ on: Bool) {
+        guard canSetBurnOptions else { return }
+        if var editor = plan {
+            do {
+                try editor.setSplitLong(on)
+            } catch let failure as PlanFailure {
+                planStatus = Readout.status(PlanScreen.refusal(failure))
+                return
+            } catch {
+                return
+            }
+            plan = editor
+            planStatus = nil
+            burnOptions.from = min(burnOptions.from, editor.plan.discCount)
+        }
+        burnOptions.splitLong = on
+    }
+
+    /// `--from-disc n`. Only with a plan up, and only to a disc the plan has:
+    /// the job's `resumePastTheEnd` is for a number typed in the dark, and a
+    /// menu that lists the discs does not type in the dark.
+    func setFromDisc(_ disc: Int) {
+        guard canSetBurnOptions, let editor = plan else { return }
+        burnOptions.from = max(1, min(disc, editor.plan.discCount))
     }
 
     // MARK: - The burn itself (§20 stage 3)
@@ -883,24 +936,23 @@ final class PanelModel {
     /// `stage_insert` up and wait — nothing is converted and no laser comes on
     /// until `⏎` is pressed on that screen.
     ///
-    /// **`MUTHUR_DEMO` runs the whole of it against `FakeDrive`**, which is
-    /// `--demo` (`burncd:2592`) and the only way to watch this screen without
-    /// spending a blank. `MUTHUR_DUMMY` is `--dummy`: a real drive, a real
-    /// conversion, and the write laser off.
+    /// **The Burn menu decides what kind of burn it is** (D86): `Demo` runs the
+    /// whole of it against `FakeDrive`, which is `--demo` (`burncd:2592`) and
+    /// the only way to watch this screen without spending a blank; `Rehearse`
+    /// is `--dummy`, a real drive and a real conversion with the write laser
+    /// off. `MUTHUR_DEMO` and `MUTHUR_DUMMY` still set where those start.
     func burn() {
         guard let editor = plan, let record else { return }
         guard let work = burnWork() else {
             planStatus = Readout.status("NO ROOM TO BUILD THE IMAGE")
             return
         }
-        let environment = ProcessInfo.processInfo.environment
         burning = BurnRun(
             editor: editor,
             files: record.tracks.map(\.url),
             work: work.url,
             ownWork: work.ours ? work.url : nil,
-            demo: !(environment["MUTHUR_DEMO"] ?? "").isEmpty,
-            rehearsal: !(environment["MUTHUR_DUMMY"] ?? "").isEmpty
+            options: burnOptions
         )
     }
 

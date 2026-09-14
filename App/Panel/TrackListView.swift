@@ -56,6 +56,16 @@ struct TrackRowView: View {
     let mark: Readout.Mark
     let cursor: Bool
 
+    @State private var hovering = false
+    @Environment(\.accessibilityReduceMotion) private var still
+
+    /// Whether the title runs past its column rather than being cut (D89): the
+    /// track the music is coming out of, and a row under the pointer, and only
+    /// when the title does not fit. Reduce Motion keeps the cut.
+    private var moving: Bool {
+        !still && (mark != .none || hovering) && Marquee.runs(track.title, in: columns.title)
+    }
+
     /// The body of the row: everything from the playing mark to the duration.
     /// 65 columns, which is `PANEL` less the four the gutter takes — and the
     /// same 65 whether the cursor is here or not, so the reverse bar cannot
@@ -78,9 +88,15 @@ struct TrackRowView: View {
                 text: Readout.rowNumber(row), colour: cursor ? Theme.text : Theme.etch,
                 columns: 2, ghosts: !cursor)
             Spacer().frame(width: Grid.columns(2))
-            run(track.title, Theme.text, columns: columns.title)
-                .font(Theme.swiftUIFont)
-                .frame(width: Grid.columns(columns.title), alignment: .leading)
+            Group {
+                if moving {
+                    MarqueeText(text: track.title, columns: columns.title)
+                } else {
+                    run(track.title, Theme.text, columns: columns.title)
+                }
+            }
+            .font(Theme.swiftUIFont)
+            .frame(width: Grid.columns(columns.title), alignment: .leading)
 
             // The artist field carries its own leading gap, so a record with no
             // artist column leaves no gap where one would have been — the title
@@ -125,5 +141,25 @@ struct TrackRowView: View {
             Spacer(minLength: 0)
         }
         .gridLine()
+        .onHover { hovering = $0 }
+    }
+}
+
+/// A title run past its column a place at a time (D89). The clock starts when
+/// the view does, so a title starts from its first word every time it starts
+/// moving — the row that just began playing, or the one the pointer just
+/// arrived on.
+private struct MarqueeText: View {
+    let text: String
+    let columns: Int
+
+    @State private var since = Date()
+
+    var body: some View {
+        TimelineView(.periodic(from: since, by: 1 / Marquee.rate)) { context in
+            let offset = Marquee.offset(
+                elapsed: context.date.timeIntervalSince(since), lap: Marquee.lap(text))
+            run(Marquee.window(text, columns: columns, offset: offset), Theme.text)
+        }
     }
 }
