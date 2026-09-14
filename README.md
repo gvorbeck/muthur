@@ -80,7 +80,7 @@ Scripts/install.sh
 
 Check the version at the top of the window, next to the logo.
 
-░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
+░░▒▒▓▓██████████████████████████████████████████▓▓▒▒░░
 
 ## ▓▒░ OPERATE
 
@@ -133,7 +133,7 @@ Click the meters to jump around in the track or the album.
 They aren't bundled into the app because of licensing and Intel/ARM builds.
 Health Check (⌘K) tells you if one is missing.
 
-░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
+░░▒▒▓▓██████████████████████████████████████████▓▓▒▒░░
 
 ## ▓▒░ RELEASE (MAINTAINER)
 
@@ -157,7 +157,7 @@ The script refuses to run unless the tree is clean, you're on `main`, and
 you're pushed. It checks the signature, both architectures, and the version
 before uploading.
 
-░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
+░░▒▒▓▓██████████████████████████████████████████▓▓▒▒░░
 
 ## ▓▒░ STATUS
 
