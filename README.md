@@ -1,24 +1,41 @@
-# MU/TH/UR
+```
+╔══════════════════════════════════════════════════════════════╗
+║ ▓▒░                                                      ░▒▓ ║
+║                                                              ║
+║       █   █ █   █     █ █████ █   █     █ █   █ ████         ║
+║       ██ ██ █   █    █    █   █   █    █  █   █ █   █        ║
+║       █ █ █ █   █   █     █   █████   █   █   █ ████         ║
+║       █   █ █   █  █      █   █   █  █    █   █ █  █         ║
+║       █   █  ███  █       █   █   █ █      ███  █   █        ║
+║                                                              ║
+║       ░░▒▒▓▓██  AUDIO INTERFACE · CD BURNER  ██▓▓▒▒░░        ║
+║                                                              ║
+║   > SYSTEM READY                                             ║
+║   > INSERT RECORD_                                           ║
+║ ▓▒░                                                      ░▒▓ ║
+╚══════════════════════════════════════════════════════════════╝
+```
 
-A macOS music player for whole albums, and a CD burner.
+A macOS music player for whole albums, and a CD burner, dressed as the
+ship's-computer terminal from *Alien* (1979).
 
 - Plays a **folder**, a **zip**, or the **audio CD** in the drive
 - Gapless, in the order the tags say
 - Burns an album to audio CD, across as many discs as it needs
-- Looks like a CRT terminal
+- Amber phosphor, scanlines, dot-matrix readouts
 
 It is a port of two bash programs, `player` and `burncd`, which live in the
 `cd-collection` repo and are not changed by this one.
 
 **Needs:** macOS 15 or later, Apple silicon or Intel.
 
----
+░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
 
-## Install
+## ▓▒░ INSTALL
 
 Pick one.
 
-### A. One command (new machine)
+### ▸ A. One command (new machine)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/gvorbeck/muthur/main/Scripts/bootstrap.sh | bash
@@ -27,7 +44,7 @@ curl -fsSL https://raw.githubusercontent.com/gvorbeck/muthur/main/Scripts/bootst
 Installs `ffmpeg` and `cdrtools` if missing, then the latest release. Needs
 [Homebrew](https://brew.sh) already installed. No password asked.
 
-### B. By hand
+### ▸ B. By hand
 
 1. Download `MUTHUR.zip` from
    [Releases](https://github.com/gvorbeck/muthur/releases), unzip, and drag
@@ -42,10 +59,10 @@ Installs `ffmpeg` and `cdrtools` if missing, then the latest release. Needs
    brew install ffmpeg cdrtools
    ```
 
-> **Don't skip the `xattr` line.** Without it, macOS says the app is "damaged".
-> It isn't. The app just isn't notarized.
+> **▓ WARNING ▓** Don't skip the `xattr` line. Without it, macOS says the app
+> is "damaged". It isn't. The app just isn't notarized.
 
-### C. From this repo (needs Xcode)
+### ▸ C. From this repo (needs Xcode)
 
 ```bash
 brew install ffmpeg cdrtools
@@ -55,7 +72,7 @@ brew install ffmpeg cdrtools
 Scripts/install.sh
 ```
 
-## Update
+## ▓▒░ UPDATE
 
 1. **Quit MU/TH/UR.**
 2. Run the same install again. From source: `git pull`, then
@@ -63,38 +80,50 @@ Scripts/install.sh
 
 Check the version at the top of the window, next to the logo.
 
----
+░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
 
-## Use
+## ▓▒░ OPERATE
 
-| Key | Does |
-|---|---|
-| ⌘O | Open a folder or zip |
-| Space | Pause |
-| ← → | Seek 5 s (⇧ for 30 s) |
-| ↑ ↓, Enter | Move the cursor, play that track |
-| `n` / `p` | Next / previous track |
-| `s` / `r` | Shuffle / repeat |
-| `-` / `=` / `m` | Volume down / up / mute |
-| `u` | Resume where you left off, when offered |
-| `b` | Plan a burn of this album |
-| `e` | Eject the CD |
-| `q` | Stop |
-| ⌘K | Health Check |
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ▓▒░ CONTROL LEGEND                                          │
+├─────────────────────────────────────────────────────────────┤
+│  [CMD+O] OPEN FOLDER / ZIP     [ n ] NEXT TRACK             │
+│  [SPACE] PAUSE                 [ p ] PREVIOUS TRACK         │
+│  [ ← → ] SEEK 5s (SHIFT 30s)   [ s ] SHUFFLE                │
+│  [ ↑ ↓ ] MOVE CURSOR           [ r ] REPEAT                 │
+│  [ RET ] PLAY THAT TRACK       [- =] VOLUME DOWN / UP       │
+│  [  u  ] RESUME (WHEN OFFERED) [ m ] MUTE                   │
+│  [  b  ] PLAN A BURN           [ e ] EJECT CD               │
+│  [CMD+K] HEALTH CHECK          [ q ] STOP                   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 Click the meters to jump around in the track or the album.
 
-### Burning a CD
+### ▸ Burning a CD
+
+```
+┌────────────────────────────────────────┐
+│▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+│  SIDE A  ░  MU/TH/UR  ░  C-80 BLANK    │
+│▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+│     ┌────────────────────────────┐     │
+│     │  (O)   ░▒▓██████▓▒░   (O)  │     │
+│     └────────────────────────────┘     │
+│                                        │
+└───────/ o ────────────────── o \───────┘
+```
 
 1. Open an album.
 2. Press `b` to see the burn plan. Fix any titles here.
 3. Set options in the **Burn** menu. They reset every launch.
 4. Press `b` again. It asks for a blank before anything happens.
 
-**Tip:** try **Burn ▸ Rehearse** first. It does everything except turn the laser
-on.
+> **▓ TIP ▓** Try **Burn ▸ Rehearse** first. It does everything except turn
+> the laser on.
 
-### The two extra tools
+### ▸ The two extra tools
 
 | Tool | Used for | Without it |
 |---|---|---|
@@ -104,9 +133,9 @@ on.
 They aren't bundled into the app because of licensing and Intel/ARM builds.
 Health Check (⌘K) tells you if one is missing.
 
----
+░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
 
-## Release (maintainer)
+## ▓▒░ RELEASE (MAINTAINER)
 
 1. Bump the version: `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
    `MUTHUR.xcodeproj/project.pbxproj`. Each appears twice. Commit and push.
@@ -128,23 +157,26 @@ The script refuses to run unless the tree is clean, you're on `main`, and
 you're pushed. It checks the signature, both architectures, and the version
 before uploading.
 
----
+░░▒▒▓▓████████████████████████████████████████████████████▓▓▒▒░░
 
-## Status
+## ▓▒░ STATUS
 
-**Parity: 321 of 325** checklist items done. The four open ones need hardware,
-not code:
+```
+SELF TEST ──────────────────────────────────────────────
+PARITY     █████████████████████████████▒  321 / 325
+HARDWARE   █████████████████████████▒░░░░   34 / 40
+```
+
+The four open parity items need hardware, not code:
 
 - Headphones unplugged → pause (plus AirPlay)
 - Hi-res output sample rate
 - An Opus/Ogg file that needs ffmpeg
 - Resuming a burn at disc 2 (needs two blanks)
 
-**Hardware walkthrough: 34 of 40** steps done.
-
 What to test next, as a checklist: [`TODO.md`](TODO.md).
 
-### Docs
+### ▸ Docs
 
 | File | What's in it |
 |---|---|
@@ -153,3 +185,7 @@ What to test next, as a checklist: [`TODO.md`](TODO.md).
 | [`docs/hardware.md`](docs/hardware.md) | The step-by-step test with a real drive |
 | [`docs/spec.md`](docs/spec.md) | What it has to do |
 | [`CLAUDE.md`](CLAUDE.md) | Rules for working on it |
+
+```
+░▒▓█ END OF TRANSMISSION █▓▒░
+```
