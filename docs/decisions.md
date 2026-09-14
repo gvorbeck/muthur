@@ -729,6 +729,15 @@ principle and is invisible over the height this field actually gets — the eye
 read it as regular. They are placed against the height instead, the gap falling
 away as `(1 − t)^p`, so the closing is visible at whatever size the window is.
 
+The `▾ n MORE` row is part of the budget, not of the scroll. `np_fit_rows`
+reserves it whenever the record is longer than the list (`player:2445`), and
+under `runout` it stays reserved when the list is walked to its last track and
+the line is no longer drawn — the lead-out takes that row instead. Counting it
+only while something was below the fold made the block a row shorter at the foot
+of the record, which lifted the meters a row and, because the sleeve is measured
+down to the analyser, shrank the sleeve a row with them. `deck` still closes up,
+as the script's frame does.
+
 **D27 — the wordmark. Driven onto the tube, not screwed to the front of it.**
 → §10
 

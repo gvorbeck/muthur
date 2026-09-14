@@ -212,8 +212,7 @@ struct PanelView: View {
                     PanelBlank()
                     TrackListView(
                         model: model, record: record,
-                        runout: Theme.composition == .runout
-                            ? listRows(rows: rows) - min(trackCount, rows) : 0
+                        runout: Theme.composition == .runout ? runoutRows(rows: rows) : 0
                     )
                     .frame(height: Grid.rows(listRows(rows: rows)))
                 } else if let loading = model.loading {
@@ -347,12 +346,28 @@ struct PanelView: View {
     /// that an instrument should reach the bottom of its own chassis. It is the
     /// divergence of the two, and it is here to be looked at rather than argued
     /// about.
+    ///
+    /// **The `▾ n MORE` row is part of that budget in `runout`, not part of the
+    /// scroll.** `trackRows` reserves it whenever the record is longer than the
+    /// list, which is `np_fit_rows` (`player:2445`), and it stays reserved
+    /// whether or not the line is drawn. Counting it only while something is
+    /// below the fold made the block a row shorter at the foot of the record:
+    /// the meters rose a row, and the sleeve — measured down to the analyser —
+    /// shrank a row with them, every time the list was walked to its end.
+    /// `deck` keeps that, because the script's frame closes up the same way.
     private func listRows(rows: Int) -> Int {
-        let more = model.below > 0 ? 1 : 0
         switch Theme.composition {
-        case .deck: return min(trackCount, rows) + more
-        case .runout: return rows + more
+        case .deck: return min(trackCount, rows) + (model.below > 0 ? 1 : 0)
+        case .runout: return rows + (trackCount > rows ? 1 : 0)
         }
+    }
+
+    /// What of the list block the tracks and the `MORE` line leave over. At the
+    /// foot of a long record that is the one row `MORE` was holding, and the
+    /// lead-out is the right thing to find there.
+    private func runoutRows(rows: Int) -> Int {
+        let more = model.below > 0 ? 1 : 0
+        return max(0, listRows(rows: rows) - min(trackCount, rows) - more)
     }
 
     // MARK: - Where the chrome has sat (§10)
