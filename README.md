@@ -14,29 +14,66 @@ the procedure to work through with a disc in the drive).
 
 ## Installing
 
-Two Homebrew formulae first. The port does not bundle them; it looks up each
-tool by name in `/opt/homebrew/bin` and `/usr/local/bin` and shells out to it.
+MU/TH/UR needs macOS 15 or later, on Apple silicon or Intel. There are three
+ways to put it on a machine; pick by what the machine already has.
+
+| The machine has | Use |
+|---|---|
+| Nothing — no clone, no Xcode | `Scripts/bootstrap.sh`, one command |
+| Nothing, and you would rather not pipe a script into a shell | a release zip, by hand |
+| This repository and Xcode | `Scripts/install.sh` |
+
+Every route ends at `/Applications/MUTHUR.app`, where Spotlight, Raycast and the
+Dock find it by name, and every one of them refuses to delete anything already
+standing there whose `CFBundleIdentifier` is not `com.gvorbeck.muthur`.
+
+### One command, on a new machine
+
+    curl -fsSL https://raw.githubusercontent.com/gvorbeck/muthur/main/Scripts/bootstrap.sh | bash
+
+It installs whichever of `ffmpeg` and `cdrtools` are missing, downloads the
+latest [release](https://github.com/gvorbeck/muthur/releases), checks the
+bundle's signature before trusting it, copies it into `/Applications`, and
+lifts the quarantine (below). It asks for no password and runs no `sudo`.
+Homebrew itself it will not install — that is a large thing to put on
+somebody's machine, so it stops and points at <https://brew.sh> instead.
+
+The script is short and meant to be read before it is run. A directory as its
+argument installs somewhere other than `/Applications`.
+
+### By hand, from a release
+
+1. Download `MUTHUR.zip` from the latest
+   [release](https://github.com/gvorbeck/muthur/releases), unzip it, and drag
+   `MUTHUR.app` to `/Applications`.
+2. Lift the quarantine:
+
+       xattr -dr com.apple.quarantine /Applications/MUTHUR.app
+
+3. Install the two tools:
+
+       brew install ffmpeg cdrtools
+
+**Step 2 is not optional.** The app is ad-hoc signed — a personal app, with no
+Developer ID and no notarization, which is what `CLAUDE.md` chose. A file that
+arrived over the network carries `com.apple.quarantine`, and Gatekeeper rejects
+an ad-hoc signature under quarantine outright: `spctl -a` on a downloaded bundle
+answers `rejected`, and the Finder's version of that answer is a dialog saying
+the app is damaged. It is not damaged. Stripping the attribute is the whole
+fix, and it is saying *I know where this came from*, which you do.
+
+The zip is one universal bundle, arm64 and x86_64, so an Apple silicon machine
+and an Intel one install from the same download.
+
+### From source
 
     brew install ffmpeg cdrtools
-
-`ffmpeg` decodes what AVFoundation will not take and converts every track on
-the way to a burn. `cdrtools` is `cdrecord` and `cdda2wav` — the drive's writer
-and the reader that lifts CD-Text out of a lead-in. Without them the player
-still plays what AVFoundation understands; the burner does not run at all.
-
-Then, from the repository root:
-
     Scripts/install.sh
 
-It builds Release into `build/DerivedData`, copies the bundle to
-`/Applications/MUTHUR.app`, nudges LaunchServices, and prints the path it
-wrote. A copy and not a symlink, because Raycast indexes the standard
-application folders and indexes symlinks into them only erratically — the cost
-being that **the script has to be re-run to pick up a change**; during
-development you are launching from Xcode anyway. It will not clear a path in an
-application folder blind: anything already standing there whose
-`CFBundleIdentifier` is not `com.gvorbeck.muthur` stops the install rather than
-being deleted.
+From the repository root, with Xcode installed. It builds Release into
+`build/DerivedData`, copies the bundle to `/Applications/MUTHUR.app`, nudges
+LaunchServices so launchers notice, and prints the path it wrote. It takes
+about half a minute.
 
 Both arguments are optional and positional —
 `Scripts/install.sh [Release|Debug] [directory]`, defaulting to Release and
@@ -44,26 +81,111 @@ Both arguments are optional and positional —
 `drwxrwxr-x root:admin`, so an admin account writes to it without `sudo`, and
 it is where every launcher looks first.
 
-### Without the repository
+It is a copy and not a symlink, because Raycast indexes the standard application
+folders and indexes symlinks into them only erratically. The cost is that **the
+script has to be re-run to pick up a change** — deliberately by hand, and not
+from a commit hook: a commit is bookkeeping and an install replaces the app in
+your Dock, and a hook that did both would rebuild for documentation-only commits
+and refuse to commit work that does not build yet. During development you are
+launching from Xcode anyway.
 
-A tagged [release](https://github.com/gvorbeck/muthur/releases) carries a built
-`MUTHUR.zip` — one universal bundle, arm64 and x86_64, so it runs on an Apple
-silicon machine and an Intel one from the same download. Unzip it, drag
-`MUTHUR.app` to `/Applications`, and then:
+### Updating
 
-    xattr -dr com.apple.quarantine /Applications/MUTHUR.app
+Whichever route put it there, the same route again replaces it. **Quit
+MU/TH/UR first**: every script deletes the old bundle and copies the new one in,
+and an app whose bundle vanishes under it can fail the next time it reaches for
+one of its own resources.
 
-**That last line is not optional.** The app is ad-hoc signed — a personal app,
-with no Developer ID and no notarization, which is what `CLAUDE.md` chose and
-is fine for a bundle you built yourself. But a file that arrived over the
-network carries `com.apple.quarantine`, and Gatekeeper rejects an ad-hoc
-signature under quarantine outright: `spctl -a` on the downloaded bundle
-answers `rejected`, and the Finder's version of that answer is a dialog saying
-the app is damaged. Stripping the attribute is the whole fix, and it is
-saying *I know where this came from*, which you do.
+- Installed with `bootstrap.sh`: run the same one command.
+- From source: `git pull`, then `Scripts/install.sh`.
 
-`brew install ffmpeg cdrtools` is still wanted on that machine; the zip is the
-app and nothing else.
+The version you are running is in **MUTHUR → About MUTHUR**; `defaults read
+/Applications/MUTHUR.app/Contents/Info CFBundleShortVersionString` says the
+same from a shell.
+
+### The two tools, and why they are not in the bundle
+
+`ffmpeg` decodes what AVFoundation will not take — Opus and Ogg — and converts
+every track on the way to a burn. `cdrtools` is `cdrecord` and `cdda2wav`: the
+drive's writer, and the reader that lifts CD-Text out of a disc's lead-in. The
+port finds each by name in `PATH`, `/opt/homebrew/bin` and `/usr/local/bin`,
+because an app launched from the Dock inherits no shell's `PATH`.
+
+Both are optional in the sense that nothing crashes without them. The player
+plays everything AVFoundation understands, and **MUTHUR → Health Check (⌘K)**
+says what is missing (§11); what does not run is the burner, and a disc's
+CD-Text.
+
+They are installed beside the app rather than shipped inside it, for three
+reasons that were each checked rather than assumed:
+
+- **Homebrew's builds are single-architecture.** On an Apple silicon machine
+  `lipo -archs` answers `arm64` for all three binaries. Put in the bundle, they
+  would break the Intel half of a universal app — which is the half the second
+  machine is for.
+- **ffmpeg does not travel alone.** It links 19 Homebrew libraries directly and
+  more beneath those, every one of which would need relocating into the bundle
+  and re-signing.
+- **Licensing.** Homebrew's ffmpeg is built `--enable-gpl --enable-version3`, so
+  shipping it in a public release carries GPLv3's obligations. cdrtools is
+  CDDL-1.0, whose terms for redistribution alongside GPL code are contested
+  enough that most Linux distributions will not package it.
+
+So the answer to *can the install be automated* is fewer commands rather than
+fewer dependencies, and `bootstrap.sh` is that.
+
+## Releasing
+
+A release is a tag, a GitHub release carrying `MUTHUR.zip`, and notes that say
+what changed. Three steps.
+
+**1. Name the version.** The app's version is written in exactly one place,
+`MARKETING_VERSION` in the project's build settings; `App/Info.plist` quotes it
+rather than repeating it, since v0.1.0 shipped a bundle saying `0.1` when the
+two disagreed. In Xcode: the MUTHUR target → General → Identity → *Version*,
+and bump *Build* beside it. Or edit `MUTHUR.xcodeproj/project.pbxproj`, where
+`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` each appear twice, once for
+Debug and once for Release. Commit and push.
+
+**2. Write the notes**, if the release has anything to say beyond the install
+instructions — a Markdown file, anywhere.
+
+**3. Cut it.**
+
+    Scripts/release.sh 0.4.0 notes.md
+
+The version may be written with or without its `v`; the tag always has one.
+The notes file is optional and goes *above* the install instructions, which the
+script always appends, so a release cannot go out without them.
+
+It checks everything before building anything, and refuses — exits, never
+prompts — if the working tree is dirty, the branch is not `main`, `HEAD` is not
+exactly `origin/main`, or the tag or the release already exists. Then it builds
+and asks four questions of the bundle that `xcodebuild` succeeding does not
+answer:
+
+- **Is it signed?** `codesign --verify --deep --strict`.
+- **Does it carry both architectures?** A build that quietly came out arm64-only
+  installs perfectly and then will not launch on an Intel machine, with nothing
+  on screen to say why.
+- **Is it MU/TH/UR?** The bundle identifier.
+- **Does it say the version the tag says?** Asked of the built bundle, not the
+  project file, because the bundle is what gets downloaded. This is the check
+  that notices step 1 was skipped.
+
+Only then does it zip with `ditto` — not `zip`, which drops the extended
+attributes the signature partly lives in — tag, push the tag, publish, and ask
+GitHub what it really has rather than trusting that an upload which returned 0
+is the file somebody will get.
+
+A release is the one artifact that outlives a mistake: it has a URL and somebody
+downloads it, and deleting it does not un-download it. That is why the script
+is unwilling, and why every check it makes comes before the first byte is built.
+
+Scripts that talk to GitHub need `gh`, logged in (`brew install gh`,
+`gh auth login`). Run from inside Claude Code's Bash sandbox, `gh` fails with a
+TLS certificate error that is the sandbox and not GitHub; it needs to run
+outside it.
 
 ## Status
 
@@ -73,7 +195,14 @@ It builds, installs with `Scripts/install.sh`, plays records — and burns them
 a line of it: `B` on the plan screen set a message saying the drive was not
 wired up, because it was not. It is now.
 Parity stands at **321 of 325 boxes**, unchanged — no box had ever described
-that gap, which is how it went out in two releases.
+that gap, which is how it went out in two releases. Of the four still open,
+three are what §14 marks as blocked on hardware and material: AirPlay's unplug,
+hi-res output switching, and an Opus or Ogg file to make the ffmpeg fallback
+fail on. The last is what is left of §20's stage 3b: `--from-disc n`, written
+and tested everywhere above the drive, which needs two blanks to resume a job
+between them and there is none left. §19 is a procedure rather than boxes and
+is counted separately, at **34 of 40**; what is left there wants a disc out of a
+multi-disc set, a data disc, an empty bay, and two AIFFs on an external volume.
 
 **A year you correct now stays corrected** (D85). `2001 - Drukqs.zip` shows
 `Aphex Twin (2017)` because 33 of its 35 files say so, and both numbers are
@@ -81,14 +210,7 @@ true: the tag names the pressing, the folder names the album. Fix it on the plan
 screen and the correction is kept beside the program — never written into your
 files — and reaches the faceplate, the plan and the disc's own lead-in alike.
 The plan screen says when it is disagreeing with your tags, and deleting
-`corrections.json` puts every record back to what they say. Of the four still open, three are what §14
-marks as blocked on hardware and material: AirPlay's unplug, hi-res output
-switching, and an Opus or Ogg file to make the ffmpeg fallback fail on. The last
-is what is left of §20's stage 3b: `--from-disc n`, written and tested everywhere
-above the drive, which needs two blanks to resume a job between them and there is
-none left. §19 is a procedure rather than boxes and is counted separately, at
-**34 of 40**; what is left there wants a disc out of a multi-disc set, a data
-disc, an empty bay, and two AIFFs on an external volume.
+`corrections.json` puts every record back to what they say.
 
 **The fifth open box closed by somebody deciding something.** §4.2's `cdda2wav`
 read of a disc's CD-Text runs and reads a real lead-in correctly, and it cannot
