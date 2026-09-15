@@ -186,6 +186,20 @@ public enum Readout {
         /// from `.rescan`, which asks the drive again: nothing is re-read here.
         case reset
 
+        // The library (D91). `←→` walk the row of sleeves and `↑↓` walk the
+        // column, so the grid gets the two directions the list never needed —
+        // not `seekBack` and `seekForward` borrowed, because a press is named
+        // for what it asks and a sleeve is not a position in a track.
+        case selectLeft, selectRight
+        /// Onto the library, or back off it. One key both ways, the way the
+        /// check screen is `⌘K` going on and any key coming off.
+        case library
+        /// A directory added to the library, through the open panel.
+        case addDirectory
+        /// The directory the cursor is in, taken off the library. Its records
+        /// stay on the drive; only the list and the kept sleeves go.
+        case removeDirectory
+
         case quit
     }
 
@@ -294,8 +308,38 @@ public enum Readout {
         if hasDisc { caps.append(Cap("⏎", "OPEN", .jump)) }
         caps.append(Cap("R", "RESCAN", .rescan))
         caps.append(Cap("B", "BROWSE", .browse))
+        caps.append(Cap("L", "LIBRARY", .library))
         caps.append(Cap("Q", "QUIT", .quit))
         return [caps]
+    }
+
+    /// The library's rows (D91).
+    ///
+    /// **The first row is what you do on the shelf and the second is what you
+    /// do to it** — the split the plan screen makes between a track and the
+    /// plan. `←→↑↓` is one plate with four ends, the rocker made two-way,
+    /// because a grid is walked in both directions with one hand.
+    ///
+    /// **`L BACK` and not `ESC BACK`**, though both keys do it. `L` is how you
+    /// got here from the start screen, and the cap that names the way in is the
+    /// one worth printing as the way out; `⎋` is the plan screen's, and works
+    /// here for whoever reaches for it.
+    ///
+    /// Caps come and go with what they would act on — the picker's `OPEN`
+    /// rule. An empty library answers `A`, `L` and `Q` and nothing else, and
+    /// says so.
+    public static func libraryLegend(directories: Bool, records: Bool) -> [[Cap]] {
+        var shelf: [Cap] = []
+        if records {
+            shelf.append(Cap("←→↑↓", "SELECT", .selectLeft, .selectRight, .selectUp, .selectDown))
+            shelf.append(Cap("⏎", "PLAY", .jump))
+        }
+        if directories { shelf.append(Cap("R", "RESCAN", .rescan)) }
+        var list = [Cap("A", "ADD", .addDirectory)]
+        if directories { list.append(Cap("X", "REMOVE", .removeDirectory)) }
+        list.append(Cap("L", "BACK", .library))
+        list.append(Cap("Q", "QUIT", .quit))
+        return shelf.isEmpty ? [list] : [shelf, list]
     }
 
     /// The check screen's row (§11). Two things can be done to a health check —
@@ -401,7 +445,7 @@ public enum Readout {
     public static func repeats(_ press: Press) -> Bool {
         switch press {
         case .seekBack, .seekForward, .selectUp, .selectDown, .volumeDown, .volumeUp,
-            .moveUp, .moveDown:
+            .moveUp, .moveDown, .selectLeft, .selectRight:
             true
         default: false
         }

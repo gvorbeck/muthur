@@ -30,6 +30,9 @@ struct PanelView: View {
     @State private var over = false
     @State private var reveal = 0.0
     @State private var revealing = false
+    /// The library's lit sleeve (D91). The deck has one cover and needs no
+    /// index; the shelf has a screenful, and the reveal belongs to one of them.
+    @State private var lit: Int?
 
     /// Where the deflection fault is right now, shared between the band
     /// (`ScreenEffects`) and the bulge it drags through the panel (D61). One
@@ -64,6 +67,15 @@ struct PanelView: View {
             // ⏎ and ⎋ both end up here, since both are the prompt going nil.
             .onChange(of: model.planPrompt == nil) { _, noPrompt in
                 if noPrompt { focused = true }
+            }
+            // A screen that has gone takes its pointer with it. The shelf is torn
+            // down under a still pointer, and no exit ever arrives to put the
+            // veils back.
+            .onChange(of: model.isLibrary) {
+                over = false
+                revealing = false
+                reveal = 0
+                lit = nil
             }
             .onReceive(
                 NotificationCenter.default.publisher(
@@ -105,10 +117,80 @@ struct PanelView: View {
         }
     }
 
+    /// The pointer arriving on a sleeve on the shelf and leaving it (D91).
+    ///
+    /// `hover` again, with one thing more: moving from one sleeve to the next
+    /// starts the new one from nothing. The two events arrive in either order,
+    /// and a reveal carried over would bring the next record's true colours up
+    /// already three-quarters of the way — so a leave that is not from the lit
+    /// sleeve is a leave from a sleeve that is no longer lit, and is dropped.
+    private func libraryHover(_ index: Int, _ inside: Bool) {
+        if inside {
+            if lit != index {
+                lit = index
+                var still = Transaction()
+                still.disablesAnimations = true
+                withTransaction(still) { reveal = 0 }
+            }
+            hover(true)
+        } else if lit == index {
+            hover(false)
+        }
+    }
+
     /// Everything inside the glass: the burn under the panel, the panel, the
-    /// sleeve, and the tube over the lot of it.
+    /// sleeve, and the tube over the lot of it — or the library, over all of it.
     private var screen: some View {
         GeometryReader { geometry in
+            if model.isLibrary {
+                library(in: geometry.size)
+            } else {
+                deck(in: geometry)
+            }
+        }
+        .padding(.vertical, Theme.blank)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Theme.ground)
+        // The veils, and the one rectangle they are told to leave alone. The
+        // anchor comes up from the cover itself and is resolved here, in the
+        // overlay's own space, which is why this is `overlayPreferenceValue` and
+        // not `overlay`: the sleeve's square is arithmetic that only exists inside
+        // the reader above, and the glass is drawn outside it.
+        .overlayPreferenceValue(SleeveBounds.self) { anchor in
+            GeometryReader { proxy in
+                ScreenEffects(
+                    sweeping: faulting,
+                    hole: revealing
+                        ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil,
+                    fault: tubeFault)
+            }
+        }
+    }
+
+    private func library(in size: CGSize) -> some View {
+        let perRow = LibraryView.perRow(width: size.width)
+        let budget = LibraryView.budget(height: size.height)
+        return LibraryView(
+            library: model.library,
+            meta: model.faceplateMeta,
+            treatment: model.sleeveTreatment,
+            glitching: faulting,
+            legend: legend,
+            status: model.statusLine,
+            lit: lit,
+            pointing: over ? lit : nil,
+            reveal: reveal,
+            press: tapped,
+            hover: libraryHover
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onChange(of: [perRow, budget], initial: true) {
+            model.library.resized(perRow: perRow, budget: budget)
+        }
+    }
+
+    private func deck(in geometry: GeometryProxy) -> some View {
+        Group {
             let rows = trackRows(in: geometry.size.height)
             HStack(alignment: .top, spacing: 0) {
                 Bloom {
@@ -152,23 +234,6 @@ struct PanelView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .onChange(of: rows, initial: true) { model.resized(rows: rows) }
-        }
-        .padding(.vertical, Theme.blank)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Theme.ground)
-        // The veils, and the one rectangle they are told to leave alone. The
-        // anchor comes up from the cover itself and is resolved here, in the
-        // overlay's own space, which is why this is `overlayPreferenceValue` and
-        // not `overlay`: the sleeve's square is arithmetic that only exists inside
-        // the reader above, and the glass is drawn outside it.
-        .overlayPreferenceValue(SleeveBounds.self) { anchor in
-            GeometryReader { proxy in
-                ScreenEffects(
-                    sweeping: faulting,
-                    hole: revealing
-                        ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil,
-                    fault: tubeFault)
-            }
         }
     }
 
@@ -285,6 +350,11 @@ struct PanelView: View {
     /// the current screen does not answer is the same lie the dead ⌘O was.
     private var legend: [[Readout.Cap]] {
         if model.isChecking { return Readout.checkLegend }
+        if model.isLibrary {
+            return Readout.libraryLegend(
+                directories: !model.library.library.directories.isEmpty,
+                records: model.library.shelf.records > 0)
+        }
         if model.isPlanning { return Readout.planLegend }
         if model.isPicking { return Readout.pickerLegend(hasDisc: model.pickerHasDisc) }
         return Readout.legend
@@ -489,6 +559,10 @@ struct PanelView: View {
             performCheck(press)
             return
         }
+        if model.isLibrary {
+            performLibrary(press)
+            return
+        }
         if model.isPlanning {
             performPlan(press, shift: shift)
             return
@@ -533,7 +607,29 @@ struct PanelView: View {
         // against ten seconds in is exactly when you want the next one.
         case .eject: model.eject()
         case .close: break
+        // The shelf's own keys (D91). `L` is not the library here — it is the
+        // needle forward, as it has been since D1 — and ⌘L in the menu is the
+        // way to the shelf from a record that is playing.
+        case .selectLeft, .selectRight, .library, .addDirectory, .removeDirectory: break
         case .quit: NSApplication.shared.terminate(nil)
+        }
+    }
+
+    /// The library's caps (D91). `R` is RESCAN, as it is on the start screen,
+    /// and means the same thing: go and look again.
+    private func performLibrary(_ press: Readout.Press) {
+        switch press {
+        case .selectLeft: model.library.move(.left)
+        case .selectRight: model.library.move(.right)
+        case .selectUp: model.library.move(.up)
+        case .selectDown: model.library.move(.down)
+        case .jump: model.library.play()
+        case .rescan: model.library.rescan()
+        case .addDirectory: model.library.add()
+        case .removeDirectory: model.library.remove()
+        case .library: model.library.close()
+        case .quit: NSApplication.shared.terminate(nil)
+        default: break
         }
     }
 
@@ -582,6 +678,7 @@ struct PanelView: View {
         case .jump: model.openPicked()
         case .rescan: model.rescan()
         case .browse: model.browse()
+        case .library: model.showLibrary()
         case .quit: NSApplication.shared.terminate(nil)
         default: break
         }
@@ -595,6 +692,7 @@ struct PanelView: View {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if model.isChecking { return handleCheck(press) }
+        if model.isLibrary { return handleLibrary(press) }
         if model.isBurning { return handleBurn(press) }
         if model.isPlanning { return handlePlan(press) }
         if model.isPicking { return handlePicker(press) }
@@ -618,6 +716,31 @@ struct PanelView: View {
             perform(.jump)
         default:
             return letter(press)
+        }
+        return .handled
+    }
+
+    /// The shelf's keys. **No `hjkl`**: `L` is the way off this screen, and a
+    /// vi set with its right-hand key missing is worse than none.
+    private func handleLibrary(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .leftArrow: perform(.selectLeft)
+        case .rightArrow: perform(.selectRight)
+        case .upArrow: perform(.selectUp)
+        case .downArrow: perform(.selectDown)
+        case .pageUp: model.library.page(.up)
+        case .pageDown: model.library.page(.down)
+        case .return: perform(.jump)
+        case .escape: perform(.library)
+        default:
+            switch press.characters.lowercased() {
+            case "a": perform(.addDirectory)
+            case "x": perform(.removeDirectory)
+            case "r": perform(.rescan)
+            case "l": perform(.library)
+            case "q": perform(.quit)
+            default: return .ignored
+            }
         }
         return .handled
     }
@@ -753,6 +876,7 @@ struct PanelView: View {
         case "j": model.pickerStep(by: 1)
         case "r": model.rescan()
         case "b": model.browse()
+        case "l": model.showLibrary()
         case "q": NSApplication.shared.terminate(nil)
         default: return .ignored
         }
@@ -809,7 +933,13 @@ struct PanelView: View {
             let step = Theme.cell.height
             while abs(carried) >= step {
                 let up = carried > 0
-                MainActor.assumeIsolated { model.wheel(up ? -1 : 1) }
+                MainActor.assumeIsolated {
+                    if model.isLibrary {
+                        model.library.wheel(up ? -1 : 1)
+                    } else {
+                        model.wheel(up ? -1 : 1)
+                    }
+                }
                 carried += up ? -step : step
             }
             return event

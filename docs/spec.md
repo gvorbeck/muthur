@@ -40,6 +40,11 @@ and ad-hoc signing means they come back on every build, while the open panel goe
 through the powerbox and needs no grant at all. Nothing about **what** can be
 played changed — only what the program is allowed to go looking for uninvited.
 
+*Invited is another matter: see **D91**.* The LIBRARY (`L` on the start screen,
+`⌘L` anywhere) is a list of directories you add through the same open panel,
+walked when you open it and never at launch, with every record's sleeve fetched
+once and kept beside the list.
+
 **A record plays when it is opened**, as the script's `append-play` does
 (`player:3259`). Not a divergence — it was a gap, and `parity.md` §6.0a is where
 it is written down.

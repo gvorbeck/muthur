@@ -405,11 +405,14 @@ struct DiagnosticsTests {
     /// absence as a bug, and it says instead what the answer is now.
     ///
     /// Never `.warn`: the `zips` row's precedent (a capability, not a state).
+    /// D91's library does not change that — its directories are walked when it
+    /// is opened, never by the check.
     @Test func recordsNoLongerCountsAnythingAndSaysSoInsteadOfWarning() throws {
         for probes in [DiagnosticsTests.probes(), DiagnosticsTests.probes(disc: nil)] {
             let row = try #require(DiagnosticsTests.row(Diagnostics.run(probes), "records"))
             #expect(row.mark == .ok)
-            #expect(row.detail.contains("no directory is searched"))
+            #expect(row.detail.contains("none is walked here"))
+            #expect(row.detail.contains("LIBRARY"))
             #expect(row.detail.contains("BROWSE"))
         }
     }

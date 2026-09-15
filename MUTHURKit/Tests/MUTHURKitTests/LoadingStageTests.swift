@@ -151,7 +151,7 @@ struct LoadingStageTests {
 @Suite("§10 — the faceplate on every stage")
 struct FaceplateEveryStageTests {
 
-    /// The five metas the port can put on a plate, one per screen.
+    /// The six metas the port can put on a plate, one per screen.
     static var everyScreen: [String] {
         [
             // The now-playing panel (`player:2322`).
@@ -164,13 +164,15 @@ struct FaceplateEveryStageTests {
             ).meta,
             // The check screen — the port's, see `Faceplate.checkMeta`.
             Faceplate.checkMeta(count: 14, warnings: 2, failures: 0),
+            // The library — the port's, D91.
+            Faceplate.libraryMeta(count: 219, offline: 170),
             // The empty deck — the port's, and the ordinary meta with nothing
             // in it.
             Faceplate.meta(mode: .stopped, trackCount: 0, source: nil),
         ]
     }
 
-    /// Badge, rule, meta — in that order, on all five.
+    /// Badge, rule, meta — in that order, on all six.
     @Test("Every screen's plate is the badge, a rule, and its own meta")
     func sameLineEverywhere() {
         for meta in Self.everyScreen {

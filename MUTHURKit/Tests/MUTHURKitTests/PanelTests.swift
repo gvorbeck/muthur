@@ -890,6 +890,9 @@ struct KeycapTests {
             + Readout.pickerLegend(hasDisc: false) + Readout.checkLegend
             + Readout.planLegend + Readout.burnLegend(canEdit: true)
             + Readout.burnLegend(canEdit: false)
+            + Readout.libraryLegend(directories: true, records: true)
+            + Readout.libraryLegend(directories: true, records: false)
+            + Readout.libraryLegend(directories: false, records: false)
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
@@ -905,13 +908,19 @@ struct KeycapTests {
     /// single throw, and the two properties travel together in both directions:
     /// a plate with two ends is one you can hold down, and a plate with one is
     /// a coin being flipped.
+    ///
+    /// The library's `←→↑↓` (D91) is the one plate with four ends — a cursor on
+    /// a grid goes four ways, and two plates for it would be a row of the legend
+    /// spent saying so. Each end still repeats.
     @Test("The rockers are the ones with two ends, and they are the ones that repeat")
     func rockers() {
-        let plates = (Readout.legend + Readout.planLegend).flatMap { $0 }
+        let plates = (Readout.legend + Readout.planLegend
+            + Readout.libraryLegend(directories: true, records: true)).flatMap { $0 }
         let rockers = plates.filter { $0.presses.count > 1 }
-        #expect(Set(rockers.map(\.key)) == ["←→", "↑↓", "-=", "⇧↑↓"])
+        #expect(Set(rockers.map(\.key)) == ["←→", "↑↓", "-=", "⇧↑↓", "←→↑↓"])
         for cap in rockers {
-            #expect(cap.presses.count == 2)
+            // One press per end, and the ends are the glyphs other than the shift.
+            #expect(cap.presses.count == cap.key.filter { $0 != "⇧" }.count)
             #expect(cap.presses.allSatisfy(Readout.repeats))
         }
         for cap in plates where cap.presses.count == 1 {
@@ -934,7 +943,9 @@ struct KeycapTests {
         let picker = Set(Readout.pickerLegend(hasDisc: true).flatMap { $0 }.flatMap(\.presses))
         let check = Set(Readout.checkLegend.flatMap { $0 }.flatMap(\.presses))
         let plan = Set(Readout.planLegend.flatMap { $0 }.flatMap(\.presses))
-        let all = playing.union(picker).union(check).union(plan)
+        let library = Set(
+            Readout.libraryLegend(directories: true, records: true).flatMap { $0 }.flatMap(\.presses))
+        let all = playing.union(picker).union(check).union(plan).union(library)
         #expect(all == Set(Readout.Press.allCases))
     }
 
@@ -952,6 +963,7 @@ struct KeycapTests {
             ("empty picker", Readout.pickerLegend(hasDisc: false)),
             ("check", Readout.checkLegend),
             ("plan", Readout.planLegend),
+            ("library", Readout.libraryLegend(directories: true, records: true)),
         ]
         for (name, legend) in screens {
             let keys = legend.flatMap { $0 }.map(\.key)
@@ -966,8 +978,8 @@ struct KeycapTests {
     func theOpenCapFollowsTheDisc() {
         let withDisc = Readout.pickerLegend(hasDisc: true).flatMap { $0 }
         let empty = Readout.pickerLegend(hasDisc: false).flatMap { $0 }
-        #expect(withDisc.map(\.label) == ["OPEN", "RESCAN", "BROWSE", "QUIT"])
-        #expect(empty.map(\.label) == ["RESCAN", "BROWSE", "QUIT"])
+        #expect(withDisc.map(\.label) == ["OPEN", "RESCAN", "BROWSE", "LIBRARY", "QUIT"])
+        #expect(empty.map(\.label) == ["RESCAN", "BROWSE", "LIBRARY", "QUIT"])
         // `RESCAN` survives an empty bay because an empty bay is exactly when it
         // means something: it is how a disc put in after launch gets noticed.
         #expect(empty.contains { $0.presses.contains(.rescan) })
@@ -994,7 +1006,7 @@ struct KeycapTests {
         for legend in [
             Readout.legend, Readout.pickerLegend(hasDisc: true),
             Readout.pickerLegend(hasDisc: false), Readout.checkLegend,
-            Readout.planLegend,
+            Readout.planLegend, Readout.libraryLegend(directories: true, records: true),
         ] {
             let keys = legend.flatMap { $0 }.map(\.key)
             #expect(Set(keys).count == keys.count)
@@ -1020,6 +1032,7 @@ struct KeycapTests {
         for legend in [
             Readout.pickerLegend(hasDisc: true), Readout.pickerLegend(hasDisc: false),
             Readout.checkLegend, Readout.planLegend,
+            Readout.libraryLegend(directories: true, records: true),
         ] {
             #expect(!legend.flatMap { $0 }.contains { $0.presses.contains(.eject) })
         }

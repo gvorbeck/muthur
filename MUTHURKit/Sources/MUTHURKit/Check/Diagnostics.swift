@@ -482,10 +482,17 @@ public struct Diagnostics: Sendable {
     /// stops being a verdict. Whether the drive has anything in it is the row
     /// above's business (`optical drive`), and saying it twice would make two
     /// rows that can disagree.
+    ///
+    /// **D91 gave it a third way in, and not a subject back.** The library has
+    /// directories, but they are walked when the library is opened and at no
+    /// other moment — and this row walking them would be the check screen's own
+    /// copy of the scan a second time, with the same prompts. A directory on a
+    /// drive that is not plugged in is the library's to dim, not this row's to
+    /// warn about.
     static func records() -> Check {
         Check(
             .ok, "records",
-            "the disc in the drive, or one you point BROWSE at — no directory is searched, so none can be missing"
+            "the disc in the drive, the LIBRARY's directories, or one you point BROWSE at — none is walked here, so none can be missing"
         )
     }
 

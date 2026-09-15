@@ -56,6 +56,7 @@ struct MUTHURApp: App {
                     .keyboardShortcut("o")
                 Button("Collection…") { chooseCollection() }
             }
+            LibraryCommands(model: model)
             BurnCommands(model: model)
         }
     }
@@ -90,6 +91,50 @@ struct MUTHURApp: App {
         CatalogueFile.remember(url)
         model.catalogueChanged()
     }
+}
+
+/// The library (D91), from anywhere.
+///
+/// **⌘L is the whole reason this menu exists.** `L` on the deck has been the
+/// needle forward since D1, so the only key that reaches the shelf from a
+/// record that is playing is one with a modifier on it, and a modifier key is a
+/// menu item or it is undiscoverable.
+struct LibraryCommands: Commands {
+    let model: PanelModel
+
+    var body: some Commands {
+        CommandMenu("Library") {
+            Button(model.isLibrary ? "Hide Library" : "Show Library") { model.toggleLibrary() }
+                .keyboardShortcut("l")
+                .disabled(busy)
+
+            Divider()
+
+            Button("Add Directory…") {
+                model.showLibrary()
+                model.library.add()
+            }
+            .disabled(busy)
+
+            // The menu's remove does not ask twice: the directory has already
+            // been picked out of a list by name, which is the asking.
+            Menu("Remove Directory") {
+                ForEach(model.library.library.directories) { directory in
+                    Button(directory.path) { model.library.remove(directory.id) }
+                }
+            }
+            .disabled(busy || model.library.library.directories.isEmpty)
+
+            Button("Rescan") {
+                model.showLibrary()
+                model.library.rescan()
+            }
+            .disabled(busy || model.library.library.directories.isEmpty)
+        }
+    }
+
+    /// The screens `showLibrary` will not go over.
+    private var busy: Bool { model.isBurning || model.isPlanning || model.isLoading }
 }
 
 /// `burncd`'s command line, as a menu (D86).

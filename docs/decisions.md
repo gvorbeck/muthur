@@ -170,7 +170,7 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
-**D86 to D90 came from using it.** D86 is the Burn menu: every flag `burncd`
+**D86 to D91 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
 now a switch — not saved across launches, because a rehearsal remembered from
 last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
@@ -179,6 +179,9 @@ wordmark and takes it away again on the one status line too wide to share. D89
 runs a cut title past its column, on the playing row and the one under the
 pointer, by whole columns so the grid never moves. D90 sets the plan and the
 insert stage on the deck's grid, so a record carried to the burn does not move.
+D91 is the library, and the first entry here to give back part of one before it:
+D50's scan returns, but only for directories you name, and only when you open
+the library.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -3880,3 +3883,92 @@ from the rows the screen underneath it had, and the plan has a different
 number of rows than the deck, so the cover changed size as the screen did.
 `burncd` never drew a cover, so there is no rule of its own to keep: the
 cover is the deck's, and it stays the deck's size.
+
+---
+
+**D91 — the library: directories you name, and a sleeve for every record in them, fetched once.** → §1, §5, §10, §11
+
+Neither script has a library. `player`'s picker is `PLAYER_DIRS` walked afresh at
+every start, and **D50** took even that away, because a scan nobody asked for is
+a TCC prompt on every ad-hoc build. What comes back here is not that scan. It is
+a list of directories you add yourself through the open panel, each kept as a
+bookmark the way D5 keeps the shelf. The records found in them are shown as a
+wall of sleeves, and choosing one plays it.
+
+**It is a partial reversal of D50, and only partial.** A directory is walked
+only when the library is opened, when `R` rescans it, or when a volume mounts
+while the library is showing. It is never walked at launch, and `--check` does
+not walk it (`records` in §11 still counts nothing). A bookmark is resolved
+`.withoutMounting`, so looking for a drive never mounts one. The index is
+`$XDG_DATA_HOME/muthur/library/library.json`, and the program reads it at start
+because it is the program's own file, not a volume.
+
+**What a record is:** whatever `SourceOpener` would open, and the walk stops at
+the first one it finds on the way down (`LibraryWalk`).
+- A folder with audio directly in it is a record.
+- A zip whose central directory holds audio is a record (D47's rule).
+- A folder whose audio-holding children are *all* named like `CD1` or `Disc 2`
+  is one record. This is the one place a name is read. D12 refuses it inside a
+  record, but out here the tree's shape says nothing, and a double album
+  would otherwise be two tiles that each play half of it.
+- Symlinks are not followed, and hidden entries are skipped, which keeps out
+  the `._` stubs an exFAT drive is full of.
+- A record's identity is its path under the directory, so it survives the
+  drive mounting somewhere else.
+
+**The sleeve is found once, and kept.** The order is §5's, done by §5's resolver:
+beside the record, then the tags, then the Cover Art Archive. A library that
+picked a different picture from the one the deck draws would show one cover to
+choose a record by and another once it was playing. Three things differ, all
+because nobody is waiting on the answer:
+- **The archive is awaited**, with MusicBrainz's second between requests.
+- **A zip is not unpacked to be asked.** Pictures in its central directory are
+  ranked by §5.1's names and only those are extracted. Failing that, the first
+  8 MB of the first track are extracted for its tags. That was 0.47–0.80 s a
+  record on a USB drive, where a whole lossless track took seconds.
+- **The tags' names replace the path's guess.** Before a sleeve is looked for,
+  `070 Shake/Modus Vivendi.zip` is Modus Vivendi by 070 Shake, and a loose
+  `Artist - Album.zip` is split at the dash.
+
+What is kept is a JPEG copy cut down to twice a tile. It lives beside the index,
+**not** in `~/.cache/muthur/art`, because a cache's contract is that it may be
+thrown away, and never fetching twice is the entire promise. A record that was
+asked and had no sleeve is marked asked, and is not asked again until `R`, which
+retries only the ones that came back empty. The only thing that deletes a stored
+sleeve is its record leaving the library: a walk that could reach the directory
+and no longer found the record, or the directory being removed.
+
+**A directory that cannot be reached keeps its records.** Its tiles are drawn at
+a third, do not answer the pointer or `⏎`, and its rule says `OFFLINE`. Plugging
+the drive in brings them back without a key being pressed. The index records
+what was there, not a promise that it still is.
+
+**The screen** is its own, over whatever was showing, and the music keeps
+playing. It is set on the deck's grid (D90): faceplate, the three fields for the
+record under the cursor or the pointer, one rule per directory in the order they
+were added, then rows of sleeves filed by artist and title (`The Cure` under C,
+and `B-52's, The` beside it), `MORE`, the keycaps and the status. Sleeves are
+drawn in phosphor, and in true colour under the pointer, as the deck's is.
+
+Three choices on this screen were not obvious:
+- **`L` on the start screen, `⌘L` everywhere.** The deck's `l`/`L` already seek,
+  so a bare `L` could not open the library from there.
+- **The window moves only as far as the cursor makes it**, unlike the picker,
+  which centres. On a grid, centring moves the whole wall a row of sleeves on
+  every `↓`.
+- **`X` removes the directory the cursor is in, and only on the second press.**
+  What it throws away is every sleeve found for that directory, the one thing
+  this feature promises never to fetch twice. The records on the drive are not
+  touched, and the prompt says so. The Library menu removes a directory by name
+  in one step, because choosing it from a menu is already deliberate.
+
+**Measured**, on this machine:
+
+| Directory | Records | Walk time |
+|---|---|---|
+| `~/Music` | 61 | 0.28 s |
+| a USB drive's `FLAC` | 219 (170 of them zips) | 1.62 s |
+
+**Found on the way, and fixed with it:** opening a zip over a zip that was
+already playing left the first one's scratch unpacked until quit. The old scratch
+is now torn down once the new record has loaded.

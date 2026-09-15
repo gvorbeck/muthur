@@ -75,6 +75,12 @@ record carried to the burn keeps its columns and its sleeve (**D90**). **A
 denominator counts what somebody thought to ask for**, and a green field says
 only that every question asked so far has an answer.
 
+**The library (D91) moves no count, and is not meant to.** Neither script has
+one, so there is nothing in either for a box to be parity with: it is the
+directories you name, walked when you open it, with a sleeve per record fetched
+once and kept. Where it touches a row that exists — §11's `records` — the row
+says so.
+
 Everything waiting on hardware — the four boxes below and §19's six — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for
 whoever is next at the machine with the burner.
@@ -2925,7 +2931,7 @@ a terminal report would be the port inventing chrome the original never had.
 | `sleeve` | `cover` (`player:454`) | **ok** `beside the record, then the tags, then the archive — at the size the window has` · **ok** `off — no picture is looked for` |
 | `audio output` | — | **warn** `<device> — the route is read once, and changing it mid-record is not handled yet` · **warn** `CoreAudio named no default output device`. **New** (§14) |
 | `the shelf` | — | **ok** `<N> records in <path>` · **warn** `no catalogue at <path> — records play, they just arrive unannotated` · **warn** `<path> has no title column — nothing can be looked up in it`. **New** (§8) |
-| `records` | — | **ok** `the disc in the drive, or one you point BROWSE at — no directory is searched, so none can be missing`. **New** (§1). Was `<N> in <dirs>` / **warn** `nothing to play in <dirs>`, the calm form of `player:1114`, until **D50** deleted the scan it counted |
+| `records` | — | **ok** `the disc in the drive, the LIBRARY's directories, or one you point BROWSE at — none is walked here, so none can be missing`. **New** (§1). Was `<N> in <dirs>` / **warn** `nothing to play in <dirs>`, the calm form of `player:1114`, until **D50** deleted the scan it counted. **D91** walks the library's directories only when the library opens, never here |
 
 **`optical drive` asks §1.3, because the media type cannot answer the question
 the row is for.** It is still asked first, with `drutil` and nothing that opens

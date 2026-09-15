@@ -109,6 +109,35 @@ final class PanelModel {
 
     func closeCheck() { report = nil }
 
+    // MARK: - The library (D91)
+
+    /// Built now and asked nothing until it is opened — D50's rule, which is
+    /// about when a volume is touched and not about whether an object exists.
+    let library = LibraryModel(work: PanelModel.scratch.appending(path: "library"))
+
+    /// Open, and on top. A health check, a plan or a burn started from the menu
+    /// goes over the library the way it goes over the deck, and closing it
+    /// comes back to the shelf rather than to whatever was under the shelf.
+    var isLibrary: Bool { library.isOpen && !isChecking && !isPlanning && !isBurning }
+
+    /// `L` on the start screen, ⌘L anywhere. **Over the deck and not instead of
+    /// it**: the record goes on playing while you look for the next one, the
+    /// way it would while you went to the shelf.
+    ///
+    /// Not over the burn, the plan, or a source coming open. Each of those has
+    /// a legend of its own that is the only way out of it, and a record chosen
+    /// on the library while a disc is being written would be a second thing
+    /// reading from the drive the burn is timing.
+    func showLibrary() {
+        guard !isBurning, !isPlanning, !isLoading else { return }
+        closeCheck()
+        library.show()
+    }
+
+    func toggleLibrary() {
+        if isLibrary { library.close() } else { showLibrary() }
+    }
+
     // MARK: - The deck
 
     let engine = PlaybackEngine()
@@ -297,6 +326,7 @@ final class PanelModel {
             )
         )
         start()
+        library.opener = { [weak self] url, kind in self?.open(source: url, kind: kind) }
     }
 
     // MARK: - Opening a record (§1)
@@ -334,13 +364,21 @@ final class PanelModel {
                         Task { @MainActor in self?.loading = stage }
                     }
                 )
+                // The record being replaced may have been unpacked too, and
+                // nothing else was ever going to delete its directory: `eject`
+                // tears down what it takes off, and a record opened over another
+                // — ⌘O, or a sleeve on the library — takes nothing off. Carried
+                // to `adopt` and gone once the deck has stopped reading from it,
+                // for `eject`'s reason.
+                let replaced = self.scratch
                 self.scratch = opened.scratch
                 self.sourceURL = url
                 adopt(
                     opened.record, source: opened.source,
                     titleSource: opened.titleSource, directory: opened.directory,
                     notice: opened.notice, releaseMBID: opened.releaseMBID,
-                    albumIsPlaceholder: opened.albumIsPlaceholder
+                    albumIsPlaceholder: opened.albumIsPlaceholder,
+                    replacing: replaced
                 )
             } catch {
                 die("\(error)")
@@ -478,7 +516,8 @@ final class PanelModel {
 
     private func adopt(
         _ read: Record, source: SourceKind, titleSource: TitleSource?, directory: URL?,
-        notice: String? = nil, releaseMBID: String? = nil, albumIsPlaceholder: Bool = false
+        notice: String? = nil, releaseMBID: String? = nil, albumIsPlaceholder: Bool = false,
+        replacing replaced: Scratch? = nil
     ) {
         var read = read
         // **D85, and it happens here for a reason.** Everything below reads the
@@ -536,6 +575,7 @@ final class PanelModel {
         // there is no state in which a record has been read and is not playing.
         Task {
             try? await engine.load(read, source: source)
+            if let replaced { tearDown(replaced) }
             await refresh()
         }
     }
@@ -613,6 +653,7 @@ final class PanelModel {
                 failures: report.checks.filter { $0.mark == .fail }.count
             )
         }
+        if isLibrary { return library.meta }
         // Ahead of the plan's, because the burn goes over the plan screen and
         // the faceplate names whatever is on top. While the drive is talking the
         // panel names itself — `WRITING · DISC 1 OF 2 ·  42%` — and between
@@ -648,6 +689,9 @@ final class PanelModel {
         // The check has its own legend and its rows are the message; a status
         // line under it would be the deck talking over the diagnosis.
         if isChecking { return nil }
+        // The library is over everything below here, and whatever the deck
+        // under it last said is about a record you are not looking at.
+        if isLibrary { return library.statusLine }
         // And the burn has its log, which is the same argument: the deck's last
         // message about a track change has nothing to say to somebody watching a
         // disc being written.

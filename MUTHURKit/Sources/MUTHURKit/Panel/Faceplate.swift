@@ -57,6 +57,18 @@ public enum Faceplate {
         "\(count) \(count == 1 ? "SOURCE" : "SOURCES")"
     }
 
+    /// The library's meta: `LIBRARY · 219 RECORDS · 40 OFFLINE` (D91).
+    ///
+    /// The picker's shape — a count of what is on the screen — with the state
+    /// word the check screen taught the plate to lead with. The offline count
+    /// is at the tail because it is the part that changes when a drive goes in,
+    /// and it is not printed when it is nought, for `checkMeta`'s reason.
+    public static func libraryMeta(count: Int, offline: Int) -> String {
+        var text = "LIBRARY · \(count) \(count == 1 ? "RECORD" : "RECORDS")"
+        if offline > 0 { text += " · \(offline) OFFLINE" }
+        return text
+    }
+
     /// The check screen's meta: `SELF TEST · 12 CHECKS · 2 !`.
     ///
     /// **Mine, and there is nothing behind it in the script** — `run_check`
