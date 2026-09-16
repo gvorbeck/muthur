@@ -349,20 +349,40 @@ struct LibraryTests {
         #expect(LibraryShelf(Library()).moved(0, .down, perRow: 3) == 0)
     }
 
-    @Test("the window moves only as far as the cursor makes it, and never past the foot")
+    @Test("the shelf moves only as far as the cursor makes it, and never past the foot")
+    func shelfScrolled() {
+        // A rule and three rows of sleeves, a rule and an empty line: 24 rows.
+        let heights = [1, 7, 7, 7, 1, 1]
+        #expect(LibraryShelf.rows(heights) == 24)
+        // Everything fits: there is nowhere to scroll to.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 9, budget: 40, keeping: 5) == 0)
+        // The cursor on a line already whole on the glass moves nothing.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 0, budget: 16, keeping: 1) == 0)
+        // Down to line 3, whose foot is at row 22, and no further than that.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 0, budget: 16, keeping: 3) == 6)
+        // Back up to a line above the fold brings the shelf to its head.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 8, budget: 16, keeping: 1) == 1)
+        // A line taller than the glass is shown from its head.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 0, budget: 4, keeping: 2) == 8)
+        // Never past the foot of the shelf: 24 rows in a glass of 16.
+        #expect(LibraryShelf.scrolled(heights: heights, offset: 99, budget: 16, keeping: nil) == 8)
+        #expect(LibraryShelf.scrolled(heights: heights, offset: -4, budget: 16, keeping: nil) == 0)
+        #expect(LibraryShelf.scrolled(heights: [], offset: 3, budget: 4, keeping: nil) == 0)
+    }
+
+    @Test("the window is every line the glass touches, and how much of the first is above it")
     func shelfWindow() {
         let heights = [1, 7, 7, 7, 1, 1]
-        // Everything fits: the top is pulled back to the start.
-        #expect(LibraryShelf.window(heights: heights, top: 3, budget: 40, keeping: 5) == (0, 0..<6))
-        // The cursor on the top line leaves the window where it is.
-        #expect(LibraryShelf.window(heights: heights, top: 0, budget: 16, keeping: 1) == (0, 0..<3))
-        // Down to line 3 moves the top only far enough to show all of it.
-        #expect(LibraryShelf.window(heights: heights, top: 0, budget: 16, keeping: 3) == (2, 2..<6))
-        // Back up above the window brings the top to the cursor.
-        #expect(LibraryShelf.window(heights: heights, top: 2, budget: 16, keeping: 1) == (1, 1..<3))
-        // A line taller than the screen is still drawn.
-        #expect(LibraryShelf.window(heights: heights, top: 0, budget: 4, keeping: 2) == (2, 2..<3))
-        #expect(LibraryShelf.window(heights: [], top: 3, budget: 4, keeping: nil) == (0, 0..<0))
+        #expect(LibraryShelf.tops(heights) == [0, 1, 8, 15, 22, 23])
+        // From the head: the rule and two rows of sleeves, nothing cut.
+        #expect(LibraryShelf.window(heights: heights, offset: 0, budget: 15) == (0..<3, 0))
+        // A row at a time: one row down, the head of line 3 is on the glass.
+        #expect(LibraryShelf.window(heights: heights, offset: 1, budget: 15) == (1..<4, 0))
+        // A line half off the top is still drawn, shifted up by `above`.
+        #expect(LibraryShelf.window(heights: heights, offset: 2, budget: 15) == (1..<4, 1))
+        // At the foot, every line from the fold down.
+        #expect(LibraryShelf.window(heights: heights, offset: 8, budget: 16) == (2..<6, 0))
+        #expect(LibraryShelf.window(heights: [], offset: 0, budget: 4) == (0..<0, 0))
     }
 
     @Test("the library's plate counts records and says how many are away")

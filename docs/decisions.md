@@ -3956,6 +3956,15 @@ Three choices on this screen were not obvious:
 - **The window moves only as far as the cursor makes it**, unlike the picker,
   which centres. On a grid, centring moves the whole wall a row of sleeves on
   every `↓`.
+- **The shelf scrolls in grid rows, and there is a bar to drag.** It first
+  scrolled a line at a time, and a line is a row of sleeves — seven rows — so
+  the wheel threw the wall a sleeve's height for a flick and could not be asked
+  for less. It moves a row of glass for a row of wheel now, which is what the
+  monitor already counts in, and a line the fold cuts through is drawn cut. The
+  bar down the right-hand edge is the other half of the same fix: `MORE` says
+  how many records are below, and on a wall of four hundred that is not the
+  same as saying where you are in it. It is drawn only when there is more shelf
+  than glass, in a space kept whether or not it is drawn.
 - **`X` removes the directory the cursor is in, and only on the second press.**
   What it throws away is every sleeve found for that directory, the one thing
   this feature promises never to fetch twice. The records on the drive are not

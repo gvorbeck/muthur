@@ -62,8 +62,8 @@ final class LibraryModel {
     // MARK: - The cursor and the window
 
     private(set) var cursor = 0
-    /// The first line of the shelf on the screen, in `shelf.lines`.
-    private(set) var top = 0
+    /// How much of the shelf is above the top of the glass, in grid rows.
+    private(set) var offset = 0
     /// Sleeves to a row, and grid rows the shelf may stand in. The view's to
     /// say, because the view is the only thing that knows how big it is.
     private(set) var perRow = 1
@@ -88,13 +88,20 @@ final class LibraryModel {
 
     var lines: [LibraryShelf.Line] { shelf.lines(perRow: perRow) }
 
-    var visible: Range<Int> {
-        LibraryShelf.window(
-            heights: lines.map(Self.height), top: top, budget: budget, keeping: nil
-        ).visible
+    private var heights: [Int] { lines.map(Self.height) }
+
+    /// The whole shelf's height in grid rows, and the part of it on the glass.
+    var rows: Int { LibraryShelf.rows(heights) }
+
+    var window: (visible: Range<Int>, above: Int) {
+        LibraryShelf.window(heights: heights, offset: offset, budget: budget)
     }
 
-    /// Records below the last line on the screen.
+    var visible: Range<Int> { window.visible }
+
+    /// Records below the last line on the screen. A line the fold cuts through
+    /// is not counted: some of it is on the glass, and `MORE` is about what is
+    /// not.
     var below: Int {
         let lines = lines
         let end = visible.upperBound
@@ -113,15 +120,14 @@ final class LibraryModel {
         follow()
     }
 
-    /// Bring the cursor's line on to the screen, moving the window no further
-    /// than that takes (`LibraryShelf.window`).
+    /// Bring the cursor's line on to the screen, moving the shelf no further
+    /// than that takes (`LibraryShelf.scrolled`).
     private func follow() {
         guard sized else { return }
-        let lines = lines
-        top = LibraryShelf.window(
-            heights: lines.map(Self.height), top: top, budget: budget,
+        offset = LibraryShelf.scrolled(
+            heights: heights, offset: offset, budget: budget,
             keeping: shelf.line(of: cursor, perRow: perRow)
-        ).top
+        )
     }
 
     // MARK: - What the status line says
@@ -191,20 +197,19 @@ final class LibraryModel {
         cursor = index
     }
 
-    private var carried = 0
+    /// The wheel moves the shelf and leaves the cursor where it was: a scroll
+    /// is looking, not choosing. **A row of glass for a row of wheel** — the
+    /// monitor counts the wheel in the panel's own rows, and the shelf moves by
+    /// the same ones, so the wall goes exactly as far as the hand did.
+    func wheel(_ rows: Int) {
+        scroll(to: offset + rows)
+    }
 
-    /// The wheel moves the window and leaves the cursor where it was: a scroll
-    /// is looking, not choosing. Three of the wheel's lines to a line of the
-    /// shelf, since a row of sleeves is seven lines tall and moving it by one
-    /// per notch would leave nothing still long enough to be read.
-    func wheel(_ lines: Int) {
-        carried += lines
-        guard abs(carried) >= 3 else { return }
-        let step = carried > 0 ? 1 : -1
-        carried = 0
-        top = LibraryShelf.window(
-            heights: self.lines.map(Self.height), top: top + step, budget: budget, keeping: nil
-        ).top
+    /// Straight to a row of the shelf, which is what the bar does when it is
+    /// dragged. Nothing is kept for the cursor: the bar is looking too.
+    func scroll(to row: Int) {
+        offset = LibraryShelf.scrolled(
+            heights: heights, offset: row, budget: budget, keeping: nil)
     }
 
     /// `⏎`, and a click.

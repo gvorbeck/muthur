@@ -176,44 +176,74 @@ public struct LibraryShelf: Sendable, Equatable {
 
     // MARK: - The window
 
-    /// Which lines are on the screen: from `top`, as many as `budget` grid
-    /// rows hold, with each line as tall as `height` says.
+    /// **The shelf is scrolled in grid rows, not in lines.** A line is a row of
+    /// sleeves — seven rows tall — and a wheel that moved the shelf a whole one
+    /// at a time threw the wall a sleeve's height for a flick of the finger and
+    /// could not be asked for anything smaller. The row is what the panel is
+    /// drawn on and what the wheel already counts in (`PanelView.startWheel`),
+    /// so it is what the shelf moves by: one row of glass for one row of wheel.
     ///
-    /// **The window moves only as far as the cursor makes it**, which is not
-    /// the picker's rule. The picker centres its cursor, and on a list of one
-    /// line per row that is steady. On a grid it is not: every `↓` would move
-    /// the whole shelf by a row of sleeves, and the thing you are looking for
-    /// would never be where you last saw it.
-    public static func window(
-        heights: [Int], top: Int, budget: Int, keeping cursor: Int?
-    ) -> (top: Int, visible: Range<Int>) {
-        guard !heights.isEmpty else { return (0, 0..<0) }
-        var top = min(max(0, top), heights.count - 1)
-        if let cursor, heights.indices.contains(cursor) {
-            if cursor < top { top = cursor }
-            // A cursor below the fold pulls the top down until the cursor's line
-            // is whole on the screen, or until it is the top line and is simply
-            // taller than the screen.
-            while top < cursor, fits(heights, from: top, through: cursor) > budget {
-                top += 1
-            }
+    /// `offset` is how many rows of the shelf are above the top of the glass.
+    public static func rows(_ heights: [Int]) -> Int { heights.reduce(0, +) }
+
+    /// Where each line's top sits, in rows from the head of the shelf.
+    public static func tops(_ heights: [Int]) -> [Int] {
+        var tops: [Int] = []
+        tops.reserveCapacity(heights.count)
+        var row = 0
+        for height in heights {
+            tops.append(row)
+            row += height
         }
-        // Never a window scrolled past the point where the last line is on the
-        // screen: a shelf with its foot at the top of the glass and nothing
-        // below is empty space the wheel put there.
-        while top > 0, fits(heights, from: top - 1, through: heights.count - 1) <= budget {
-            top -= 1
-        }
-        var end = top
-        var used = 0
-        while end < heights.count, used + heights[end] <= budget || end == top {
-            used += heights[end]
-            end += 1
-        }
-        return (top, top..<end)
+        return tops
     }
 
-    private static func fits(_ heights: [Int], from: Int, through: Int) -> Int {
-        heights[from...through].reduce(0, +)
+    /// The lines an offset puts on the glass, and how much of the first one is
+    /// above it — what the view shifts the shelf up by to draw a line that is
+    /// half on the screen.
+    public static func window(
+        heights: [Int], offset: Int, budget: Int
+    ) -> (visible: Range<Int>, above: Int) {
+        guard !heights.isEmpty, budget > 0 else { return (0..<0, 0) }
+        let offset = clamp(heights: heights, offset: offset, budget: budget)
+        let tops = tops(heights)
+        let foot = offset + budget
+        guard let first = heights.indices.first(where: { tops[$0] + heights[$0] > offset })
+        else { return (0..<0, 0) }
+        var end = first
+        while end < heights.count, tops[end] < foot { end += 1 }
+        return (first..<end, offset - tops[first])
+    }
+
+    /// Where the shelf stands after a scroll, and after the cursor has had its
+    /// say.
+    ///
+    /// **The shelf moves only as far as the cursor makes it**, which is not the
+    /// picker's rule. The picker centres its cursor, and on a list of one line
+    /// per row that is steady. On a grid it is not: every `↓` would move the
+    /// whole wall by a row of sleeves, and the thing you are looking for would
+    /// never be where you last saw it.
+    public static func scrolled(
+        heights: [Int], offset: Int, budget: Int, keeping cursor: Int?
+    ) -> Int {
+        guard !heights.isEmpty, budget > 0 else { return 0 }
+        var offset = offset
+        if let cursor, heights.indices.contains(cursor) {
+            let tops = tops(heights)
+            let top = tops[cursor]
+            let foot = top + heights[cursor]
+            if top < offset { offset = top }
+            // A line taller than the glass is shown from its head rather than
+            // pinned to its foot: the sleeve, not the blank under it.
+            if foot > offset + budget { offset = min(top, foot - budget) }
+        }
+        return clamp(heights: heights, offset: offset, budget: budget)
+    }
+
+    /// Never scrolled past the foot of the shelf — a wall with its last row at
+    /// the top of the glass and nothing under it is empty space the wheel put
+    /// there — and never above its head.
+    private static func clamp(heights: [Int], offset: Int, budget: Int) -> Int {
+        min(max(0, offset), max(0, rows(heights) - budget))
     }
 }

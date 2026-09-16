@@ -36,8 +36,14 @@ struct LibraryView: View {
     static var side: CGFloat { Grid.rows(LibraryModel.tileRows) }
     static var gap: CGFloat { Grid.columns(2) }
 
+    /// The bar down the right-hand edge and the slop beside it. Two columns of
+    /// glass the sleeves do not get: one the bar is drawn in, one so a thing a
+    /// column wide can still be caught by a hand aiming at it.
+    static var barWidth: CGFloat { Grid.columns(2) }
+
     static func perRow(width: CGFloat) -> Int {
-        max(1, Int(((width - 2 * Grid.margin + gap) / (side + gap)).rounded(.down)))
+        let glass = width - 2 * Grid.margin - barWidth
+        return max(1, Int(((glass + gap) / (side + gap)).rounded(.down)))
     }
 
     /// The lines the shelf may stand in: the screen, less the faceplate and its
@@ -70,10 +76,19 @@ struct LibraryView: View {
                 .frame(width: Theme.panelWidth, alignment: .leading)
             }
 
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(visible, id: \.self) { index in
-                    line(lines[index], shelf: shelf)
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(visible, id: \.self) { index in
+                        line(lines[index], shelf: shelf)
+                    }
                 }
+                // The first line on the glass may be half off the top of it:
+                // the shelf moves a row at a time and a row of sleeves is
+                // seven rows tall, so the fold falls where it falls.
+                .offset(y: -Grid.rows(library.window.above))
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+
+                ShelfBarView(library: library)
             }
             .frame(height: Grid.rows(library.budget), alignment: .top)
             .clipped()
@@ -209,6 +224,73 @@ struct LibraryView: View {
             .contentShape(Rectangle())
             .onTapGesture { library.point(at: section.first) }
         }
+    }
+}
+
+// MARK: - The bar
+
+/// How far down the shelf you are, and a handle to take it somewhere else.
+///
+/// **Neither script has one** — a terminal shows you `MORE` and nothing else,
+/// and `MORE` is still here under the shelf, because it says how many records
+/// are below rather than how far down a wall of them you have come. A window
+/// has a pointer, and a wall of four hundred sleeves is the first thing in this
+/// port long enough that dragging it is faster than any key.
+///
+/// It is drawn in the panel's own rows, a column wide, and only when there is
+/// more shelf than glass. The space it stands in is kept whether or not it is
+/// drawn, so a shelf does not change width the moment it grows past the fold.
+private struct ShelfBarView: View {
+    let library: LibraryModel
+
+    /// Rows between the pointer and the head of the thumb, held for the length
+    /// of a drag so the thumb does not jump under the finger that took it.
+    @State private var grab: CGFloat?
+
+    var body: some View {
+        let rows = CGFloat(library.rows)
+        let budget = CGFloat(library.budget)
+        let height = Grid.rows(library.budget)
+        ZStack(alignment: .topTrailing) {
+            if rows > budget {
+                // The thumb is the screen's share of the shelf, never smaller
+                // than a row, so it is still a thing you can take hold of on a
+                // library of four hundred records.
+                let thumb = max(Grid.rows(1), height * budget / rows)
+                let travel = height - thumb
+                let at = travel * CGFloat(library.offset) / (rows - budget)
+                Rectangle()
+                    .fill(Theme.amber(.field))
+                    .frame(width: Grid.columns(1))
+                Rectangle()
+                    .fill(grab == nil ? Theme.etch : Theme.lit)
+                    .frame(width: Grid.columns(1), height: thumb)
+                    .offset(y: at)
+            }
+        }
+        .frame(width: LibraryView.barWidth, height: height, alignment: .topTrailing)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    guard rows > budget else { return }
+                    let thumb = max(Grid.rows(1), height * budget / rows)
+                    let travel = height - thumb
+                    guard travel > 0 else { return }
+                    let at = travel * CGFloat(library.offset) / (rows - budget)
+                    let grab =
+                        grab
+                        // A press on the thumb takes it where it was held; a
+                        // press anywhere else on the bar brings it to the
+                        // pointer, which is the one place it was asked for.
+                        ?? ((value.location.y >= at && value.location.y <= at + thumb)
+                            ? value.location.y - at : thumb / 2)
+                    self.grab = grab
+                    let head = min(max(0, value.location.y - grab), travel)
+                    library.scroll(to: Int((head / travel * (rows - budget)).rounded()))
+                }
+                .onEnded { _ in grab = nil }
+        )
     }
 }
 
