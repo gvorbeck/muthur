@@ -16,12 +16,14 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All eighty-two are settled; they
+  the reasoning and the decision it came from. All ninety-two are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
-  get to the next requirement. *(This number had drifted to thirty-nine while
-  §16 said forty-six — two numbers for one set, which is the drift this document
-  keeps warning about. Re-derived by counting the decisions themselves, which is
+  get to the next requirement. *(This number has now drifted twice in the same
+  way — thirty-nine against §16's forty-six, and later eighty-two against its
+  eighty-nine. Two numbers for one set, which is the drift this document keeps
+  warning about, and neither time did a `grep` catch it because both were
+  written out in words. Re-derived by counting the entries themselves, which is
   the only count that is ever authoritative.)*
 
 **Three files, one numbering.** This document is §1–§15, §17, the five questions
@@ -79,7 +81,11 @@ only that every question asked so far has an answer.
 one, so there is nothing in either for a box to be parity with: it is the
 directories you name, walked when you open it, with a sleeve per record fetched
 once and kept. Where it touches a row that exists — §11's `records` — the row
-says so.
+says so. **D92 moves no count either, and it is the only entry that takes a key
+away from the script**: `l` is the library on the playing panel now, so the vi
+seek pair is gone and `h` with it. The §6.1 table and its box carry the change;
+`←` `→` still seek, and the denominator is answering a question `player` never
+asked.
 
 Everything waiting on hardware — the four boxes below and §19's six — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for
@@ -2099,7 +2105,7 @@ measurement.
 | Key | Action |
 | --- | --- |
 | `␣` | pause / resume |
-| `←` `→` / `h` `l` | seek ∓5 s |
+| `←` `→` | seek ∓5 s — `h` `l` did this too until **D92** took the pair |
 | `⇧←` `⇧→` | seek ∓30 s |
 | `↑` `↓` / `k` `j` | move the cursor |
 | `PgUp` `PgDn` | move the cursor a screenful |
@@ -2112,10 +2118,14 @@ measurement.
 | `-` `=` | volume down / up — **new (D1)** |
 | `m` | mute / unmute — **new (D1)** |
 | `e` | take the record off, back to the start screen — **new (D57)** |
+| `l` | the library, over the record without stopping it — **new (D92)** |
 
 - [x] All of the above (`player:2687`). Bound in `PanelView.handle` and
-      `PanelView.letter`; the arrows and the vi pair go to the same call so there
-      is one behaviour and two ways to reach it.
+      `PanelView.letter`. The vi seek pair is the one binding of the script's
+      that this port has taken away rather than added to: **D92** gives `l` to
+      the library, which is what it means on every other screen, and drops `h`
+      with it rather than leave half a pair standing. The arrows are untouched
+      and were always the other way to reach it.
 - [x] **Cursor and playhead are two different things.** `♪` is the track the
       music is coming out of (`‖` when paused); the highlighted row with `▶` in
       the gutter is the cursor. Usually they agree; when you browse ahead they do
@@ -2684,7 +2694,11 @@ drop the constraint where it only ever existed because of the terminal.
       finer; it is the only reason it wanted them.*
 - [x] `▾ N MORE` when the list is clamped, worded the same wherever that happens
       (`panel.sh:384`).
-- [x] Keycap legend rows, both of them (`player:2429`, `player:2430`).
+- [x] Keycap legend rows, both of them (`player:2429`, `player:2430`) — three
+      here since **D58**, and `L LIBRARY` joins the third of them under **D92**.
+      It belongs beside `EJECT` by meaning, and is not there for the reason the
+      volume caps were not: row two stands in 58 of the 69 columns and the cap
+      wants eleven and a gap. `KeycapTests.fits` is what says so.
 - [x] Loading stage: the album meter with no bands yet, one per file as they
       land, which is the honest picture of the wait. Distinct stages `OPENING`,
       `READING`, `READING DISC` with a per-file/per-step line

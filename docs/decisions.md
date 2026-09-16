@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-eighty-nine are settled. Recorded here with the answer so that a departure from
+ninety-two are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -170,7 +170,7 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
-**D86 to D91 came from using it.** D86 is the Burn menu: every flag `burncd`
+**D86 to D92 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
 now a switch — not saved across launches, because a rehearsal remembered from
 last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
@@ -181,7 +181,9 @@ pointer, by whole columns so the grid never moves. D90 sets the plan and the
 insert stage on the deck's grid, so a record carried to the burn does not move.
 D91 is the library, and the first entry here to give back part of one before it:
 D50's scan returns, but only for directories you name, and only when you open
-the library.
+the library. D92 is the only entry that takes a binding away from the script
+rather than adding one — `l` is the library on the playing panel now, and the vi
+seek pair went to pay for it.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -3950,9 +3952,11 @@ were added, then rows of sleeves filed by artist and title (`The Cure` under C,
 and `B-52's, The` beside it), `MORE`, the keycaps and the status. Sleeves are
 drawn in phosphor, and in true colour under the pointer, as the deck's is.
 
-Three choices on this screen were not obvious:
+Four choices on this screen were not obvious:
 - **`L` on the start screen, `⌘L` everywhere.** The deck's `l`/`L` already seek,
-  so a bare `L` could not open the library from there.
+  so a bare `L` could not open the library from there. **D92 undid this half of
+  it**: the seek pair was the thing that gave way, and `L` is now the same key
+  on all three screens.
 - **The window moves only as far as the cursor makes it**, unlike the picker,
   which centres. On a grid, centring moves the whole wall a row of sleeves on
   every `↓`.
@@ -3981,3 +3985,41 @@ Three choices on this screen were not obvious:
 **Found on the way, and fixed with it:** opening a zip over a zip that was
 already playing left the first one's scratch unpacked until quit. The old scratch
 is now torn down once the new record has loaded.
+
+**D92 — `L` is the library on the playing panel too, and the vi seek pair is gone.** → §6.1, §10, §14
+
+`player:2687` binds `h` and `l` to the five-second seek, beside `←` and `→`,
+for the reason it binds `k` and `j` beside `↑` and `↓`: whichever hand is
+already there. D91 took that as given and worked around it — `L` opened the
+library from the start screen, and from a record that was playing you needed
+`⌘L`, a menu shortcut with no cap on the panel to say it existed.
+
+**The key is worth more than the second way to seek.** A shortcut nobody can
+see is a shortcut nobody presses, and the library is the one screen this
+program gained that you want to get back to *while something is playing* —
+which is exactly where the only way in was invisible. `←` and `→` are not
+going anywhere; they were always the other half of the pair, and `⇧←` `⇧→`
+still do the thirty seconds. So `l` means the shelf on all three screens that
+have it, and means it whether or not a record is spinning.
+
+**`h` went with it rather than being left bound on its own.** Half a vi pair is
+worse than none: it is a key you press out of habit on a keyboard that has
+stopped answering the one beside it. `k` and `j` stay, because they are a whole
+pair and the list they walk is still there.
+
+**This is a binding taken away from the script, which nothing else here does.**
+Every other entry in this document adds, moves or reinterprets; this one deletes
+two of `player`'s keys. It is recorded plainly for that reason. The script keeps
+them — it has no library to go back to — and continues to be used over ssh by
+someone whose fingers know where seek is.
+
+**`L LIBRARY` is on the legend**, on the third row after `MUTE`, because a key
+that is always live and never drawn is what this decision exists to stop being
+the case. By meaning it belongs beside `EJECT` on row two — leaving this record
+for the wall is something you do *to* it, the argument D57 and §20 both made —
+but row two stands in 58 of the 69 columns and the cap wants eleven and a gap.
+Row three, D58's own wrap, is 19. `KeycapTests.fits` measured it, not the eye.
+
+**The record keeps playing**, as it does under `⌘L` and under the check screen:
+the shelf goes over the deck rather than instead of it, and `L` again puts it
+away with the music where it was.

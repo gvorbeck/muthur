@@ -1017,11 +1017,21 @@ struct KeycapTests {
     /// ends rather than folded into it — the second row has room for them on
     /// paper but not with anything spare, and a legend that wraps with slack in
     /// it beats one that doesn't wrap and has none.
-    @Test("VOL and MUTE are the third row, after QUIT")
+    ///
+    /// **D92** put `LIBRARY` on the end of it, and the row D58 made is why
+    /// there was somewhere for it to go: by meaning it belongs with `EJECT` on
+    /// row two, but row two is 58 of 69 and the cap wants eleven and a gap.
+    @Test("VOL and MUTE are the third row, after QUIT, with LIBRARY after them")
     func volumeAndMuteAreTheThirdRow() {
-        #expect(Readout.legend[2].map(\.label) == ["VOL", "MUTE"])
+        #expect(Readout.legend[2].map(\.label) == ["VOL", "MUTE", "LIBRARY"])
         #expect(Readout.legend[2][0].presses == [.volumeDown, .volumeUp])
         #expect(Readout.legend[2][1].presses == [.mute])
+        #expect(Readout.legend[2][2].presses == [.library])
+        // The deck is the only screen that can be left *for* the shelf while
+        // something is still spinning, so it is the only one where the cap
+        // means "over this" rather than "instead of this".
+        #expect(!Readout.legend[0].contains { $0.presses.contains(.library) })
+        #expect(!Readout.legend[1].contains { $0.presses.contains(.library) })
     }
 
     /// Nothing offers a way back to a screen you are already on. The picker *is*

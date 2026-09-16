@@ -607,10 +607,13 @@ struct PanelView: View {
         // against ten seconds in is exactly when you want the next one.
         case .eject: model.eject()
         case .close: break
-        // The shelf's own keys (D91). `L` is not the library here — it is the
-        // needle forward, as it has been since D1 — and ⌘L in the menu is the
-        // way to the shelf from a record that is playing.
-        case .selectLeft, .selectRight, .library, .addDirectory, .removeDirectory: break
+        // The way to the shelf from a record that is playing, and it does not
+        // stop the record: the library goes over the deck the way the check
+        // screen does (D92). `L` is the same key here as on the start screen and
+        // on the shelf itself, which is what cost the vi seek pair.
+        case .library: model.showLibrary()
+        // The shelf's own keys (D91), which are the shelf's alone.
+        case .selectLeft, .selectRight, .addDirectory, .removeDirectory: break
         case .quit: NSApplication.shared.terminate(nil)
         }
     }
@@ -883,13 +886,16 @@ struct PanelView: View {
         return .handled
     }
 
+    /// No modifier is read here any more: the letters that carried one were the
+    /// vi seek pair, and D92 took them (`⇧←→` is still the thirty seconds).
     private func letter(_ press: KeyPress) -> KeyPress.Result {
-        let shift = press.modifiers.contains(.shift)
         switch press.characters.lowercased() {
-        // The vi pair, which the script bound for the same reason it bound the
-        // arrows: whichever hand is already there.
-        case "h": perform(.seekBack, shift: shift)
-        case "l": perform(.seekForward, shift: shift)
+        // **The vi seek pair is gone and `L` is the library** (D92). It is the
+        // one key that means the same thing on every screen that has it, and
+        // that was worth more than a second way to do what `←→` already do. `h`
+        // went with it rather than being left standing on its own: half a vi
+        // pair is a key you press by habit and get nothing from.
+        case "l": perform(.library)
         case "k": perform(.selectUp)
         case "j": perform(.selectDown)
         case "n": perform(.next)

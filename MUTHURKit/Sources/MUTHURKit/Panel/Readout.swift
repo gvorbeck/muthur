@@ -256,6 +256,13 @@ public enum Readout {
     /// belongs, and before `QUIT` because `Q` stays last. Row two goes 47 → 58,
     /// measured by `KeycapTests.fits` and not by the arithmetic in this
     /// sentence.
+    ///
+    /// **`L LIBRARY` is on the third row, and is there because row two had no
+    /// room** (D92). By its meaning it belongs beside `EJECT` — leaving this
+    /// record for the wall is something you do *to* it — but row two stands in
+    /// 58 of 69 and the cap wants eleven plus its gap, which is 72. Row three
+    /// is 19, so it goes there: after `MUTE`, last in and last placed, on the
+    /// row that exists precisely because this happened once before.
     public static let legend: [[Cap]] = [
         [
             Cap("␣", "PLAY", .play),
@@ -275,6 +282,7 @@ public enum Readout {
         [
             Cap("-=", "VOL", .volumeDown, .volumeUp),
             Cap("M", "MUTE", .mute),
+            Cap("L", "LIBRARY", .library),
         ],
     ]
 
