@@ -353,6 +353,16 @@ final class PanelModel {
         stage = nil
         loading = .opening(source: url.lastPathComponent, total: 0)
         record = nil
+        // The sleeve goes with the record it belonged to. `findSleeve` would
+        // clear it, but not until `adopt` — which is after the unpack — so a
+        // zip opened over a playing record spent its whole OPENING stage under
+        // the last record's cover. The fetch goes too: an archive answer for
+        // the record being taken off has nowhere honest to land.
+        sleeveWork?.cancel()
+        sleeveWork = nil
+        pendingSleeve?.cancel()
+        pendingSleeve = nil
+        sleeve = nil
         pickerEntries = nil
         let useMusicBrainz = self.useMusicBrainz
         Task {
