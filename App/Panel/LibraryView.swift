@@ -71,7 +71,24 @@ struct LibraryView: View {
                     FaceplateView(meta: meta, glitching: glitching)
                     PanelBlank()
                     fields(shelf)
-                    PanelBlank()
+                    // **The find line stands in the blank over the shelf**
+                    // (D93), and nowhere else. The blank is there whether or
+                    // not anything is being looked for, so the line costs the
+                    // shelf no row and moves nothing when it comes up: the
+                    // wall is exactly where it was, and starts thinning.
+                    if let query = library.query {
+                        FindLineView(
+                            query: query,
+                            found: shelf.records,
+                            of: library.whole.records,
+                            summons: library.summons,
+                            typed: library.search,
+                            step: { library.move($0) },
+                            commit: { library.play() },
+                            cancel: library.endFind)
+                    } else {
+                        PanelBlank()
+                    }
                 }
                 .frame(width: Theme.panelWidth, alignment: .leading)
             }
@@ -138,6 +155,10 @@ struct LibraryView: View {
                     value: (section.directory.scanned == nil ? "NOT WALKED YET" : "NOTHING IN IT") + offline,
                     colour: Theme.dim)
             }
+        } else if let query = library.query, !library.whole.sections.isEmpty {
+            FieldRow(label: "ALBUM", value: query.isEmpty ? "—" : "NOTHING ANSWERS TO THAT", colour: Theme.etch)
+            FieldRow(label: "ARTIST", value: "—", colour: Theme.dim)
+            FieldRow(label: "SOURCE", value: "—", colour: Theme.dim)
         } else {
             FieldRow(label: "ALBUM", value: "NO DIRECTORIES IN THE LIBRARY", colour: Theme.etch)
             FieldRow(label: "ARTIST", value: "—", colour: Theme.dim)
@@ -224,6 +245,80 @@ struct LibraryView: View {
             .contentShape(Rectangle())
             .onTapGesture { library.point(at: section.first) }
         }
+    }
+}
+
+// MARK: - The find line
+
+/// **D93** — what has been typed, and how much of the shelf answers to it.
+///
+/// A real text field, for the reason `PlanPromptView` is one: paste, the
+/// input method and a word taken back with ⌥⌫ are all a line editor's, and a
+/// key buffer built on `onKeyPress` would be a worse one. It sits on the header
+/// rows' own grid — the mark, the label in dot matrix, the value — so it reads
+/// as a fourth field and not as a box dropped on the panel.
+///
+/// **`↑↓` are taken from the field and given to the shelf.** A one-line field
+/// has nothing for them to do, and the hand that has just typed a name wants
+/// to walk down what it found without letting go of the keys. `←→` stay the
+/// field's, which is the one place this line and the shelf disagree.
+private struct FindLineView: View {
+    let query: String
+    let found: Int
+    let of: Int
+    /// Bumped by `/` while the line is already up, so a field that lost the
+    /// focus to a click can be given it back by the key that opened it.
+    let summons: Int
+    let typed: (String) -> Void
+    let step: (LibraryShelf.Move) -> Void
+    let commit: () -> Void
+    let cancel: () -> Void
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer().frame(width: Grid.margin)
+            run(Readout.cursorGlyph, Theme.lit)
+                .font(Theme.swiftUIFont)
+                .frame(width: Grid.columns(1), alignment: .leading)
+            Spacer().frame(width: Grid.columns(1))
+            MatrixText(text: "FIND", colour: Theme.etch, columns: HeaderBlock.labelWidth)
+            Spacer().frame(width: Grid.columns(1))
+            TextField(
+                "",
+                text: Binding(get: { query }, set: typed),
+                prompt: Text("[title, artist or path]").foregroundStyle(Theme.dim)
+            )
+            .textFieldStyle(.plain)
+            .font(Theme.swiftUIFont)
+            .foregroundStyle(Theme.text)
+            .tint(Theme.lit)
+            .focused($focused)
+            .onSubmit(commit)
+            .onExitCommand(perform: cancel)
+            .onKeyPress(.upArrow) {
+                step(.up)
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                step(.down)
+                return .handled
+            }
+            .onAppear { focused = true }
+            .onChange(of: summons) { focused = true }
+            // Said only once there is something typed to answer to: with the
+            // line empty, "219 OF 219" is the faceplate said twice.
+            if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                Spacer().frame(width: Grid.columns(2))
+                run("\(found) OF \(of)", found == 0 ? Theme.lit : Theme.etch)
+                    .font(Theme.swiftUIFont)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            Spacer().frame(width: Grid.margin)
+        }
+        .frame(width: Theme.panelWidth, alignment: .leading)
+        .gridLine()
     }
 }
 

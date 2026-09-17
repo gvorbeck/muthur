@@ -893,6 +893,7 @@ struct KeycapTests {
             + Readout.libraryLegend(directories: true, records: true)
             + Readout.libraryLegend(directories: true, records: false)
             + Readout.libraryLegend(directories: false, records: false)
+            + Readout.libraryLegend(directories: true, records: true, finding: true)
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
@@ -964,6 +965,7 @@ struct KeycapTests {
             ("check", Readout.checkLegend),
             ("plan", Readout.planLegend),
             ("library", Readout.libraryLegend(directories: true, records: true)),
+            ("finding", Readout.libraryLegend(directories: true, records: true, finding: true)),
         ]
         for (name, legend) in screens {
             let keys = legend.flatMap { $0 }.map(\.key)

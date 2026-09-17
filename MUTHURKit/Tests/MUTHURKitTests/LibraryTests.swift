@@ -385,6 +385,59 @@ struct LibraryTests {
         #expect(LibraryShelf.window(heights: [], offset: 0, budget: 4) == (0..<0, 0))
     }
 
+    // MARK: - Finding (D93)
+
+    private func records() -> Library {
+        Library(directories: [
+            .init(
+                path: "/music",
+                albums: [
+                    .init(path: "Cure/Disintegration", kind: .folder, title: "Disintegration", artist: "The Cure"),
+                    .init(path: "Motörhead/Ace of Spades.zip", kind: .zip, title: "Ace of Spades", artist: "Motörhead"),
+                    .init(path: "untagged.zip", kind: .zip, title: "untagged", artist: ""),
+                ]),
+            .init(path: "/empty"),
+            .init(
+                path: "/usb",
+                albums: [
+                    .init(path: "FLAC/Cure/Pornography.zip", kind: .zip, title: "Pornography", artist: "The Cure")
+                ]),
+        ])
+    }
+
+    @Test("no query, or a blank one, is the whole shelf, empty directories and all")
+    func findNothing() {
+        // One library for all three: a directory's id is minted when it is made.
+        let library = records()
+        #expect(LibraryShelf(library, matching: "") == LibraryShelf(library))
+        #expect(LibraryShelf(library, matching: "  \t ") == LibraryShelf(library))
+        #expect(LibraryShelf(library, matching: "").sections.count == 3)
+    }
+
+    @Test("every word must be somewhere in the title, artist or path, in any order")
+    func findEveryWord() {
+        let cure = LibraryShelf(records(), matching: "cure")
+        #expect(cure.records == 2)
+        // The directory with nothing in it for this query is not on the shelf.
+        #expect(cure.sections.map(\.directory.path) == ["/music", "/usb"])
+        #expect(cure.sections.map(\.first) == [0, 1])
+        #expect(cure.count == 2)
+
+        #expect(LibraryShelf(records(), matching: "PORN cure").records == 1)
+        #expect(LibraryShelf(records(), matching: "cure porn").slot(0)?.album?.title == "Pornography")
+        // The path is looked in: the format folder, and a record with no tags.
+        #expect(LibraryShelf(records(), matching: "flac").records == 1)
+        #expect(LibraryShelf(records(), matching: "untagged").records == 1)
+        // A word that is in no record leaves nothing, not the whole shelf.
+        #expect(LibraryShelf(records(), matching: "cure bowie").count == 0)
+    }
+
+    @Test("case and accents are let go of")
+    func findFolds() {
+        #expect(LibraryShelf(records(), matching: "MOTORHEAD").records == 1)
+        #expect(LibraryShelf(records(), matching: "motörhead").records == 1)
+    }
+
     @Test("the library's plate counts records and says how many are away")
     func libraryMeta() {
         #expect(Faceplate.libraryMeta(count: 1, offline: 0) == "LIBRARY · 1 RECORD")

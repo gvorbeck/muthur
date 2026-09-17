@@ -130,6 +130,17 @@ struct LibraryCommands: Commands {
                 model.library.rescan()
             }
             .disabled(busy || model.library.library.directories.isEmpty)
+
+            Divider()
+
+            // ⌘F, which is where a Mac hand goes for this before it has read
+            // a single cap; `/` is the panel's own (D93).
+            Button("Find in Library") {
+                model.showLibrary()
+                model.library.find()
+            }
+            .keyboardShortcut("f")
+            .disabled(busy || model.library.library.directories.isEmpty)
         }
     }
 

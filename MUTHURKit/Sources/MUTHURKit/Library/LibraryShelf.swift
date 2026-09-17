@@ -29,16 +29,52 @@ public struct LibraryShelf: Sendable, Equatable {
 
     public let sections: [Section]
 
-    public init(_ library: Library) {
+    /// `query` narrows the shelf to the records it finds (**D93**). An empty or
+    /// blank one is the whole shelf, empty directories and all.
+    public init(_ library: Library, matching query: String = "") {
+        let terms = Self.terms(query)
         var sections: [Section] = []
         var first = 0
         for directory in library.directories {
-            let section = Section(
-                directory: directory, albums: Library.filed(directory.albums), first: first)
+            let albums = terms.isEmpty ? directory.albums : directory.albums.filter { Self.matches($0, terms) }
+            // **A search leaves out the directories it found nothing in**,
+            // where the whole shelf keeps them as a slot each. The slot exists
+            // so that `X` can reach an empty directory; a directory that is only
+            // empty of *this* query is not one anybody came here to remove, and
+            // a wall of `NOTHING IN IT` lines would bury the three records that
+            // did match.
+            if !terms.isEmpty, albums.isEmpty { continue }
+            let section = Section(directory: directory, albums: Library.filed(albums), first: first)
             sections.append(section)
             first += section.slots
         }
         self.sections = sections
+    }
+
+    // MARK: - Finding (D93)
+
+    /// The words of a query, folded the way `matches` folds what it is held
+    /// against.
+    public static func terms(_ query: String) -> [String] {
+        query.split(whereSeparator: \.isWhitespace).map { fold(String($0)) }
+    }
+
+    /// **Every word, somewhere in the record** — its title, its artist, or its
+    /// path under the directory. In any order and in any of the three, so `cure
+    /// disintegration` and `disintegration cure` find the same record, and so
+    /// does `flac cure` on a drive filed by format. The path is in it because
+    /// it is the third field on the screen, and because a record nobody has
+    /// tagged is known by nothing else.
+    ///
+    /// Case and accents are both let go of: nobody types `Motörhead` into a
+    /// search to mean it strictly.
+    public static func matches(_ album: Library.Album, _ terms: [String]) -> Bool {
+        let haystack = fold("\(album.title)\n\(album.artist)\n\(album.path)")
+        return terms.allSatisfy { haystack.contains($0) }
+    }
+
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
     }
 
     /// Every slot, records and empty directories alike.

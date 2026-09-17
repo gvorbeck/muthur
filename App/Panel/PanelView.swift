@@ -68,6 +68,10 @@ struct PanelView: View {
             .onChange(of: model.planPrompt == nil) { _, noPrompt in
                 if noPrompt { focused = true }
             }
+            // The library's find line borrows it on the same terms (D93).
+            .onChange(of: model.library.finding) { _, finding in
+                if !finding { focused = true }
+            }
             // A screen that has gone takes its pointer with it. The shelf is torn
             // down under a still pointer, and no exit ever arrives to put the
             // veils back.
@@ -353,7 +357,8 @@ struct PanelView: View {
         if model.isLibrary {
             return Readout.libraryLegend(
                 directories: !model.library.library.directories.isEmpty,
-                records: model.library.shelf.records > 0)
+                records: model.library.shelf.records > 0,
+                finding: model.library.finding)
         }
         if model.isPlanning { return Readout.planLegend }
         if model.isPicking { return Readout.pickerLegend(hasDisc: model.pickerHasDisc) }
@@ -613,7 +618,7 @@ struct PanelView: View {
         // on the shelf itself, which is what cost the vi seek pair.
         case .library: model.showLibrary()
         // The shelf's own keys (D91), which are the shelf's alone.
-        case .selectLeft, .selectRight, .addDirectory, .removeDirectory: break
+        case .selectLeft, .selectRight, .addDirectory, .removeDirectory, .find: break
         case .quit: NSApplication.shared.terminate(nil)
         }
     }
@@ -631,6 +636,9 @@ struct PanelView: View {
         case .addDirectory: model.library.add()
         case .removeDirectory: model.library.remove()
         case .library: model.library.close()
+        // One cap both ways: `/ FIND` puts the line up, and `ESC CLEAR` on the
+        // line's own legend takes it down.
+        case .find: model.library.finding ? model.library.endFind() : model.library.find()
         case .quit: NSApplication.shared.terminate(nil)
         default: break
         }
@@ -734,9 +742,12 @@ struct PanelView: View {
         case .pageUp: model.library.page(.up)
         case .pageDown: model.library.page(.down)
         case .return: perform(.jump)
-        case .escape: perform(.library)
+        // A search left up when the field lost the focus is cleared before the
+        // screen is left: `⎋` takes off the last thing put on, one at a time.
+        case .escape: model.library.finding ? model.library.endFind() : perform(.library)
         default:
             switch press.characters.lowercased() {
+            case "/": model.library.find()
             case "a": perform(.addDirectory)
             case "x": perform(.removeDirectory)
             case "r": perform(.rescan)

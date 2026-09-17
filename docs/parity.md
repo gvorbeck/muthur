@@ -85,7 +85,8 @@ says so. **D92 moves no count either, and it is the only entry that takes a key
 away from the script**: `l` is the library on the playing panel now, so the vi
 seek pair is gone and `h` with it. The §6.1 table and its box carry the change;
 `←` `→` still seek, and the denominator is answering a question `player` never
-asked.
+asked. **D93 moves nothing either**: a find line on the library, `/` or `⌘F`,
+narrowing the wall as you type — added to a screen neither script has.
 
 Everything waiting on hardware — the four boxes below and §19's six — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for

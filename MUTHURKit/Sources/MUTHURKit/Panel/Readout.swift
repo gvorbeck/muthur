@@ -199,6 +199,11 @@ public enum Readout {
         /// The directory the cursor is in, taken off the library. Its records
         /// stay on the drive; only the list and the kept sleeves go.
         case removeDirectory
+        /// Onto the find line and off it again (**D93**). `/`, the key `less`
+        /// and `vi` search with, which is the terminal this panel is imitating —
+        /// and a letter on this screen would have been a letter the field could
+        /// not then take.
+        case find
 
         case quit
     }
@@ -336,11 +341,28 @@ public enum Readout {
     /// Caps come and go with what they would act on — the picker's `OPEN`
     /// rule. An empty library answers `A`, `L` and `Q` and nothing else, and
     /// says so.
-    public static func libraryLegend(directories: Bool, records: Bool) -> [[Cap]] {
+    ///
+    /// **While the find line is being typed into it is one row of three**
+    /// (D93), because every letter belongs to the field and a cap for `R` or
+    /// `Q` would be promising a key that now types an R. `↑↓` still walk the
+    /// shelf — `←→` are the field's, to move along what was typed — and `⏎`
+    /// still plays, so a search is type, arrow, return and the hands never
+    /// leave the keys.
+    public static func libraryLegend(directories: Bool, records: Bool, finding: Bool = false) -> [[Cap]] {
+        if finding {
+            var caps: [Cap] = []
+            if records {
+                caps.append(Cap("↑↓", "SELECT", .selectUp, .selectDown))
+                caps.append(Cap("⏎", "PLAY", .jump))
+            }
+            caps.append(Cap("ESC", "CLEAR", .find))
+            return [caps]
+        }
         var shelf: [Cap] = []
         if records {
             shelf.append(Cap("←→↑↓", "SELECT", .selectLeft, .selectRight, .selectUp, .selectDown))
             shelf.append(Cap("⏎", "PLAY", .jump))
+            shelf.append(Cap("/", "FIND", .find))
         }
         if directories { shelf.append(Cap("R", "RESCAN", .rescan)) }
         var list = [Cap("A", "ADD", .addDirectory)]

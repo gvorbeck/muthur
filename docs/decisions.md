@@ -170,7 +170,7 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
-**D86 to D92 came from using it.** D86 is the Burn menu: every flag `burncd`
+**D86 to D93 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
 now a switch — not saved across launches, because a rehearsal remembered from
 last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
@@ -183,7 +183,8 @@ D91 is the library, and the first entry here to give back part of one before it:
 D50's scan returns, but only for directories you name, and only when you open
 the library. D92 is the only entry that takes a binding away from the script
 rather than adding one — `l` is the library on the playing panel now, and the vi
-seek pair went to pay for it.
+seek pair went to pay for it. D93 is a find line on the library, for a wall that had
+grown past what the eye can scan.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4023,3 +4024,43 @@ Row three, D58's own wrap, is 19. `KeycapTests.fits` measured it, not the eye.
 **The record keeps playing**, as it does under `⌘L` and under the check screen:
 the shelf goes over the deck rather than instead of it, and `L` again puts it
 away with the music where it was.
+
+**D93 — a find line on the library, narrowing the shelf with every letter.** → §10
+
+Neither script searches anything: `player`'s picker is a list short enough to
+read, and the library (D91) is the first screen this port has that is not. A
+wall of two hundred sleeves filed by artist is a wall you scroll to find a
+record in, when you already know its name.
+
+**`/`, or `⌘F`.** `/` is the key `less` and `vi` search with, which is the
+terminal the panel is dressed as; every letter on the shelf is already a key
+(`A`, `X`, `R`, `L`, `Q`), and a letter would have been one the field could then
+not take. `⌘F` is in the Library menu for the hand that reaches for it before
+it has read a cap. `/ FIND` is on the shelf's first row, beside `⏎ PLAY`.
+
+**The line stands in the blank between the three fields and the shelf**, which
+is there whether or not anything is being looked for. So the find line costs the
+shelf no row and moves nothing when it comes up — the wall is where it was, and
+starts thinning. It is drawn on the header's grid, mark, dot-matrix label and
+value, so it reads as a fourth field. `N OF M` sits after what was typed, once
+something has been.
+
+**What matches:** every word, in any order, somewhere in the record's title,
+artist or path under its directory, with case and accents let go of. The path is
+in it because it is the third field on the screen, and because an untagged
+record is known by nothing else. Directories with no match are left off the
+shelf while the search is up, including empty ones: the empty slot exists so `X`
+can reach a directory, and a directory empty only of *this* query is not one
+anybody came to remove.
+
+**The keys, while it is up.** Every letter is the field's, so the legend becomes
+one row: `↑↓ SELECT`, `⏎ PLAY`, `ESC CLEAR`. `↑↓` walk the shelf from inside
+the field; `←→` stay the field's. Each keystroke puts the cursor on the first
+match. `⎋` takes the line down and puts the cursor back on whatever record it
+was on in the whole wall, so a search is also a way of finding where something
+is filed.
+
+**It does not outlive the screen.** Leaving the library, or playing from it,
+clears the search, and the library opens on the whole wall as it always has.
+Sleeves are still fetched for every record, and the faceplate still counts every
+record: a search is a way of looking at the shelf, not a smaller shelf.

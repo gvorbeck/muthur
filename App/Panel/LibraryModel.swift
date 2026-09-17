@@ -33,7 +33,8 @@ final class LibraryModel {
         self.file = file
         self.work = work
         library = file.read()
-        shelf = LibraryShelf(library)
+        whole = LibraryShelf(library)
+        shelf = whole
     }
 
     // MARK: - What is on the shelf
@@ -42,7 +43,13 @@ final class LibraryModel {
     /// `library`, laid out. Rebuilt on every change rather than computed on
     /// read, because the panel redraws twenty times a second while a record
     /// plays under it and filing two hundred records is not free.
+    ///
+    /// **Two of them while a search is up** (D93): `shelf` is what is on the
+    /// glass and what the cursor walks, `whole` is every record there is. The
+    /// sleeves are still fetched for the whole library, and the faceplate still
+    /// counts it — a search is a way of looking at the shelf, not a smaller one.
     private(set) var shelf = LibraryShelf(Library())
+    private(set) var whole = LibraryShelf(Library())
     @ObservationIgnored private var watching = false
 
     private(set) var isOpen = false
@@ -54,10 +61,56 @@ final class LibraryModel {
 
     /// Records in directories that are not there, for the faceplate.
     var offline: Int {
-        shelf.sections.filter { reaches[$0.id] == nil }.reduce(0) { $0 + $1.albums.count }
+        whole.sections.filter { reaches[$0.id] == nil }.reduce(0) { $0 + $1.albums.count }
     }
 
-    var meta: String { Faceplate.libraryMeta(count: shelf.records, offline: offline) }
+    var meta: String { Faceplate.libraryMeta(count: whole.records, offline: offline) }
+
+    // MARK: - Finding (D93)
+
+    /// What has been typed on the find line, or nil when the line is not up.
+    /// An empty string is the line up with nothing in it yet, which is the
+    /// whole shelf.
+    private(set) var query: String?
+
+    var finding: Bool { query != nil }
+
+    /// How many times `/` has been pressed with the line already up.
+    private(set) var summons = 0
+
+    /// `/`. The line comes up empty, over the shelf as it was — or, if it is
+    /// up already and a click took the focus off it, gets the focus back.
+    func find() {
+        settle()
+        if query == nil {
+            query = ""
+        } else {
+            summons += 1
+        }
+    }
+
+    /// A letter typed or taken away. **The cursor goes to the head of what is
+    /// left, every time**: the best place to look for a record you are typing
+    /// the name of is the first one that answers to it, and a cursor kept on
+    /// a record from before the search began would be somewhere down a wall
+    /// you have stopped looking at.
+    func search(_ text: String) {
+        guard query != nil, text != query else { return }
+        message = nil
+        query = text
+        shelf = LibraryShelf(library, matching: text)
+        cursor = 0
+        offset = 0
+        follow()
+    }
+
+    /// `⎋` — the line goes and the whole shelf comes back, **with the cursor
+    /// on the record it was on**. Arrowing to a record in a search and then
+    /// clearing it is how you find where it sits among everything else.
+    func endFind() {
+        guard query != nil else { return }
+        changing { query = nil }
+    }
 
     // MARK: - The cursor and the window
 
@@ -165,8 +218,11 @@ final class LibraryModel {
         walk(unwalked, retrying: false)
     }
 
+    /// A search does not outlive the screen it was typed on: the library
+    /// opens on the whole wall, as it always has.
     func close() {
         isOpen = false
+        endFind()
         message = nil
         pendingRemoval = nil
     }
@@ -234,7 +290,7 @@ final class LibraryModel {
         }
         do {
             let (resolved, kind) = try SourceOpener.resolve(path: url.path)
-            isOpen = false
+            close()
             opener(resolved, kind)
         } catch {
             message = Readout.status("\(error)")
@@ -262,6 +318,8 @@ final class LibraryModel {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let directory = try library.add(url, bookmark: LibraryFile.bookmark(for: url))
+            // A directory added under a search would be added out of sight.
+            query = nil
             changed()
             file.write(library)
             reach()
@@ -420,8 +478,10 @@ final class LibraryModel {
     /// Every record not yet asked about, in the order they are on the shelf —
     /// so the sleeves fill in from the top of the screen down, where you are
     /// looking — and only in directories that are there.
+    /// The whole shelf's order and not the search's: a record that does not
+    /// answer to what was typed still wants its sleeve.
     private func wanted(skipping skipped: Set<String>) -> [(id: UUID, album: Library.Album, url: URL)] {
-        shelf.sections.flatMap { section -> [(id: UUID, album: Library.Album, url: URL)] in
+        whole.sections.flatMap { section -> [(id: UUID, album: Library.Album, url: URL)] in
             guard let reach = reaches[section.id] else { return [] }
             return section.albums
                 .filter { !$0.coverAsked && !skipped.contains(Library.coverName(directory: section.id, path: $0.path)) }
@@ -486,7 +546,8 @@ final class LibraryModel {
     // MARK: - Keeping the shelf in step
 
     private func changed() {
-        shelf = LibraryShelf(library)
+        whole = LibraryShelf(library)
+        shelf = query.map { LibraryShelf(library, matching: $0) } ?? whole
     }
 
     /// A change to the library, with the cursor kept on the record it was on:
