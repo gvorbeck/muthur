@@ -746,6 +746,12 @@ struct PanelView: View {
         // screen is left: `⎋` takes off the last thing put on, one at a time.
         case .escape: model.library.finding ? model.library.endFind() : perform(.library)
         default:
+            // **While the find line is up, every letter is the line's.** The
+            // panel is the field's ancestor, so a key typed into the field is
+            // offered here too, and `l` in `Floyd` closed the library under the
+            // hand typing it — `a` and `q` were a dialog and the program. Declined,
+            // the key goes on to the field, as `handlePlan` declines its prompt's.
+            guard !model.library.finding else { return .ignored }
             switch press.characters.lowercased() {
             case "/": model.library.find()
             case "a": perform(.addDirectory)
