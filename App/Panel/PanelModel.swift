@@ -120,6 +120,19 @@ final class PanelModel {
     /// comes back to the shelf rather than to whatever was under the shelf.
     var isLibrary: Bool { library.isOpen && !isChecking && !isPlanning && !isBurning }
 
+    /// **D94** — the strip at the foot of a screen that went over the deck.
+    ///
+    /// Held counts as well as playing: a record paused from the strip has to be
+    /// startable from the strip, or the pause is a trap you go back to the deck
+    /// to get out of. Stopped does not — there is nothing under the needle to
+    /// act on, and the deck is where a record is started from the top.
+    var showsMiniPlayer: Bool {
+        guard record != nil, state.mode == .playing || state.mode == .paused else {
+            return false
+        }
+        return isLibrary || isChecking || isPlanning || isBurning
+    }
+
     /// `L` on the start screen, ⌘L anywhere. **Over the deck and not instead of
     /// it**: the record goes on playing while you look for the next one, the
     /// way it would while you went to the shelf.

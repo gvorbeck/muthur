@@ -86,7 +86,10 @@ away from the script**: `l` is the library on the playing panel now, so the vi
 seek pair is gone and `h` with it. The §6.1 table and its box carry the change;
 `←` `→` still seek, and the denominator is answering a question `player` never
 asked. **D93 moves nothing either**: a find line on the library, `/` or `⌘F`,
-narrowing the wall as you type — added to a screen neither script has.
+narrowing the wall as you type — added to a screen neither script has. **Nor
+does D94**: a five-line mini player, with the sleeve, the track and `◀◀` `❚❚`
+`▶▶`, at the foot of the library, the check, the plan and the burn while a
+record is playing. Neither script has a screen that goes over the deck.
 
 Everything waiting on hardware — the four boxes below and §19's six — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for

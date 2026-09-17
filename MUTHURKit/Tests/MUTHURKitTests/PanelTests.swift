@@ -973,6 +973,20 @@ struct KeycapTests {
         }
     }
 
+    /// **D94.** The mini player's plates are the deck's own three verbs, and
+    /// the middle one says what a press will do rather than what is happening.
+    @Test("The mini player's middle plate is the press it makes")
+    func miniTransport() {
+        let playing = Readout.miniTransport(paused: false)
+        let held = Readout.miniTransport(paused: true)
+        #expect(playing.map(\.key) == ["◀◀", "❚❚", "▶▶"])
+        #expect(held.map(\.key) == ["◀◀", "▶", "▶▶"])
+        for caps in [playing, held] {
+            #expect(caps.map(\.presses) == [[.previous], [.play], [.next]])
+            #expect(caps.allSatisfy { !Readout.repeats($0.presses[0]) })
+        }
+    }
+
     /// **D50.** `OPEN` is on the picker's legend only when there is something to
     /// open. A cap for a key that does nothing is worse than no cap: it is the
     /// panel promising something the bay cannot deliver.

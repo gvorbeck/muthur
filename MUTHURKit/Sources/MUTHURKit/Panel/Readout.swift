@@ -372,6 +372,26 @@ public enum Readout {
         return shelf.isEmpty ? [list] : [shelf, list]
     }
 
+    /// **D94** — the mini player's three plates, and nothing printed beside
+    /// them.
+    ///
+    /// Pictures and not letters, which is the one place on the panel a cap is
+    /// not named after a key. The strip is under screens whose letters are
+    /// already spoken for — `P` is nothing on the shelf, `N` is nothing on the
+    /// plan, and every letter is the find line's while it is up — so a plate
+    /// reading `N` would be promising a key that is not there. The transport's
+    /// own shapes promise nothing but a press, which is all these are.
+    ///
+    /// The middle plate says what pressing it does, the way a deck's does: `▶`
+    /// while the record is held, `❚❚` while it is playing.
+    public static func miniTransport(paused: Bool) -> [Cap] {
+        [
+            Cap("◀◀", "", .previous),
+            Cap(paused ? "▶" : "❚❚", "", .play),
+            Cap("▶▶", "", .next),
+        ]
+    }
+
     /// The check screen's row (§11). Two things can be done to a health check —
     /// leave it, or ask it again after fixing something — and `R` is already
     /// the key that means *go and look again* in the picker.

@@ -146,10 +146,30 @@ struct PanelView: View {
     /// sleeve, and the tube over the lot of it — or the library, over all of it.
     private var screen: some View {
         GeometryReader { geometry in
-            if model.isLibrary {
-                library(in: geometry.size)
-            } else {
-                deck(in: geometry)
+            // The strip's lines come off the bottom of the screen above it
+            // (D94), so every screen's own budget — the shelf's rows, the plan's,
+            // the burn's — shrinks to make room rather than running under it.
+            let strip = model.showsMiniPlayer ? Grid.rows(MiniPlayerView.rows) : 0
+            let above = CGSize(
+                width: geometry.size.width, height: max(0, geometry.size.height - strip))
+            VStack(alignment: .leading, spacing: 0) {
+                Group {
+                    if model.isLibrary {
+                        library(in: above)
+                    } else {
+                        deck(in: above, full: geometry.size)
+                    }
+                }
+                .frame(width: above.width, height: above.height, alignment: .topLeading)
+
+                if strip > 0, let record = model.record {
+                    MiniPlayerView(
+                        record: record,
+                        state: model.state,
+                        sleeve: model.sleeve,
+                        treatment: model.sleeveTreatment,
+                        press: performMini)
+                }
             }
         }
         .padding(.vertical, Theme.blank)
@@ -193,9 +213,13 @@ struct PanelView: View {
         }
     }
 
-    private func deck(in geometry: GeometryProxy) -> some View {
+    /// `size` is the glass this screen gets; `full` is the glass there is. They
+    /// differ only while the mini player is up (D94), and the sleeve is sized
+    /// from `full` so the cover does not shrink by five lines on the way from
+    /// the deck to the plan and grow back on the way home.
+    private func deck(in size: CGSize, full: CGSize) -> some View {
         Group {
-            let rows = trackRows(in: geometry.size.height)
+            let rows = trackRows(in: size.height)
             HStack(alignment: .top, spacing: 0) {
                 Bloom {
                     panel(rows: rows)
@@ -213,7 +237,7 @@ struct PanelView: View {
                 // a sibling of this `Bloom`, not a child of it, so scoping the
                 // shader here is what keeps the sleeve at its true form (D56)
                 // without threading its reveal hole through a second effect.
-                .tubeBulge(fault: tubeFault, size: geometry.size, active: faulting)
+                .tubeBulge(fault: tubeFault, size: size, active: faulting)
 
                 // The sleeve, when there is one and there is room for one. Both
                 // halves of that are `SleeveFrame`'s answer, and a nil is a window
@@ -221,8 +245,8 @@ struct PanelView: View {
                 // way (`player:1746`).
                 if let sleeve = model.sleeve,
                     let side = sleeveSide(
-                        width: geometry.size.width,
-                        trackRows: deckRows(in: geometry.size.height))
+                        width: full.width,
+                        trackRows: deckRows(in: full.height))
                 {
                     Color.clear.frame(width: Theme.sleeveGutter)
                     SleeveView(
@@ -678,6 +702,19 @@ struct PanelView: View {
         // program too, by way of `die`).
         case .close: model.closePlan()
         case .quit: NSApplication.shared.terminate(nil)
+        default: break
+        }
+    }
+
+    /// The mini player's three plates (D94). Not routed through `perform`: that
+    /// asks which screen is up, and the whole point of these is that the answer
+    /// does not change what they do — `❚❚` on the plan is the deck's `␣`, not
+    /// the plan's.
+    private func performMini(_ press: Readout.Press) {
+        switch press {
+        case .play: model.space()
+        case .next: model.next()
+        case .previous: model.previous()
         default: break
         }
     }

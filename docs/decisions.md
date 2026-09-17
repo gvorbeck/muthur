@@ -170,7 +170,7 @@ tidiness, so the deletion is kept and moved — below the rehearsal's `continue`
 where it cannot destroy the image the panel has just promised you can burn for
 real straight after.
 
-**D86 to D93 came from using it.** D86 is the Burn menu: every flag `burncd`
+**D86 to D94 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
 now a switch — not saved across launches, because a rehearsal remembered from
 last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
@@ -184,7 +184,9 @@ D50's scan returns, but only for directories you name, and only when you open
 the library. D92 is the only entry that takes a binding away from the script
 rather than adding one — `l` is the library on the playing panel now, and the vi
 seek pair went to pay for it. D93 is a find line on the library, for a wall that had
-grown past what the eye can scan.
+grown past what the eye can scan. D94 puts a mini player at the foot of every
+screen that goes over the deck, so the record can be paused or skipped without
+going back to it.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4064,3 +4066,36 @@ is filed.
 clears the search, and the library opens on the whole wall as it always has.
 Sleeves are still fetched for every record, and the faceplate still counts every
 record: a search is a way of looking at the shelf, not a smaller shelf.
+
+**D94 — a mini player at the foot of every screen that goes over the deck.** → §10
+
+Neither script needs one: `player` has one screen while a record is playing, and
+`burncd` plays nothing. The port has four screens that go over the deck without
+stopping it — the library (D91), the check, the plan and the burn — and each of
+them left the music with no way to be touched but going back to the deck for it.
+
+**Five lines, taken from the bottom of the screen and not drawn over it**: a
+blank, a `── NOW PLAYING` rule in the library's directory style (`── HELD` while
+paused), and three rows beside a sleeve three rows tall. The rows are the track's
+mark and title, its artist and the album's name, and then the three plates:
+`◀◀`, `❚❚` or `▶`, and `▶▶`, with `TRACK nn OF nn` and the position over the
+length at the right. Every screen above gets five lines fewer to work with, so
+the shelf, the plan and the burn lose rows rather than running under it. The
+sleeve beside the plan is still sized from the whole window, so the cover does
+not change size on the way from the deck to the plan.
+
+**Shown while a record is playing or paused**, and not while it is stopped. Paused
+counts because a record paused from the strip has to be restarted from the strip.
+Stopped does not, because nothing is under the needle and the deck is where a
+record starts. The deck itself never shows it: the deck is already the full
+version of it.
+
+**Pictures on the plates, and no labels beside them.** Every letter on those
+screens is already a key, and on the library the find line takes all of them
+(D93), so the strip adds no keys, only things to click. The middle plate shows
+what pressing it will do, as a transport's play/pause button does. All three
+plates are four columns wide with the glyph centred, so when `❚❚` (two columns)
+turns into `▶` (one), `▶▶` does not move. The plates
+send the deck's own `␣`, `n` and `p` whichever screen is up. They go through
+their own dispatcher and not through the screen's, because on the plan `␣` means
+something else and on the check any key closes the screen.

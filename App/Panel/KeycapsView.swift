@@ -45,9 +45,13 @@ struct KeycapsView: View {
 /// press is a third, because an illuminated pushbutton lights when the switch
 /// closes. Nothing here invents a colour: the whole of it is the panel's own
 /// ramp, so a pressed cap is the same phosphor harder.
-private struct CapView: View {
+struct CapView: View {
     let cap: Readout.Cap
     let press: (Readout.Press) -> Void
+    /// A plate of a fixed width, the key centred on it. For a plate whose key
+    /// changes under the finger — the mini player's `❚❚` becoming `▶` (D94) —
+    /// so the plate does not narrow by a column and pull its neighbours with it.
+    var plate: Int?
 
     /// Held for as long as the button is down. Nil is at rest.
     @State private var down = false
@@ -55,9 +59,19 @@ private struct CapView: View {
 
     private var face: String { " \(cap.key) " }
 
+    @ViewBuilder private var lettering: some View {
+        let ink = down ? Theme.capInkDown : Theme.capInk
+        if let plate {
+            MatrixText(text: cap.key, colour: ink)
+                .frame(width: Grid.columns(plate))
+        } else {
+            MatrixText(text: face, colour: ink)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            MatrixText(text: face, colour: down ? Theme.capInkDown : Theme.capInk)
+            lettering
                 .background(down ? Theme.capPlateDown : Theme.capPlate)
                 // The rocker's two ends. `←→` and `↑↓` are two glyphs on one
                 // plate, and the plate is split in the order they are drawn, so
@@ -73,7 +87,10 @@ private struct CapView: View {
                     }
                 }
 
-            MatrixText(text: " \(cap.label)", colour: Theme.etch)
+            // The mini player's plates are their own legend (D94).
+            if !cap.label.isEmpty {
+                MatrixText(text: " \(cap.label)", colour: Theme.etch)
+            }
         }
     }
 
