@@ -293,6 +293,15 @@ struct PanelView: View {
                         commit: { model.planCommit() },
                         cancel: { model.planCancel() }
                     )
+                } else if let importing = model.importing {
+                    // §21, over the deck the way the burn is. It brings its own
+                    // legend with it — `ImportView.foot` — for `BurnView`'s
+                    // reason: the caps answer the frame they are under.
+                    ImportView(
+                        job: importing, rows: rows + 4,
+                        press: { performImport($0) }
+                    )
+                    .frame(height: Grid.rows(rows + 4))
                 } else if model.isPicking, let entries = model.pickerEntries {
                     PickerView(
                         entries: entries,
@@ -356,7 +365,7 @@ struct PanelView: View {
                 // as one string for the same reason (`burncd:1546`) — the prompt
                 // is what the keys are answering, and a legend that drifted a row
                 // away from it would be answering nothing.
-                if !model.isLoading && !model.isBurning {
+                if !model.isLoading && !model.isBurning && !model.isImporting {
                     PanelBlank()
                     KeycapsView(
                         legend: legend,
@@ -386,7 +395,10 @@ struct PanelView: View {
         }
         if model.isPlanning { return Readout.planLegend }
         if model.isPicking { return Readout.pickerLegend(hasDisc: model.pickerHasDisc) }
-        return Readout.legend
+        // **D95.** Only with a disc on the deck — off a folder the files are
+        // already files, and a cap for a key the screen does not answer is the
+        // same lie the dead ⌘O was.
+        return Readout.legend(canImport: model.canImport)
     }
 
     /// Whether the deck's own furniture is up — the two meters, the analyser,
@@ -395,6 +407,7 @@ struct PanelView: View {
     /// no ghost at all.
     private var deck: Bool {
         !model.isPicking && !model.isChecking && !model.isLoading && !model.isPlanning
+            && !model.isImporting
     }
 
     // MARK: - How big the sleeve may be (§5)
@@ -607,6 +620,7 @@ struct PanelView: View {
         case .selectUp: model.step(by: -1)
         case .selectDown: model.step(by: 1)
         case .jump: model.jump()
+        case .importDisc: model.importDisc()
         case .next: model.next()
         case .previous: model.previous()
         case .shuffle: model.toggleShuffle()
@@ -643,6 +657,9 @@ struct PanelView: View {
         case .library: model.showLibrary()
         // The shelf's own keys (D91), which are the shelf's alone.
         case .selectLeft, .selectRight, .addDirectory, .removeDirectory, .find: break
+        // The import screen's, answered by `performImport` where the screen it
+        // belongs to is up. Nothing on the deck reveals anything.
+        case .reveal: break
         case .quit: NSApplication.shared.terminate(nil)
         }
     }
@@ -742,6 +759,7 @@ struct PanelView: View {
         if model.isChecking { return handleCheck(press) }
         if model.isLibrary { return handleLibrary(press) }
         if model.isBurning { return handleBurn(press) }
+        if model.isImporting { return handleImport(press) }
         if model.isPlanning { return handlePlan(press) }
         if model.isPicking { return handlePicker(press) }
         let shift = press.modifiers.contains(.shift)
@@ -865,6 +883,45 @@ struct PanelView: View {
         }
     }
 
+    /// §21's keys.
+    ///
+    /// **The opposite of `handleBurn`'s rule, and deliberately.** A burn ignores
+    /// almost everything because there are only two moments it can answer; an
+    /// import answers `Q` at every moment, because an import can always be
+    /// stopped and stopping it really does undo it (`ImportJob.cancelled`).
+    ///
+    /// The summary is *not* dismissed by any key, which is where this also
+    /// parts company with the burn and with the check. Those two end with
+    /// nothing left to do; this one ends with `R REVEAL` on the legend, and a
+    /// screen where one key does something and every other key closes it is a
+    /// screen you leave by accident on the way to the key you wanted.
+    private func handleImport(_ press: KeyPress) -> KeyPress.Result {
+        guard model.importing != nil else { return .ignored }
+        switch press.characters.lowercased() {
+        case "q": performImport(.quit)
+        case "r": performImport(.reveal)
+        default: return .handled
+        }
+        return .handled
+    }
+
+    /// The import screen's caps, which are the two the legend prints.
+    private func performImport(_ press: Readout.Press) {
+        guard let importing = model.importing else { return }
+        switch press {
+        // `Q` is CANCEL while it runs and DONE when it is over — one key, two
+        // caps, because in both cases it is the way out of the screen and the
+        // hand already looks there for it. The job is told no first, so the
+        // thread unwinds rather than being left mid-track.
+        case .quit:
+            importing.cancel()
+            model.closeImport()
+        case .reveal:
+            importing.reveal()
+        default: break
+        }
+    }
+
     /// `tui_edit`'s `read_key` (`burncd:1181`).
     ///
     /// While a field is being typed into, every key belongs to the field — the
@@ -960,6 +1017,11 @@ struct PanelView: View {
         // §20 — the plan for what is on the deck. Nothing is scanned and
         // nothing is chosen: the record is already here.
         case "b": perform(.burn)
+        // §21, the other direction (**D95**). Bound only with a disc on the
+        // deck, on the same rule `u` follows: a key that does nothing most of
+        // the time is worse than no key at all, so it is what is on screen
+        // that makes it live.
+        case "i": if model.canImport { perform(.importDisc) } else { return .ignored }
         // Bound only while there is an offer to take (`player:2720`). A key that
         // does nothing most of the time is worse than no key at all, so it is
         // the offer on screen that makes it live.

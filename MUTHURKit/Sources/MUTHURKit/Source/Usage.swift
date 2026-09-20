@@ -145,6 +145,14 @@ public enum Usage {
               MUTHUR_DEMO        set to start with Burn ▸ Demo on: no drive, no disc
                                  Every burn variable above only sets where the
                                  Burn menu starts; the menu has the last word.
+              MUTHUR_IMPORT_FORMAT
+                                 flac, alac, aiff, wav, mp3 or opus — what an
+                                 imported disc is written as (default flac).
+                                 Unlike the burn variables this one has a saved
+                                 setting behind it: the Import menu remembers
+                                 the format between launches, and this beats
+                                 what was saved for the launch it is set on
+                                 without replacing it.
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_DATA_HOME      where your corrections live (D85) — the year
                                  or title you typed on the plan screen, kept

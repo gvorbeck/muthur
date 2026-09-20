@@ -16,15 +16,19 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All ninety-two are settled; they
+  the reasoning and the decision it came from. All ninety-seven are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
   way — thirty-nine against §16's forty-six, and later eighty-two against its
-  eighty-nine. Two numbers for one set, which is the drift this document keeps
-  warning about, and neither time did a `grep` catch it because both were
-  written out in words. Re-derived by counting the entries themselves, which is
-  the only count that is ever authoritative.)*
+  eighty-nine, and now ninety-two against its ninety-seven. Two numbers for one
+  set, which is the drift this document keeps warning about, and not once did a
+  `grep` catch it because every one of them was written out in words. **The
+  third time both copies were stale together** — §16's own preamble still said
+  ninety-two with ninety-four entries under it — which is the failure one step
+  worse than drift: not two numbers disagreeing, but two numbers agreeing with
+  each other and neither agreeing with the file. Re-derived by counting the
+  entries themselves, which is the only count that is ever authoritative.)*
 
 **Three files, one numbering.** This document is §1–§15, §17, the five questions
 in §18 that are still open, and §20. `decisions.md` is §16 and the twenty-three
@@ -60,22 +64,53 @@ part worth porting.
 ## Status
 
 **321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
-counted; it stands separately at 34 of 40). Re-derived by counting the files:
+counted; it stands separately at 36 of 43). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 34 of 40 in `hardware.md`. **The count did not move this pass either, and
-for the same reason as the last: the gap was one no box described.** The pass
-before wired the burn into the window and found that nothing under `App/` had
-ever reached `BurnJob`. This one went one layer down and found the same shape
-again — every flag `burncd` parses was a field on the job, six of them finished
-and tested, and the app built every job with the defaults. They are a Burn menu
-now (**D86**). The rest of the pass is four things noticed by using the program
-rather than by reading the script: §11 telling an empty bay from a missing drive
-in `burncd:316`'s words (**D87**), the version beside the wordmark (**D88**), a
-cut title that runs past its column on the playing row and under the pointer
-(**D89**), and the plan and insert stage drawn on the deck's own rows, so a
-record carried to the burn keeps its columns and its sleeve (**D90**). **A
-denominator counts what somebody thought to ask for**, and a green field says
-only that every question asked so far has an answer.
+and 36 of 43 in `hardware.md`. **The count did not move this pass and could
+not have**, which is a different statement from the last three passes' and is
+worth making precisely: this one added a section. §21 is importing a disc, and
+there is nothing in either script for a box of it to be parity with — `player`
+reads a disc and `burncd` writes one, and taking a disc *and keeping it* was
+always done with some other program. So the numerator and the denominator both
+stand still while the app grew a third thing it can do with a drive.
+
+**§19's denominator moved instead, 40 → 43, and then two of the three closed
+the same afternoon: 34 → 36.** §21 is the rare addition that really does need
+hardware to prove — the suite can synthesise a directory of `pcm_s16be` AIFFs
+shaped exactly like a cddafs mount, and what it cannot synthesise is cddafs.
+Step 15 has the readings: *American IV: The Man Comes Around* off `/dev/disk4`,
+15 tracks and 297 MB of FLAC in 4:03, **two of them decoded back and compared
+with the disc byte for byte**, and a cancel three tracks into a second import
+that took its folder off an external volume and left the first fifteen alone.
+What is left open there is the menu half of the format box: the round trip is in
+the suite, the menu item driving it has not been clicked.
+
+**The disc found two things no temporary directory could have.** The first is a
+plain bug, and it was not §21's: `TempSpace.free` asked
+`volumeAvailableCapacityForImportantUsage` and nothing else, which is right on
+APFS and answers **nought** on exFAT — so the first real import was refused for
+lack of room on a volume with 505 GB free, and `TempSpace` is **shared with the
+burn**, so every job whose `MUTHUR_WORK` pointed off the boot volume would have
+been refused the same way since §20 was written. `FreeSpaceTests` is the guard
+and it walks whatever is mounted rather than naming a filesystem. The second is
+**D96**, amended: three naming rules reasoned out here, and all three contradicted
+by a shelf that had been sitting on the same machine being right about them for
+years.
+
+**The pass is D95 to D97.** D95 is the feature: `I IMPORT` on the deck beside
+`B BURN`, bound only while there is a disc to take it off, with an Import menu
+behind it because ⌘I is the only way a modifier-less key gets found. D96 is
+where the files land — one folder per record, `NN Title.ext`, names sanitised
+only as far as the kernel actually insists, and a `(2)` rather than anything
+written over. D97 is the first setting in this program that outlives a launch,
+and it exists as an entry because it contradicts D86 deliberately rather than
+by drift.
+
+**A denominator counts what somebody thought to ask for**, and a green field
+says only that every question asked so far has an answer. This pass is the
+clearest case of that the document has had: a whole section arrived, several
+hundred lines of it are under test, and the number at the top of this page did
+not so much as twitch.
 
 **The library (D91) moves no count, and is not meant to.** Neither script has
 one, so there is nothing in either for a box to be parity with: it is the
@@ -91,7 +126,7 @@ does D94**: a five-line mini player, with the sleeve, the track and `◀◀` `�
 `▶▶`, at the foot of the library, the check, the plan and the burn while a
 record is playing. Neither script has a screen that goes over the deck.
 
-Everything waiting on hardware — the four boxes below and §19's six — is also
+Everything waiting on hardware — the four boxes below and §19's seven — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for
 whoever is next at the machine with the burner.
 
@@ -157,9 +192,11 @@ else's.
 **The laser has been on, and §19 moved further in one afternoon than in the whole
 year before it.** 12 of 33 to 27 of 33, to 31 of 37 the pass after, when the
 burn's own procedure was finally written down as step 14, to 32 of 38 the pass
-after that, when step 8's open question was answered as D80, and to **34 of 40**
-now, when step 8 was made to say how the disc actually comes back and got a
-switch of its own for the one test that moves it. §20's
+after that, when step 8's open question was answered as D80, to 34 of 40 when
+step 8 was made to say how the disc actually comes back and got a switch of its
+own for the one test that moves it, and to **36 of 43** now, when §21 added a
+step and then closed two thirds of it against a Johnny Cash disc the same
+afternoon. §20's
 blank became an audio CD: thirteen
 tracks, 58:57.42, written at an average 8.0x with the drive buffer never below
 96% and the FIFO never once empty, every track boundary `pregapsize: 0`, and a
@@ -2599,8 +2636,13 @@ drop the constraint where it only ever existed because of the terminal.
       one is most of why they read as one instrument (`panel.sh:256`).
       *Closed by the loading stage below, which was the fifth screen and the
       third the script has. There are now enough of them for "every" to mean
-      something, and `Faceplate` holds all five metas rather than the views
-      holding their own, so the claim is a thing the suite can be asked about.
+      something, and the metas live beside the thing they describe rather than
+      in the views, so the claim is a thing the suite can be asked about.*
+      *A count of the screens used to be written out here and in `Faceplate`
+      itself, and both went stale as screens were added — the library, the plan,
+      the burn, and now §21's import, whose `ImportStage.meta` stamps
+      `IMPORT · 43%` and then the summary. Neither place carries a number any
+      more, for the reason the Status paragraph gives about tallies in words.
       Three are the script's — `N SOURCES` (`player:1063`), the loading stage's
       own title (`player:1167`), `PLAYING · 9 TRACKS · tags` (`player:2322`).
       Two are the port's, because the screens are: `SELF TEST · 12 CHECKS · 2 !`
@@ -3431,8 +3473,10 @@ of requirements — and it said as much itself: nothing else in this document
 assumes you have read it, and it does not assume you have read anything else.
 That is a description of a separate document.
 
-It stands at **34 of 40**, and most of that came in one afternoon by the only
-route that was ever going to work: §20 burnt a disc, and a section that had been
+It stands at **36 of 43**. Three boxes arrived with §21's step 15 and two of
+them closed the same afternoon, against a Johnny Cash disc and an external
+volume. Most of what was ticked before that came in one afternoon too, by the
+only route that was ever going to work: §20 burnt a disc, and a section that had been
 waiting on material had material. Steps 4 and 6 through 10 and 13 closed against
 it. Step 14 is the burn itself — building the record, rehearsing it, spending
 the blank, and reading the disc back — which the tests that perform it had been
@@ -3445,8 +3489,11 @@ volume unasked at 1.3 s. Seven timed rounds are written down there now, next to
 the twelve seconds an unmount lasts when nothing re-enumerates after it, which
 is what the write end has always been doing. What is left wants a disc out of a
 multi-disc set, a data disc, an empty bay, and two AIFFs on an external volume.
-That figure is still kept in the Status paragraph above with every other figure,
-because the counts do not move house.
+What §21 added wanted no blank at all — any disc you own would do — which is why
+step 15 was the cheapest thing on this list to close, and why two of its three
+boxes closed on the day they were written. That figure is still kept in
+the Status paragraph above with every other figure, because the counts do not
+move house.
 
 ---
 
@@ -3831,3 +3878,121 @@ actionable, which is the standard the rest of this port's failures are held to.
       converts. The box is open for the hardware alone: resuming needs a job
       interrupted between two discs, which needs two blanks, and there is one
       blank in this building and it is now a Bon Jovi record.
+
+---
+
+## 21. Importing a disc
+
+**Nothing in this section is parity with anything, and it carries no boxes.**
+Neither script imports a disc: `player` reads one and `burncd` writes one, and
+taking a disc *and keeping it* is the half of the round trip that was always
+done with something else — Music.app, XLD, `cdparanoia` and a shell loop. So
+there is no `player:NNNN` under any of this and no box for a denominator to
+count. It is here rather than in `decisions.md` for the reason §20 is here: it
+is a feature area with behaviour worth writing down, not a single departure.
+The departures it did produce are **D95**, **D96** and **D97**.
+
+The proof that needs a drive is **`hardware.md` step 15**, which is why §19's
+denominator moved and this one did not. **Two of its three boxes are ticked**,
+against *American IV: The Man Comes Around* — including two tracks decoded back
+and compared with the disc byte for byte.
+
+### 21.1 The way in
+
+`I` on the deck, or `Import ▸ Import This Disc…` (⌘I). **Bound only while the
+record on the deck came off a disc** — `PanelModel.canImport` — and the cap
+follows the same rule, on the grounds the picker's `OPEN` already keeps: a cap
+naming a key the screen does not answer is the same lie the dead ⌘O was.
+
+Off a folder there is nothing to import, because the files are already files.
+An `IMPORT` that re-encoded a folder into another folder would be a transcode
+wearing this feature's name, and if that is ever wanted it is a different verb.
+
+The one thing it asks is **where**, through the open panel, every time. The
+burn's equivalent is `stage_insert` — a screen that stops and waits — and this
+is an open panel instead for D50's reason: the powerbox is how a window asks for
+a directory and it needs no grant. The panel *opens* at the last place one was
+taken, kept as a security-scoped bookmark on D5's shape; remembering where to
+open is not the same as not asking.
+
+### 21.2 What it reads
+
+**The mounted disc**, which on macOS is what an audio CD is: `diskarbitrationd`
+mounts it with cddafs and the tracks appear as AIFF. Not the device — **D44** is
+the same decision one layer up and the reasoning carries. cdrtools insists on an
+exclusive open, the kernel will not give one up for a mounted disc, and taking
+the mount away to get it (**D80**'s borrow) is a liberty worth taking for two
+seconds of CD-Text and not for forty minutes of audio with the disc missing from
+Finder the whole time.
+
+**The honest consequence is stated at the code and repeated here.** This is the
+kernel's read and not a paranoid one: no re-read of a doubtful sector, no jitter
+correction, because cddafs offers neither. On a clean disc it is a bit-perfect
+copy, proven by decoding both ends to raw PCM and comparing them
+(`ImportMaterialTests.lossless`). On a scratched one `cdparanoia` would do
+better and this will not. Refusing the common case to defend the rare one would
+be the worse trade.
+
+### 21.3 What it writes
+
+One folder per record under the directory you chose — `American IV - The Man
+Comes Around` — holding `01 - The Man Comes Around.flac` and its siblings
+(**D96**). The format is the Import menu's, FLAC unless told otherwise, and it
+is the one setting in this program that survives a relaunch (**D97**).
+
+**All three of those naming rules were written from first principles and all
+three were wrong**, which the first real disc established before a byte was
+written: the destination was already an artist's folder, so repeating the artist
+stuttered; the shelf around it had used `NN - Title` for years; and a colon
+belongs to ` - ` rather than to a dash welded onto the word in front of it —
+*Gold: Greatest Hits* had been filed as `Gold - Greatest Hits` long before this
+program existed. D96 carries the amendment and the old forms survive as menu
+options.
+
+- **Names are sanitised only as far as the kernel actually insists**, per
+  `CLAUDE.md`'s rule about rules the kernel does not honour. `/` goes because it
+  is illegal; `:` goes because Finder draws it as a `/`, which is the same
+  confusion by the back door. `?`, `*`, `|`, `<`, `>`, `"` and `\` are all kept,
+  because stripping them would be this program guessing that the disk is going
+  somewhere it has not been told about. *Where Is My Mind?* keeps its question
+  mark.
+
+  **This has a known edge and it is written down rather than guessed at.** Those
+  seven characters are legal on APFS and HFS+ and illegal on exFAT and FAT32,
+  and an external music drive is quite often exFAT — the one this was first
+  aimed at is. Nothing is done about it yet, because the fix is not to start
+  guessing the other way: it is to ask the destination what filesystem it is,
+  which the kernel will answer, and to sanitise to that. Until then a title with
+  a `?` in it, imported onto an exFAT disk, is a track that will fail its write
+  and be logged and stepped over like any other unreadable one.
+- **Nothing is ever written over.** A second import of the same record beside the
+  first gets `(2)`, because the old rip is recoverable in a second and losing it
+  is not. Two tracks that share a title on one disc do not plan onto each other
+  either.
+- **The tags are the panel's, not the file's.** `-map_metadata -1` first, then
+  what §3 and §4 settled and what **D85** corrected — so a record whose year you
+  typed lands on disk with the year you typed, and a field nobody wrote is
+  absent rather than blank.
+- **The sleeve goes in** where the container takes one, from §5's resolution and
+  not a fresh fetch. FLAC, ALAC and MP3 take it; WAV and AIFF have no convention
+  worth relying on, and Opus is declined outright because ffmpeg's ogg muxer
+  writes no picture and says nothing about it — which is worse than declining.
+
+### 21.4 The screen, and the one place it argues with the burn
+
+`ImportView` is `BurnView`'s furniture on purpose: somebody who has watched a
+disc being written should recognise a disc being read. The bar is the burn's
+bar, against the same bands, driven off ffmpeg's own `-progress` — so it moves
+with the seconds converted rather than with the count of tracks.
+
+**`Q CANCEL` is live for the whole run, and that is the whole difference.**
+`BurnRun` offers the cancel at the insert prompt and nowhere else, because once
+the laser is on there is nothing to cancel that would not leave a coaster
+behind. An import leaves files; files can be taken back, and cancelling takes
+them — the folder it made goes entirely, and where the user chose to write into
+a directory that was already there, only the files this job planned are removed.
+
+Two smaller ones: a track that will not read is logged and stepped over rather
+than ending the job, which is §6.3's rule applied to writing; and the summary
+carries `R REVEAL`, because naming a folder is not the same as being able to
+find it, particularly when the name has a `(2)` on it that nobody chose.

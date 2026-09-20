@@ -170,12 +170,31 @@ public enum TempSpace {
 
     /// Free bytes on the volume holding `url` (`free_bytes`, `burncd:159`).
     ///
-    /// `volumeAvailableCapacityForImportantUsage` and not the raw free count,
-    /// because on APFS those are different numbers and the raw one is a lie:
-    /// it counts space held by local snapshots and purgeable caches that the
-    /// system will hand over when something important asks. A burn is
-    /// something important asking. `df` on this platform reports the
-    /// pessimistic figure, which would refuse jobs that would in fact have run.
+    /// `volumeAvailableCapacityForImportantUsage` **where the volume answers
+    /// it**, because on APFS it and the raw free count are different numbers
+    /// and the raw one is pessimistic: it excludes space held by local
+    /// snapshots and purgeable caches that the system will hand over when
+    /// something important asks. A burn is something important asking. `df`
+    /// reports the pessimistic figure, which would refuse jobs that would in
+    /// fact have run. Measured on this machine: 82.7 GB against 80.5 GB for the
+    /// same APFS volume.
+    ///
+    /// **And the plain count where it does not, which is not a nicety.** That
+    /// key is an APFS idea, and a volume whose filesystem has no notion of
+    /// purgeable space does not decline to answer it — **it answers nought**.
+    /// Measured on this machine: an exFAT disk with 505 GB free reports
+    /// `importantUsage: 0` and `available: 505407995904`. Asking only the first
+    /// question, this code refused a 15-track import onto half a terabyte of
+    /// free space, and would have refused every burn whose `MUTHUR_WORK` was
+    /// pointed anywhere but the boot volume.
+    ///
+    /// That is `CLAUDE.md`'s rule arriving as a bug: *assert only what the
+    /// platform actually guarantees*. What is guaranteed is that one of these
+    /// two keys describes the volume; which one is a fact about the filesystem,
+    /// and the filesystem is not ours to choose.
+    ///
+    /// Nil only when neither key answers, which keeps `check`'s posture intact:
+    /// a volume that will not say how much room it has is not refused.
     ///
     /// The URL is rebuilt from its path first because `resourceValues` caches
     /// on the instance, and a free-space figure remembered from earlier in the
@@ -183,11 +202,20 @@ public enum TempSpace {
     public static func free(at url: URL) -> Int? {
         guard
             let values = try? URL(fileURLWithPath: url.path).resourceValues(
-                forKeys: [.volumeAvailableCapacityForImportantUsageKey]
-            ),
-            let available = values.volumeAvailableCapacityForImportantUsage
+                forKeys: [
+                    .volumeAvailableCapacityForImportantUsageKey,
+                    .volumeAvailableCapacityKey,
+                ]
+            )
         else { return nil }
-        return Int(available)
+        // Positive rather than non-nil: nought is what an exFAT volume says
+        // when it means "I do not keep that figure", and a volume that is
+        // genuinely full says the same thing through the other key, where it
+        // is believed.
+        if let important = values.volumeAvailableCapacityForImportantUsage, important > 0 {
+            return Int(important)
+        }
+        return values.volumeAvailableCapacity
     }
 
     /// `%.1f GB` (`human`, `burncd:158`). In gigabytes whatever the size,

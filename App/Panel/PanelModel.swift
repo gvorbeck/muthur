@@ -118,7 +118,9 @@ final class PanelModel {
     /// Open, and on top. A health check, a plan or a burn started from the menu
     /// goes over the library the way it goes over the deck, and closing it
     /// comes back to the shelf rather than to whatever was under the shelf.
-    var isLibrary: Bool { library.isOpen && !isChecking && !isPlanning && !isBurning }
+    var isLibrary: Bool {
+        library.isOpen && !isChecking && !isPlanning && !isBurning && !isImporting
+    }
 
     /// **D94** — the strip at the foot of a screen that went over the deck.
     ///
@@ -130,7 +132,7 @@ final class PanelModel {
         guard record != nil, state.mode == .playing || state.mode == .paused else {
             return false
         }
-        return isLibrary || isChecking || isPlanning || isBurning
+        return isLibrary || isChecking || isPlanning || isBurning || isImporting
     }
 
     /// `L` on the start screen, ⌘L anywhere. **Over the deck and not instead of
@@ -142,7 +144,7 @@ final class PanelModel {
     /// on the library while a disc is being written would be a second thing
     /// reading from the drive the burn is timing.
     func showLibrary() {
-        guard !isBurning, !isPlanning, !isLoading else { return }
+        guard !isBurning, !isPlanning, !isLoading, !isImporting else { return }
         closeCheck()
         library.show()
     }
@@ -684,6 +686,10 @@ final class PanelModel {
         if let burning {
             return burning.panel?.meta ?? burning.stage.meta
         }
+        // §21's, on the same terms and in the same place: the plate names
+        // whatever screen is on top, and the import goes over the deck the way
+        // the burn goes over the plan.
+        if let importing { return importing.stage.meta }
         if let plan {
             return PlanScreen.meta(plan.plan)
         }
@@ -719,6 +725,8 @@ final class PanelModel {
         // message about a track change has nothing to say to somebody watching a
         // disc being written.
         if isBurning { return nil }
+        // And the import has its log, which is the same argument.
+        if isImporting { return nil }
         // Nor while a source is coming open: `load_stage` has no status row
         // (`player:1162`), and the offer it would carry is about the record
         // that is still being read.
@@ -727,6 +735,7 @@ final class PanelModel {
         // deck can produce about a plan: a `B` that could not open one. It is
         // ahead of the engine's because it is the answer to the key that was
         // just pressed, where the engine's is whatever was said last.
+        if let importStatus { return importStatus }
         if let planStatus { return planStatus }
         if isPicking { return pickerStatus }
         if let text = state.status?.text { return text }
@@ -1049,6 +1058,149 @@ final class PanelModel {
     func closeBurn() {
         burning?.discard()
         burning = nil
+    }
+
+    // MARK: - The import (§21)
+
+    /// The Import menu, as `ImportOptions` holds it (**D95**).
+    ///
+    /// Unlike `burnOptions` this is loaded from disk and written back on every
+    /// change — `ImportOptions` argues the difference out, and the short form
+    /// is that a format is a statement about your shelf while `--dummy` is an
+    /// instruction about one run.
+    private(set) var importOptions = ImportOptions.load()
+
+    /// Not while a job is running: it has its own copy on another thread, and a
+    /// switch that moved under it would be one that lied about the screen.
+    var canSetImportOptions: Bool { !isImporting }
+
+    func setImportOptions(_ change: (inout ImportOptions) -> Void) {
+        guard canSetImportOptions else { return }
+        var next = importOptions
+        change(&next)
+        importOptions = next
+        next.save()
+    }
+
+    /// The run in flight, and nil the rest of the time. It goes over the deck
+    /// the way the burn does.
+    private(set) var importing: ImportRun?
+
+    var isImporting: Bool { importing != nil }
+
+    /// **Whether there is anything to import** — a record, off a disc, with
+    /// nothing else already up.
+    ///
+    /// The `sourceKind` test is the whole of it and it is not a formality: a
+    /// folder's tracks are already files, and an `IMPORT` that re-encoded a
+    /// folder into another folder would be a transcode wearing this feature's
+    /// name. If that is ever wanted it is a different verb with a different cap.
+    var canImport: Bool {
+        record != nil && sourceKind == .disc && !isImporting && !isLoading
+    }
+
+    /// `I` on the deck, or ⌘I (**D95**).
+    ///
+    /// **It asks where before it does anything**, and that is the one prompt an
+    /// import has. The burn's equivalent is `stage_insert` — a screen that
+    /// stops and waits — and this is an open panel instead for the reason D50
+    /// gives about every other path into this program: the powerbox is how a
+    /// window asks for a directory, it needs no TCC grant, and a panel of our
+    /// own drawing would be a second file chooser to keep agreeing with ⌘O's.
+    ///
+    /// Nothing is created by the time this returns. The plan is a description
+    /// and the folder is `ImportJob`'s first act, so a refusal here leaves the
+    /// disk exactly as it was.
+    func importDisc() {
+        guard canImport, let record else { return }
+        guard let destination = chooseDestination() else { return }
+
+        do {
+            let plan = try ImportPlan.make(
+                record: record,
+                destination: destination,
+                format: importOptions.format,
+                folderStyle: importOptions.folder,
+                trackStyle: importOptions.trackStyle)
+            importing = ImportRun(
+                plan: plan,
+                options: importOptions,
+                sleeve: importOptions.sleeve ? sleeve?.url : nil,
+                // The eject goes through the deck and not through the run,
+                // because the deck is what has the record open and has to let
+                // go of the disc first. A screen cannot take the drive out from
+                // under the thing reading it.
+                eject: { [weak self] in self?.eject() })
+        } catch let failure as ImportPlan.Failure {
+            // On the deck's own status line, where the answer to the key that
+            // was just pressed belongs — the same place a `B` that could not
+            // open a plan lands.
+            importStatus = Readout.status(ImportScreen.refusal(failure))
+        } catch {
+            importStatus = Readout.status("NOTHING COULD BE IMPORTED")
+        }
+    }
+
+    /// What the deck last said about an import it would not start. Cleared by
+    /// the next one, and by the screen actually opening.
+    private(set) var importStatus: String?
+
+    func clearImportStatus() { importStatus = nil }
+
+    /// The import screen coming off. Offered while it is still running, because
+    /// unlike a burn it can be stopped — `ImportRun.discard` asks.
+    func closeImport() {
+        importing?.discard()
+        importing = nil
+    }
+
+    /// Where the files go. **Asked every time**, which is what was wanted:
+    /// nothing about an import is permanent except where it lands, so that is
+    /// the one thing the program does not decide on its own.
+    ///
+    /// The panel *opens* at the last place one was taken, which is remembered
+    /// as a security-scoped bookmark and not as a path — D5's shape, and for
+    /// D5's reasons: it goes on working the day this is sandboxed, and it
+    /// survives the folder being moved. Remembering where to open is not the
+    /// same as not asking.
+    private func chooseDestination() -> URL? {
+        let panel = NSOpenPanel()
+        panel.message = "Where this record should be imported to."
+        panel.prompt = "Import"
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        if let last = PanelModel.lastImportDestination() {
+            panel.directoryURL = last
+        }
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        PanelModel.rememberImportDestination(url)
+        return url
+    }
+
+    /// The bookmark the destination chooser leaves behind.
+    static let importDestinationKey = "muthur.import.destination"
+
+    static func lastImportDestination(defaults: UserDefaults = .standard) -> URL? {
+        guard let data = defaults.data(forKey: importDestinationKey) else { return nil }
+        var stale = false
+        // Resolved without starting the scope: this only points the panel, and
+        // the URL the panel hands back is the one with the grant on it. A
+        // bookmark that will not resolve is not worth a complaint — the panel
+        // simply opens wherever it would have.
+        return try? URL(
+            resolvingBookmarkData: data, options: [.withSecurityScope],
+            relativeTo: nil, bookmarkDataIsStale: &stale)
+    }
+
+    static func rememberImportDestination(_ url: URL, defaults: UserDefaults = .standard) {
+        guard
+            let data = try? url.bookmarkData(
+                options: [.withSecurityScope], includingResourceValuesForKeys: nil,
+                relativeTo: nil)
+        else { return }
+        defaults.set(data, forKey: importDestinationKey)
     }
 
     /// Every editor verb, through one door.

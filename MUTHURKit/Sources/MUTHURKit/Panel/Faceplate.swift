@@ -9,17 +9,28 @@ import Foundation
 /// the only part that differs between the tools that share it, and here it is
 /// always the one word.
 ///
-/// **Five screens wear it, and each one puts something different at the far
+/// **Every screen wears it, and each one puts something different at the far
 /// end.** The script has three of them — the picker's `N SOURCES`
 /// (`player:1063`), the loading stage's own title (`player:1167`), and the
 /// now-playing panel's `PLAYING · 9 TRACKS · tags` (`player:2322`). The port
-/// adds two it had to invent, and both are here rather than in the views so
-/// that "every screen wears the same plate" is a thing the suite can be asked
-/// about: the check screen (`checkMeta`), which in bash is a terminal and not a
-/// panel at all, and the empty deck, which in bash cannot exist because
-/// `pick_source` ends the program rather than coming back with nothing
-/// (`player:1114`). The empty deck takes the ordinary `meta` and gets
-/// `STOPPED · 0 TRACKS`, which is not a special case so much as the true one.
+/// adds the ones it had to invent, and they are here rather than in the views
+/// so that "every screen wears the same plate" is a thing the suite can be
+/// asked about: the check screen (`checkMeta`), which in bash is a terminal and
+/// not a panel at all; the library (`libraryMeta`, D91); and the empty deck,
+/// which in bash cannot exist because `pick_source` ends the program rather
+/// than coming back with nothing (`player:1114`). The empty deck takes the
+/// ordinary `meta` and gets `STOPPED · 0 TRACKS`, which is not a special case so
+/// much as the true one.
+///
+/// **The jobs bring their own**, and they are not here: `BurnStage.meta`,
+/// `BurnPanel.meta` and `ImportStage.meta` are each a property of the stage
+/// they describe, because a stage that did not know what to stamp would be a
+/// stage the window had to be told about twice. The rule they keep is this
+/// file's: the plate names whatever screen is on top.
+///
+/// A count of them was written out here in words and went stale, which is the
+/// drift `CLAUDE.md` warns about arriving in a doc comment rather than in a
+/// document. There is no number in this paragraph now.
 public enum Faceplate {
 
     /// Drawn as text and never touching the filesystem, so it is the slashed

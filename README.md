@@ -8,7 +8,7 @@
 ║       █   █ █   █  █      █   █   █  █    █   █ █  █         ║
 ║       █   █  ███  █       █   █   █ █      ███  █   █        ║
 ║                                                              ║
-║       ░░▒▒▓▓██  AUDIO INTERFACE · CD BURNER  ██▓▓▒▒░░        ║
+║   ░░▒▒▓▓██  AUDIO INTERFACE · BURNER · IMPORTER  ██▓▓▒▒░░    ║
 ║                                                              ║
 ║   > SYSTEM READY                                             ║
 ║   > INSERT RECORD_                                           ║
@@ -16,12 +16,13 @@
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-A macOS music player for whole albums, and a CD burner, dressed as the
-ship's-computer terminal from *Alien* (1979).
+A macOS music player for whole albums, a CD burner and a CD importer, dressed
+as the ship's-computer terminal from *Alien* (1979).
 
 - Plays a **folder**, a **zip**, or the **audio CD** in the drive
 - Gapless, in the order the tags say
 - Burns an album to audio CD, across as many discs as it needs
+- **Imports the disc in the drive** — FLAC by default, tagged and sleeved
 - Amber phosphor, scanlines, dot-matrix readouts
 
 It is a port of two bash programs, `player` and `burncd`, which live in the
@@ -164,7 +165,7 @@ before uploading.
 ```
 SELF TEST ──────────────────────────────────────────────
 PARITY     █████████████████████████████▒  321 / 325
-HARDWARE   █████████████████████████▒░░░░   34 / 40
+HARDWARE   █████████████████████████▒░░░░   36 / 43
 ```
 
 The four open parity items need hardware, not code:
@@ -173,6 +174,11 @@ The four open parity items need hardware, not code:
 - Hi-res output sample rate
 - An Opus/Ogg file that needs ffmpeg
 - Resuming a burn at disc 2 (needs two blanks)
+
+Parity counts what the two bash scripts do, so **importing a disc adds nothing
+to it** — neither script imports one. It moved the hardware line instead, and
+then closed most of what it added: §21 has been run against a real CD, and two
+of its three steps are ticked. The third wants a click, not a disc.
 
 What to test next, as a checklist: [`TODO.md`](TODO.md).
 

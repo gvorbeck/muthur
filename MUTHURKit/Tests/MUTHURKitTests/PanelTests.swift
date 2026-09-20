@@ -886,7 +886,8 @@ struct KeycapTests {
     @Test("Each row fits the panel it is drawn on")
     func fits() {
         let legends =
-            Readout.legend + Readout.pickerLegend(hasDisc: true)
+            Readout.legend + Readout.legend(canImport: true)
+            + Readout.pickerLegend(hasDisc: true)
             + Readout.pickerLegend(hasDisc: false) + Readout.checkLegend
             + Readout.planLegend + Readout.burnLegend(canEdit: true)
             + Readout.burnLegend(canEdit: false)
@@ -894,6 +895,8 @@ struct KeycapTests {
             + Readout.libraryLegend(directories: true, records: false)
             + Readout.libraryLegend(directories: false, records: false)
             + Readout.libraryLegend(directories: true, records: true, finding: true)
+            + Readout.importLegend(finished: false, canReveal: false)
+            + Readout.importLegend(finished: true, canReveal: true)
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
@@ -940,13 +943,20 @@ struct KeycapTests {
     /// of them is a key nobody would find by guessing.
     @Test("Every press a cap can make is one the legend names")
     func wired() {
-        let playing = Set(Readout.legend.flatMap { $0 }.flatMap(\.presses))
+        let playing = Set(
+            Readout.legend(canImport: true).flatMap { $0 }.flatMap(\.presses))
         let picker = Set(Readout.pickerLegend(hasDisc: true).flatMap { $0 }.flatMap(\.presses))
         let check = Set(Readout.checkLegend.flatMap { $0 }.flatMap(\.presses))
         let plan = Set(Readout.planLegend.flatMap { $0 }.flatMap(\.presses))
         let library = Set(
             Readout.libraryLegend(directories: true, records: true).flatMap { $0 }.flatMap(\.presses))
+        // §21's own, which is the only legend `.reveal` appears on.
+        let importing = Set(
+            (Readout.importLegend(finished: false, canReveal: false)
+                + Readout.importLegend(finished: true, canReveal: true))
+                .flatMap { $0 }.flatMap(\.presses))
         let all = playing.union(picker).union(check).union(plan).union(library)
+            .union(importing)
         #expect(all == Set(Readout.Press.allCases))
     }
 
@@ -960,11 +970,14 @@ struct KeycapTests {
     func noCollisions() {
         let screens: [(String, [[Readout.Cap]])] = [
             ("playing", Readout.legend),
+            ("playing a disc", Readout.legend(canImport: true)),
             ("picker", Readout.pickerLegend(hasDisc: true)),
             ("empty picker", Readout.pickerLegend(hasDisc: false)),
             ("check", Readout.checkLegend),
             ("plan", Readout.planLegend),
             ("library", Readout.libraryLegend(directories: true, records: true)),
+            ("importing", Readout.importLegend(finished: false, canReveal: false)),
+            ("imported", Readout.importLegend(finished: true, canReveal: true)),
             ("finding", Readout.libraryLegend(directories: true, records: true, finding: true)),
         ]
         for (name, legend) in screens {
@@ -985,6 +998,29 @@ struct KeycapTests {
             #expect(caps.map(\.presses) == [[.previous], [.play], [.next]])
             #expect(caps.allSatisfy { !Readout.repeats($0.presses[0]) })
         }
+    }
+
+    /// **D95.** `IMPORT` is on the deck only when the record came off a disc.
+    ///
+    /// The same rule `OPEN` follows below, and for the same reason: a cap for a
+    /// key the screen does not answer is the panel promising something it
+    /// cannot deliver. Off a folder there is nothing to import, because the
+    /// files are already files.
+    @Test("IMPORT is on the deck only with a disc on it")
+    func theImportCapFollowsTheDisc() {
+        #expect(Readout.legend(canImport: false) == Readout.legend)
+        let withDisc = Readout.legend(canImport: true)
+        // Row three, after LIBRARY — last in, last placed, on the row D58 made
+        // and D92 already used for exactly this reason.
+        #expect(withDisc[2].map(\.label) == ["VOL", "MUTE", "LIBRARY", "IMPORT"])
+        #expect(withDisc[2].last?.presses == [.importDisc])
+        // Not on the transport row, and not on the row `QUIT` ends: row two is
+        // 58 of 69 and this cap wants ten plus a gap.
+        #expect(!withDisc[0].contains { $0.presses.contains(.importDisc) })
+        #expect(!withDisc[1].contains { $0.presses.contains(.importDisc) })
+        // `I` is free on every screen this could be reached from, which is the
+        // assertion `EJECT` and `BURN` each had to get past in turn.
+        #expect(!Readout.legend.flatMap { $0 }.contains { $0.key == "I" })
     }
 
     /// **D50.** `OPEN` is on the picker's legend only when there is something to

@@ -25,6 +25,19 @@ set it each time.
 - [ ] **Health Check with the drive empty** should say
       `drive found, no disc inserted` (D87).
 
+## Importing a disc — §21, mostly done
+
+Run against a real CD already: *American IV: The Man Comes Around*, 15 tracks,
+297 MB of FLAC in 4:03, two tracks compared with the disc byte for byte, and a
+cancel that took its folder back off an external volume. `docs/hardware.md`
+step 15 has the readings. **One box left, and it wants a click rather than a
+disc:**
+
+- [ ] **Choose a format from the menu, quit, and relaunch.** It should still be
+      on the format you chose (**D97**) — the one setting in this program that
+      outlives a launch. The round trip is covered by the suite; the menu item
+      driving it is not.
+
 ## With a disc, a set, or a spare volume (`docs/hardware.md`)
 
 - [ ] **Step 10:** copy two AIFFs to the top of an external volume, mount it

@@ -754,6 +754,100 @@ stays open for the one thing nobody in this building can supply: a second blank.
 
 ---
 
+### 15. Importing the disc — §21, and it is new here
+
+Three boxes, and none of them needs a blank: the disc that proves §21 is any
+disc you already own, which is the whole difference between this step and step
+14. What it does need is a drive with something in it, because nothing above the
+mount can be faked — the tests synthesise a directory of `pcm_s16be` AIFFs that
+is byte-for-byte the shape cddafs presents, and what they cannot synthesise is
+cddafs actually presenting it.
+
+Open the disc, then `I` on the deck (or **Import ▸ Import This Disc…**, ⌘I), and
+choose somewhere to put it.
+
+- [x] **Import a whole disc, and play the result.** *Done — Johnny Cash,*
+      **American IV: The Man Comes Around**, *15 tracks, 52:11.* The disc came
+      up on the `cddafs` route on `/dev/disk4`, MusicBrainz resolved it
+      (`261de123-7315-4a2f-8c40-3dad9092313e`) and named every track, and the
+      import wrote 297 MB of FLAC into
+      `American IV - The Man Comes Around/01 - The Man Comes Around.flac` and
+      its fourteen siblings in **4:03**.
+
+      Opened back as a record it reads `15 TRACKS · tags` with the running
+      order, the durations and the Cover Art Archive sleeve all as they were on
+      the panel — so `-map_metadata -1` and the tags written after it do what
+      §21.3 says. The `ALBUM` field keeps the real colon and only the *folder*
+      is dashed, which is the substitution being a filename rule and not a
+      metadata one.
+
+      **Two tracks were decoded back to raw PCM and compared with the same two
+      off the disc: byte-for-byte identical, 38,549,280 and 28,247,520 bytes.**
+      That is the claim §21.2 makes about a clean disc, put to a laser rather
+      than to a synthesised file.
+
+      **And `I IMPORT` is on the legend's third row with the disc on the deck
+      and absent with the imported folder on it**, which is D95's gate seen
+      from both sides in one session.
+
+      The thing worth checking by hand is the **disc that macOS cannot name**.
+      Imported before §4 has answered, thirteen rows reading `Track 01` land as
+      thirteen files called `01 Track 01.flac`, which is correct and useless;
+      imported after CD-Text or MusicBrainz has named them, they land named.
+      Both are right — the import writes down what the panel says — and knowing
+      which one you are about to get is the point.
+
+- [ ] **Change the format and import again into the same place.** Pick ALAC or
+      MP3 from the menu. The second import must not touch the first: expect a
+      second folder with `(2)` on the end (**D96**). Quit and relaunch — the
+      menu should still be on the format you chose, which is **D97** and the one
+      setting in this program that survives a launch.
+
+      *Half done.* The `(2)` was exercised against this volume by the cancel
+      below, which had to find a vacant name before it could write anything and
+      was given `American IV - The Man Comes Around (2)`. **What is untested by
+      hand is the menu**: choosing a format, quitting, and finding it still
+      chosen. The round trip is covered by the suite; the menu item driving it
+      is not, which is why this box is still open.
+
+- [x] **Cancel one part-way.** *Done, against the external volume, which is the
+      only place it was worth doing —* this is the path that **deletes a
+      directory on somebody's disk**, and a temporary directory proves nothing
+      about the disk it will really be pointed at. Stopped after three tracks:
+      `American IV - The Man Comes Around (2)` and all three files inside it
+      were gone, not emptied, and the fifteen-track folder beside it was
+      untouched.
+
+      It is the box that earns `Q CANCEL` being live for the whole run instead
+      of at one prompt the way a burn's is, and it is the one behaviour here
+      that would be actively harmful if it were wrong.
+
+      Worth doing once with **Make a Folder for the Record** off, into a
+      directory that already has something of yours in it: the cancel must take
+      the tracks it wrote and leave everything else alone.
+
+**What this step found, and it found it before writing a byte.** The first real
+destination was an **exFAT** disk, and `TempSpace.free` asked
+`volumeAvailableCapacityForImportantUsage` and nothing else — a key exFAT
+answers **nought**. The import was refused for lack of room on a volume with
+505 GB free. `TempSpace` is shared with the burn, so the same bug was waiting
+for any `MUTHUR_WORK` pointed off the boot volume, and no amount of temporary
+directories on APFS was ever going to find it. `FreeSpaceTests` is the guard,
+and it walks whatever is mounted rather than naming a filesystem.
+
+It also found that the naming rules had been written from first principles
+against a shelf that had been right for years: a colon belongs to ` - ` and not
+to a dash welded onto the first word, a record inside an artist's folder should
+not repeat the artist, and tracks are `01 - Title`. See **D96**, amended.
+
+**What this step cannot prove.** That the read is *accurate* — only that it is
+faithful to what cddafs handed over. The bit-for-bit comparison above is against
+the disc, which is as far as this can go: proving the read itself would mean
+ripping a disc that is in AccurateRip and comparing checksums, which this port
+has no way to do and §21.2 says plainly it does not attempt.
+
+---
+
 ### What is still unproven after all of this
 
 - **~~§1.3 in full~~ — run on a disc, and it held.** This entry read "written,

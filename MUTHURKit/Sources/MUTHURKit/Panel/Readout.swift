@@ -172,6 +172,22 @@ public enum Readout {
         /// already means REPEAT here and RESCAN there.
         case burn
 
+        /// Take the disc in the deck and keep it as files (§21, **D95**).
+        ///
+        /// The other direction of `burn`, and new in the same way: neither
+        /// script has it, because in a terminal you leave `player` and type
+        /// something else entirely. Bound only while the record on the deck
+        /// came off a disc.
+        case importDisc
+
+        /// The folder an import landed in, shown in Finder (§21).
+        ///
+        /// The one question a finished import leaves, and the only press on
+        /// this legend that leaves the program's own window — which is why it
+        /// is its own case and not `.browse` borrowed. `browse` asks the user
+        /// for a record; this tells the Finder about one.
+        case reveal
+
         // The plan screen (§20.4). `⇧↑↓` is a rocker like `↑↓` above it, and
         // for the same reason: one plate, pressed at one end or the other.
         case moveUp, moveDown
@@ -290,6 +306,37 @@ public enum Readout {
             Cap("L", "LIBRARY", .library),
         ],
     ]
+
+    /// The deck's legend with §21's cap on it, when there is a disc to take it
+    /// off (**D95**).
+    ///
+    /// **`I IMPORT`, and both halves of that are a compromise worth writing
+    /// down.** By its meaning it belongs on row two beside `EJECT` and `BURN` —
+    /// taking the record off the disc and keeping it is something you do *to*
+    /// the record, which is D57's own argument and the one that put `BURN`
+    /// there. Row two stands at 58 of 69 and this cap wants ten plus its gap,
+    /// which is 71. So it goes on row three, after `LIBRARY`: last in, last
+    /// placed, on the row that exists because exactly this happened to D58 and
+    /// then again to D92. The row goes 33 → 46, measured by `KeycapTests.fits`
+    /// and not by the arithmetic in this sentence.
+    ///
+    /// **`I` because every better letter was gone.** `R` is REPEAT and has been
+    /// since the script, `B` is BURN, `E` is EJECT, and `S`, `N`, `P`, `M`, `L`
+    /// and `Q` are all spoken for. `I` is the free letter in the word, and the
+    /// word is *import* rather than *rip* — a rip is what the tool does, an
+    /// import is what you are doing, and this program has always named the verb
+    /// after the person rather than the machine. ⌘I in the menu is the real
+    /// discoverability, on D92's reasoning about ⌘L.
+    ///
+    /// **Only with a disc in the deck.** A legend naming a key the screen does
+    /// not answer is the same lie the dead ⌘O was — and off a folder there is
+    /// nothing to import, because the files are already files.
+    public static func legend(canImport: Bool) -> [[Cap]] {
+        guard canImport else { return legend }
+        var rows = legend
+        rows[2].append(Cap("I", "IMPORT", .importDisc))
+        return rows
+    }
 
     /// The picker's keycap row (`player:1134`), plus `BROWSE` — **and it is now
     /// two rows, one of which is not drawn at the same time as the other.**
@@ -474,6 +521,26 @@ public enum Readout {
         var caps = [Cap("⏎", "BURN", .burn)]
         if canEdit { caps.append(Cap("E", "EDIT", .close)) }
         caps.append(Cap("Q", "CANCEL", .quit))
+        return [caps]
+    }
+
+    /// §21's row — the import screen's, in its two states.
+    ///
+    /// **`Q CANCEL` is on every frame but the last**, which is exactly what
+    /// `burnLegend` will not do and the difference is the point. A burn offers
+    /// the cancel at the insert prompt alone, because after that there is
+    /// nothing to cancel that would not leave a coaster behind. An import
+    /// leaves files, files can be taken back, and `ImportJob.cancelled` takes
+    /// them — so the key is honest for the whole run.
+    ///
+    /// **`R REVEAL` only once there is a folder to reveal.** `DONE` and not
+    /// `QUIT` on the same frame, for the reason `BurnView` already gives: the
+    /// job is over and the key is an acknowledgement rather than an escape.
+    public static func importLegend(finished: Bool, canReveal: Bool) -> [[Cap]] {
+        guard finished else { return [[Cap("Q", "CANCEL", .quit)]] }
+        var caps: [Cap] = []
+        if canReveal { caps.append(Cap("R", "REVEAL", .reveal)) }
+        caps.append(Cap("Q", "DONE", .quit))
         return [caps]
     }
 

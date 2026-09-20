@@ -57,6 +57,7 @@ struct MUTHURApp: App {
                 Button("Collection…") { chooseCollection() }
             }
             LibraryCommands(model: model)
+            ImportCommands(model: model)
             BurnCommands(model: model)
         }
     }
@@ -145,7 +146,80 @@ struct LibraryCommands: Commands {
     }
 
     /// The screens `showLibrary` will not go over.
-    private var busy: Bool { model.isBurning || model.isPlanning || model.isLoading }
+    private var busy: Bool {
+        model.isBurning || model.isPlanning || model.isLoading || model.isImporting
+    }
+}
+
+/// §21's option set (**D95**).
+///
+/// **⌘I is half the reason this menu exists**, on the argument D92 makes about
+/// ⌘L: `I` on the deck is the key, and a key with no modifier on it is one you
+/// find by reading the legend or not at all. The other half is the format,
+/// which has nowhere else to live — there is no Settings screen yet (§11, §13),
+/// so a setting is a menu item until there is somewhere for it to be.
+///
+/// **It is not built like `BurnCommands` and the difference is on purpose.**
+/// Every switch there is a flag typed per invocation and forgotten after it;
+/// every switch here is written straight through to disk. `ImportOptions` has
+/// the whole argument — the short form is that `Rehearse` describes one run and
+/// `FLAC` describes your shelf.
+struct ImportCommands: Commands {
+    let model: PanelModel
+
+    var body: some Commands {
+        CommandMenu("Import") {
+            Button("Import This Disc…") { model.importDisc() }
+                .keyboardShortcut("i")
+                .disabled(!model.canImport)
+
+            Divider()
+
+            Group {
+                // The format first, because it is the only one of these anybody
+                // opens this menu to change.
+                Picker("Format", selection: option(\.format)) {
+                    // Lossless above the line and lossy below it, which is the
+                    // only grouping that matters when what you are choosing is
+                    // how to keep a record.
+                    ForEach(ImportFormat.allCases.filter(\.isLossless), id: \.self) {
+                        Text($0.label).tag($0)
+                    }
+                    Divider()
+                    ForEach(ImportFormat.allCases.filter { !$0.isLossless }, id: \.self) {
+                        Text($0.label).tag($0)
+                    }
+                }
+
+                Toggle("Embed the Sleeve", isOn: option(\.sleeve))
+
+                // **Both of these exist because a real shelf disagreed with
+                // the port** (D96, amended). The defaults are what fifty
+                // hand-filed albums on this machine already looked like, and
+                // the other settings are kept because the reasoning behind
+                // them was not wrong, only unpopulated.
+                Picker("Folder", selection: option(\.folder)) {
+                    ForEach(ImportNames.FolderStyle.allCases, id: \.self) {
+                        Text($0.label).tag($0)
+                    }
+                }
+                Picker("Track Names", selection: option(\.trackStyle)) {
+                    ForEach(ImportNames.TrackStyle.allCases, id: \.self) {
+                        Text($0.label).tag($0)
+                    }
+                }
+
+                Toggle("Eject When Done", isOn: option(\.ejectWhenDone))
+            }
+            .disabled(model.isImporting)
+        }
+    }
+
+    private func option<Value>(_ key: WritableKeyPath<ImportOptions, Value>) -> Binding<Value> {
+        Binding(
+            get: { model.importOptions[keyPath: key] },
+            set: { value in model.setImportOptions { $0[keyPath: key] = value } })
+    }
 }
 
 /// `burncd`'s command line, as a menu (D86).

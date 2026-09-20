@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-ninety-two are settled. Recorded here with the answer so that a departure from
+ninety-seven are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -187,6 +187,18 @@ seek pair went to pay for it. D93 is a find line on the library, for a wall that
 grown past what the eye can scan. D94 puts a mini player at the foot of every
 screen that goes over the deck, so the record can be paused or skipped without
 going back to it.
+
+**D95 to D97 are the other direction of the disc**, and they came from wanting
+the thing the pair of scripts never had: a way to keep the record that is in the
+drive. D95 is the import itself — `I IMPORT` on the deck beside `B BURN`, bound
+only while there is a disc to take it off, with an Import menu behind it because
+a key with no modifier is one nobody finds. D96 is where the files land and what
+they are called: one folder per record, `NN Title.ext`, names sanitised only as
+far as the kernel actually insists, and a `(2)` rather than anything written
+over. D97 is the first setting in this program that outlives a launch, and it is
+written down because it contradicts D86 on purpose — a switch that could make
+one run behave unlike the run you are watching does not persist, and a switch
+that describes your shelf does.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4099,3 +4111,144 @@ turns into `▶` (one), `▶▶` does not move. The plates
 send the deck's own `␣`, `n` and `p` whichever screen is up. They go through
 their own dispatcher and not through the screen's, because on the plan `␣` means
 something else and on the check any key closes the screen.
+
+**D95 — the disc goes the other way too: `I IMPORT` on the deck, and an Import menu behind it.** → §10, §21
+
+Neither script does this. `player` reads a disc and `burncd` writes one, and
+taking a disc *and keeping it* was always done with something else. It is the
+missing third of an instrument that already has the other two, and the argument
+for it is the argument `CLAUDE.md` makes for `burncd` living in this repository
+at all: these are moments of the same disc, and the program that knows how to
+read a lead-in and name thirteen untitled tracks is the program that should be
+allowed to write them down.
+
+**`I`, because every better letter was gone.** `R` is REPEAT and has been since
+the script, `B` is BURN, `E` is EJECT, and `S`, `N`, `P`, `M`, `L` and `Q` are
+all spoken for. `I` is the free letter in the word — and the word is **import**
+rather than *rip*: a rip is what the tool does, an import is what the person is
+doing, and this program names verbs after the person.
+
+**Row three, after `LIBRARY`.** By its meaning it belongs on row two beside
+`EJECT` and `BURN` — taking the record off the disc is something you do *to* the
+record, which is D57's own argument. Row two stands at 58 of 69 and the cap
+wants ten plus its gap, which is 71. So row three, last in and last placed, on
+the row D58 made and D92 already used for exactly this. 33 → 46, measured by
+`KeycapTests.fits` and not by the arithmetic in this sentence.
+
+**Bound only with a disc on the deck**, cap and key together, on the rule
+`pickerLegend`'s `OPEN` already keeps. Off a folder the files are already files,
+and an `IMPORT` that re-encoded a folder into another folder would be a
+transcode wearing this feature's name.
+
+**⌘I is why there is a menu**, on D92's reasoning about ⌘L: a key with no
+modifier on it is found by reading the legend or not at all. The menu also holds
+the format, which has nowhere else to live until §11 and §13 produce a Settings
+screen.
+
+**The one prompt is *where*, and it is asked every time.** The burn's equivalent
+is `stage_insert`, a screen that stops and waits; this is the open panel
+instead, for D50's reason — the powerbox is how a window asks for a directory
+and it needs no TCC grant. It opens at the last place one was taken, kept as a
+security-scoped bookmark on D5's shape. Remembering where to open is not the
+same as not asking.
+
+**What it reads is the mount and not the device**, which is D44 one layer up and
+the same reasoning: cdrtools wants an exclusive open, the kernel will not give
+one up for a mounted disc, and D80's borrow is worth two seconds of CD-Text and
+not forty minutes of audio with the disc gone from Finder. The consequence is
+written down rather than glossed — this is the kernel's read, with no re-read of
+a doubtful sector, so a clean disc copies bit-perfectly and a scratched one does
+worse than `cdparanoia` would.
+
+**And `Q CANCEL` is live for the whole run**, which is the one place the screen
+deliberately contradicts the one it is copied from. `BurnRun` offers the cancel
+at the insert prompt alone, because a `cdrecord` stopped halfway has spoiled a
+blank and there is no undoing it. An import leaves files, files can be taken
+back, and cancelling takes them.
+
+**D96 — one folder per record, `NN - Title.ext` inside it.** → §21
+
+**Amended the first time it met a real shelf, and the amendment is the entry.**
+This was written as `Bon Jovi - Slippery When Wet/01 Let It Rock.flac`, reasoned
+from first principles, and all three of its rules were wrong about the library
+the very first disc was imported into — a library that had been right for years
+and was sitting there to be read:
+
+| | the shelf | as written |
+|---|---|---|
+| album folder | `Paranoid` | `Black Sabbath - Paranoid` |
+| track file | `01 - Let It Rock.flac` | `01 Let It Rock.flac` |
+| a colon | `Gold - Greatest Hits` | `Gold- Greatest Hits` |
+
+So: **the album alone**, because the directory you choose is usually already an
+artist's and `Johnny Cash/Johnny Cash - American IV…` stutters; **`01 - Title`**,
+because that is what shelves look like; and **`: ` → ` - `**, because a colon
+separating two phrases is punctuation with a space after it and replacing only
+the colon welds the dash to the first half and leaves the second adrift. ABBA's
+*Gold: Greatest Hits* had been filed as `Gold - Greatest Hits` since long before
+this program existed. A slash between spaces goes the same way; a bare one, as
+in `AC/DC`, stays a bare dash.
+
+The old forms are kept as options rather than deleted, because the reasoning
+behind them is not *wrong* — `Artist - Album` is right for a flat destination,
+and a dash between a number and a title is arguably redundant. They were just
+not what anybody's shelf looks like, and **that is a question about the world
+rather than about the argument, which is why no amount of thinking about it
+would have settled it.**
+
+The parts that survived intact: either half of the name may be missing and the
+joint goes with it, and a disc nobody can name lands in `Untitled Record`, which
+is a name and not an error.
+
+**A second import never merges into the first.** It gets `(2)`. Merging is what
+produces a folder half of one rip and half of another the moment a title changes
+between the two — the tracks that still match are overwritten and the ones that
+do not are left beside them. No dialog asks, because there is no question: a
+folder nobody wanted is a drag to the trash, and the rip that was overwritten is
+not recoverable at all.
+
+**Names are sanitised only as far as the kernel insists**, which is
+`CLAUDE.md`'s rule about rules the kernel does not honour, applied to the one
+place in this port where a title stops being text on a panel and becomes a name
+on a volume. `/` is illegal and goes. `:` is legal and goes anyway, because
+Finder draws it as a `/` and that is the same confusion arriving by the back
+door. Everything Windows dislikes — `?`, `*`, `|`, `<`, `>`, `"`, `\` — is kept,
+because removing it would be this program guessing about a disk it has not been
+told about.
+
+**Toggleable off**, for somebody who has already made the folder. That is the
+only setting under which an import can land beside files that were already
+there, which is why a cancel under it removes the planned files and nothing
+wider.
+
+**D97 — the import format outlives the launch, and the burn's switches still do not.** → §13, §21
+
+`BurnOptions` is emphatic, and right: a switch that survived a relaunch would be
+*a flag you set last month and cannot see*, and `rehearsal` remembered is an
+hour spent rehearsing a burn somebody meant to keep. This departs from that for
+one value, so the test the two now share is written down here.
+
+**A switch that could make one run behave unlike the run you are watching does
+not persist. A switch that describes your shelf does.** `--dummy` is an
+instruction about one burn; FLAC is a statement about how this person keeps
+their music, and somebody who keeps a FLAC library keeps one next month. A menu
+that forgot it would ask the same question before every disc and get the same
+answer. `sleeve`, `folder`, `trackStyle` and `ejectWhenDone` are shelf facts by
+the same test and are kept with it — and the last two are the test being right
+about itself, since **D96** only learned what they should default to by looking
+at a shelf.
+
+The other half of why this is safe: **nothing in the Import menu can spoil
+anything.** The worst a remembered setting does is write a folder you did not
+want. That is not true of a single switch in the Burn menu, which is the real
+reason the two sets are stored differently rather than a preference about
+storage.
+
+One key holding the whole value as JSON, not four — four would be four things to
+keep agreeing with each other, and a half-written set is the failure mode. Every
+field defaults on the way in, so a blob written by a build with one switch fewer
+still decodes, and a format this build has never heard of falls back to FLAC
+rather than refusing the set. `MUTHUR_IMPORT_FORMAT` beats what was saved for
+the launch it is set on and is never written back, because a variable exported
+in a shell profile that silently became the saved setting would be a preference
+nobody chose and could not find.
