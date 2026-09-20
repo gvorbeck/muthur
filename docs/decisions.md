@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-ninety-seven are settled. Recorded here with the answer so that a departure from
+ninety-eight are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -199,6 +199,13 @@ over. D97 is the first setting in this program that outlives a launch, and it is
 written down because it contradicts D86 on purpose — a switch that could make
 one run behave unlike the run you are watching does not persist, and a switch
 that describes your shelf does.
+
+**D98 came from a claim that shipped and was false.** D96 declined to strip the
+characters Windows refuses, on the grounds that stripping them would be
+guessing; 0.8.0's notes then said exFAT would refuse them outright. Neither had
+been measured, and the measurement says macOS's exFAT takes every one of them.
+The rule that stands is about neither — a disk is exFAT *so that Windows can
+read it*, and the destination is asked what it is rather than assumed.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4252,3 +4259,54 @@ rather than refusing the set. `MUTHUR_IMPORT_FORMAT` beats what was saved for
 the launch it is set on and is never written back, because a variable exported
 in a shell profile that silently became the saved setting would be a preference
 nobody chose and could not find.
+
+**D98 — names are made for the volume they are going to, and the volume is asked.** → §21
+
+**The rule this replaces was written twice from a chair and was wrong both
+times**, which is the reason this entry exists at all rather than being a line
+in D96.
+
+D96 kept `?`, `*`, `|`, `<`, `>`, `"` and `\` on the reasoning that stripping
+them *would be this program guessing that the disk is going somewhere it has not
+been told about*. Sound as far as it went. Then the first real import went to an
+exFAT drive and 0.8.0's release notes said those characters would **fail the
+write** there and the track would be skipped.
+
+**Nobody had measured it, and the measurement contradicts the second claim
+outright.** Through `FileManager`, on this machine's exFAT volume: every one of
+the seven, plus a trailing dot and a trailing space, writes, lists back
+byte-exact and reads back — exactly as on APFS. The Win32 restriction is a
+restriction in *Windows*, not in the exFAT on-disk format, and macOS's driver
+does not enforce it. **A released note asserted a failure mode that does not
+exist**, which is worse than the silence it replaced.
+
+So the honest rule is neither of the two that were written, and it is not about
+legality at all:
+
+> A disk is formatted exFAT or FAT **so that something other than a Mac can read
+> it**. A filename this program writes that Windows cannot open defeats the only
+> reason that format was chosen. That is a fact about the user's intent,
+> published by the filesystem they picked.
+
+`Volume.at` asks `statfs` for `f_fstypename` and `exfat`, `msdos`, `fat`,
+`fat32`, `vfat`, `ntfs` and `smbfs` get `Policy.portable`: the seven become `-`,
+and a folder named after a DOS device (`CON`, `AUX`, `COM1`…) gets a trailing
+`_`, because `CON.flac` is as unopenable on Windows as `CON`. A track file never
+needs that step — its stem always begins `01 - `.
+
+**Everything else gets `Policy.native`, which is D96 unchanged**, and the
+direction of that fallback is the decision rather than an implementation detail.
+A filesystem this port has never met is treated as native, because guessing
+*toward* substitution would quietly rename tracks on a volume nobody said
+anything about — which is D96's own mistake made in the opposite direction.
+
+**It is said out loud when it fires.** A run that changed any name prints
+`· n NAMES CHANGED for a disk Windows can read` before the first track. A
+program that quietly writes a name other than the one on the panel is the
+failure **D85** spends a paragraph refusing to be, and a filename is not
+exempt from that just because it is not a tag. The note is only printed when
+something actually changed, which on most records is never.
+
+**The tag keeps the question mark.** Only the filename loses it — `title` is
+written from the panel exactly as §21.3 says, and *Where Is My Mind?* is still
+called that inside the file wherever the file happens to live.

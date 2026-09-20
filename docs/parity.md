@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All ninety-seven are settled; they
+  the reasoning and the decision it came from. All ninety-eight are settled; they
   are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
@@ -97,14 +97,17 @@ and it walks whatever is mounted rather than naming a filesystem. The second is
 by a shelf that had been sitting on the same machine being right about them for
 years.
 
-**The pass is D95 to D97.** D95 is the feature: `I IMPORT` on the deck beside
+**The pass is D95 to D98.** D95 is the feature: `I IMPORT` on the deck beside
 `B BURN`, bound only while there is a disc to take it off, with an Import menu
 behind it because ⌘I is the only way a modifier-less key gets found. D96 is
 where the files land — one folder per record, `NN Title.ext`, names sanitised
 only as far as the kernel actually insists, and a `(2)` rather than anything
 written over. D97 is the first setting in this program that outlives a launch,
 and it exists as an entry because it contradicts D86 deliberately rather than
-by drift.
+by drift. **D98 is the correction of a claim that had already shipped**: 0.8.0's
+notes said the characters Windows refuses would fail their write on exFAT, which
+was never measured and is false — macOS's exFAT takes every one of them. Names
+are now made for the volume they are going to, and the volume is asked.
 
 **A denominator counts what somebody thought to ask for**, and a green field
 says only that every question asked so far has an answer. This pass is the
@@ -3957,14 +3960,23 @@ options.
   somewhere it has not been told about. *Where Is My Mind?* keeps its question
   mark.
 
-  **This has a known edge and it is written down rather than guessed at.** Those
-  seven characters are legal on APFS and HFS+ and illegal on exFAT and FAT32,
-  and an external music drive is quite often exFAT — the one this was first
-  aimed at is. Nothing is done about it yet, because the fix is not to start
-  guessing the other way: it is to ask the destination what filesystem it is,
-  which the kernel will answer, and to sanitise to that. Until then a title with
-  a `?` in it, imported onto an exFAT disk, is a track that will fail its write
-  and be logged and stepped over like any other unreadable one.
+  **…on a volume that is only ever going to be read by a Mac. The destination
+  is asked, and a portable one gets portable names (D98).** The paragraph that
+  stood here said those seven characters were *illegal on exFAT* and that such a
+  track would fail its write. **That was never measured and it is not true**:
+  through `FileManager`, on this machine's exFAT disk, every one of them — and a
+  trailing dot, and a trailing space — writes, lists back byte-exact and reads
+  back, exactly as on APFS. The Win32 restriction belongs to Windows, not to the
+  format.
+
+  So the rule is not about legality. A disk is exFAT *so that something other
+  than a Mac can read it*, and `Volume.at` asks `statfs` which kind it is:
+  `exfat`, `msdos`, `ntfs`, `smbfs` and the FAT spellings get the seven
+  substituted and DOS device names stepped around; everything else, including
+  any filesystem this port has not met, keeps D96's rules unchanged. **The tag
+  still says *Where Is My Mind?*** — only the filename loses the mark, and only
+  on a disk whose whole point is being readable elsewhere. A run that changed
+  any name says so before the first track.
 - **Nothing is ever written over.** A second import of the same record beside the
   first gets `(2)`, because the old rip is recoverable in a second and losing it
   is not. Two tracks that share a title on one disc do not plan onto each other

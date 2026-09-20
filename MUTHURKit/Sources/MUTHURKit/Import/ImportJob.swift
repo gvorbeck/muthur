@@ -197,6 +197,17 @@ public struct ImportJob: Sendable {
             throw failure
         }
 
+        // **D98** — said out loud, and only when it happened. A program that
+        // quietly writes a name other than the one on the panel is the failure
+        // D85 spends a paragraph refusing to be; this is the same rule applied
+        // to a filename instead of a tag.
+        if plan.renamed > 0 {
+            let plural = plan.renamed == 1 ? "" : "S"
+            say(
+                "· \(plan.renamed) NAME\(plural) CHANGED for a disk Windows can read "
+                    + "— ? * | < > \" \\ become -")
+        }
+
         let cover = coverToEmbed()
         if options.sleeve && cover == nil && !plan.format.takesCoverArt {
             // Said once, and only when it is a *refusal* rather than an

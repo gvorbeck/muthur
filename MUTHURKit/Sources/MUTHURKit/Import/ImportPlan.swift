@@ -52,6 +52,14 @@ public struct ImportPlan: Sendable, Equatable {
     public let album: String
     public let albumArtist: String
     public let year: String
+    /// The rules these names were made under (**D98**). Kept so the screen can
+    /// say when it has had to change any, rather than doing it silently.
+    public let naming: ImportNames.Policy
+    /// How many names this policy altered that `.native` would have left
+    /// alone. Nought under `.native`, and nought on a portable volume whose
+    /// record happens to contain nothing Windows objects to — which is most
+    /// records, which is why the note is only printed when this is not nought.
+    public let renamed: Int
 
     /// The disc's running time — the denominator the bar is drawn against.
     public var runtime: Int { entries.reduce(0) { $0 + $1.duration } }
@@ -108,22 +116,45 @@ public struct ImportPlan: Sendable, Equatable {
         format: ImportFormat,
         folderStyle: ImportNames.FolderStyle = .album,
         trackStyle: ImportNames.TrackStyle = .dash,
+        naming: ImportNames.Policy? = nil,
         exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }
     ) throws -> ImportPlan {
         let running = record.running
         guard !running.isEmpty else { throw Failure.nothingToImport }
 
+        // **Asked once, here, because here is where the destination is known**
+        // (D98). Every name below is made under the same policy, so a record
+        // cannot end up with a folder written to one rule and its tracks to
+        // another. `nil` means ask the volume; the suite passes one outright.
+        let policy = naming ?? Volume.naming(for: destination)
+
         var folder = destination
         var ours = false
         if folderStyle != .none {
             let name = ImportNames.recordFolder(
-                album: record.album, albumArtist: record.albumArtist, style: folderStyle)
+                album: record.album, albumArtist: record.albumArtist, style: folderStyle,
+                policy: policy)
             guard let vacant = ImportNames.vacant(name, in: destination, exists: exists) else {
                 throw Failure.noVacantName(name)
             }
             folder = vacant
             ours = true
         }
+
+        // Counted here rather than inferred later, because here is the only
+        // place that still has both the title and the two answers to it. The
+        // `(2)` dedup below would make the comparison a guess afterwards.
+        var renamed = 0
+        func countingRename(_ text: String) {
+            guard policy != .native, !text.isEmpty else { return }
+            if ImportNames.component(text, policy: policy)
+                != ImportNames.component(text, policy: .native)
+            {
+                renamed += 1
+            }
+        }
+        countingRename(record.album)
+        countingRename(record.albumArtist)
 
         var entries: [Entry] = []
         // Names are checked against the filesystem *and* against each other.
@@ -138,8 +169,10 @@ public struct ImportPlan: Sendable, Equatable {
 
         for (index, track) in running.enumerated() {
             let number = ImportPlan.number(for: track, at: index)
+            countingRename(track.title)
             let name = ImportNames.trackFile(
-                number: number, title: track.title, format: format, style: trackStyle)
+                number: number, title: track.title, format: format, style: trackStyle,
+                policy: policy)
             guard let url = ImportNames.vacant(name, in: folder, exists: occupied) else {
                 throw Failure.noVacantName(name)
             }
@@ -152,7 +185,8 @@ public struct ImportPlan: Sendable, Equatable {
 
         return ImportPlan(
             entries: entries, folder: folder, folderIsOurs: ours, format: format,
-            album: record.album, albumArtist: record.albumArtist, year: record.year)
+            album: record.album, albumArtist: record.albumArtist, year: record.year,
+            naming: policy, renamed: renamed)
     }
 
     /// The number this track is written as.
@@ -210,8 +244,12 @@ public struct ImportPlan: Sendable, Equatable {
 
     public init(
         entries: [Entry], folder: URL, folderIsOurs: Bool, format: ImportFormat,
-        album: String, albumArtist: String, year: String
+        album: String, albumArtist: String, year: String,
+        naming: ImportNames.Policy = .native,
+        renamed: Int = 0
     ) {
+        self.naming = naming
+        self.renamed = renamed
         self.entries = entries
         self.folder = folder
         self.folderIsOurs = folderIsOurs

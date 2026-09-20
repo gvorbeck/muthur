@@ -107,3 +107,109 @@ struct FreeSpaceTests {
         #expect(TempSpace.free(at: nowhere) == nil)
     }
 }
+
+/// **D98** — the naming policy against a real volume of each kind.
+///
+/// This is the tier the rule was got wrong in twice from a chair. D96 kept the
+/// Win32 characters on the reasoning that removing them would be a guess; the
+/// 0.8.0 notes then claimed exFAT would refuse them. **Neither was measured,
+/// and the measurement says macOS's exFAT takes every one of them** — so the
+/// rule that shipped is about portability rather than legality, and this is
+/// what keeps that claim honest.
+@Suite("D98 — names against the volumes that are mounted")
+struct PortableNamingTests {
+
+    /// A directory on `root` that cleans up after itself, or nil where `root`
+    /// will not take one. Named with a dot and a UUID so it is invisible and
+    /// cannot collide with anything of the user's.
+    final class Scratch {
+        let url: URL
+        init?(on root: URL) {
+            let dir = root.appending(path: ".muthur-naming-\(UUID().uuidString)")
+            guard (try? FileManager.default.createDirectory(
+                at: dir, withIntermediateDirectories: true)) != nil
+            else { return nil }
+            url = dir
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+    }
+
+    /// Every mounted volume, with what the kernel calls its filesystem.
+    static var mounted: [(URL, Volume)] {
+        var found: [(URL, Volume)] = []
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        if let v = Volume.at(home) { found.append((home, v)) }
+        let volumes = (try? FileManager.default.contentsOfDirectory(
+            at: URL(fileURLWithPath: "/Volumes"),
+            includingPropertiesForKeys: [.isDirectoryKey])) ?? []
+        for url in volumes {
+            if let v = Volume.at(url) { found.append((url, v)) }
+        }
+        return found
+    }
+
+    /// The titles that started this: six Win32 refuses, and three shapes that
+    /// are legal everywhere and must survive untouched.
+    static let awkward = [
+        "Where Is My Mind?", "*Fazer*", "a|b", "a<b>c", #"a"b"#, #"A\\B"#,
+        "I’m So Lonesome I Could Cry", "émigré", "AC-DC",
+    ]
+
+    @Test("a name made for a volume is a name that volume takes")
+    func namesRoundTrip() throws {
+        for (root, volume) in PortableNamingTests.mounted {
+            // Read-only volumes — a mounted disc, a sealed system volume —
+            // have nothing to say here and are not failures.
+            guard let scratch = Scratch(on: root) else { continue }
+            for title in PortableNamingTests.awkward {
+                let name = ImportNames.trackFile(
+                    number: 1, title: title, format: .flac, policy: volume.naming)
+                let url = scratch.url.appending(path: name)
+                do {
+                    try Data("x".utf8).write(to: url)
+                } catch {
+                    let said = "\(volume.filesystem) refused \(name.debugDescription)"
+                        + " made for it from \(title.debugDescription)"
+                    Issue.record(Comment(rawValue: said))
+                    continue
+                }
+                // Written, listed back byte-exact, and readable. A name that
+                // round-trips through the directory is a name that volume took.
+                let listed = (try? FileManager.default.contentsOfDirectory(
+                    atPath: scratch.url.path)) ?? []
+                #expect(
+                    listed.contains(name),
+                    "\(volume.filesystem): \(name.debugDescription) is not in its own directory")
+                #expect((try? Data(contentsOf: url)) != nil)
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+    }
+
+    @Test("a portable volume gets names with none of the seven in them")
+    func portableVolumesAreClean() throws {
+        let portable = PortableNamingTests.mounted.filter { $0.1.wantsPortableNames }
+        // Green on a machine with no such volume — that is a fact about the
+        // machine, not a failure, and the rules tier covers the arithmetic.
+        for (root, volume) in portable {
+            for title in PortableNamingTests.awkward {
+                let name = ImportNames.trackFile(
+                    number: 1, title: title, format: .flac, policy: volume.naming)
+                #expect(
+                    !name.contains(where: { #"?*|<>"\"#.contains($0) }),
+                    "\(volume.filesystem) at \(root.path) got \(name.debugDescription)")
+            }
+        }
+    }
+
+    @Test("a native volume keeps the punctuation, which is the measured half")
+    func nativeVolumesKeepThem() {
+        let native = PortableNamingTests.mounted.filter { !$0.1.wantsPortableNames }
+        for (_, volume) in native {
+            #expect(
+                ImportNames.trackFile(
+                    number: 1, title: "Where Is My Mind?", format: .flac,
+                    policy: volume.naming) == "01 - Where Is My Mind?.flac")
+        }
+    }
+}

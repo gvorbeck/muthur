@@ -22,6 +22,66 @@ public enum ImportNames {
     /// be waiting to go on the end and both are added after this has run.
     public static let byteBudget = 200
 
+    /// Which characters a name may not keep, and why (**D98**).
+    ///
+    /// **Not a guess about the kernel — the kernel was measured and refuses
+    /// none of these.** `?`, `*`, `|`, `<`, `>`, `"`, `\`, a trailing dot and a
+    /// trailing space all write, list back byte-exact and read back on macOS's
+    /// exFAT, exactly as on APFS. What they do not do is open on Windows, and a
+    /// disk is exFAT *so that* Windows can open it. `Volume` decides which
+    /// policy a destination gets and carries the whole argument.
+    public struct Policy: Sendable, Equatable {
+
+        /// Beyond `/` and `:`, which every policy substitutes.
+        public let reserved: Set<Unicode.Scalar>
+
+        /// Whether the names Windows reserves for devices are stepped around.
+        public let avoidsDeviceNames: Bool
+
+        /// D96's rules, unchanged: only what the kernel refuses and what Finder
+        /// would draw as a slash.
+        public static let native = Policy(reserved: [], avoidsDeviceNames: false)
+
+        /// Plus the seven Win32 refuses. A name written under this policy opens
+        /// on any of the three systems that might read the disk.
+        public static let portable = Policy(
+            reserved: ["?", "*", "|", "<", ">", "\"", "\\"],
+            avoidsDeviceNames: true)
+
+        public init(reserved: Set<Unicode.Scalar>, avoidsDeviceNames: Bool) {
+            self.reserved = reserved
+            self.avoidsDeviceNames = avoidsDeviceNames
+        }
+    }
+
+    /// The names MS-DOS gave to devices and Windows still will not let a file
+    /// take, with or without an extension: `CON.flac` is as unopenable as
+    /// `CON`.
+    ///
+    /// Obscure, and cheap enough that leaving it out would be a deliberate
+    /// omission rather than a small one — *Con*, *Aux* and *Prn* are all
+    /// plausible one-word album titles, and an album folder is the one name
+    /// here that is not prefixed by a track number. A track file never collides
+    /// because it always begins `01 - `.
+    static let deviceNames: Set<String> = {
+        var names: Set<String> = ["con", "prn", "aux", "nul"]
+        for n in 1...9 {
+            names.insert("com\(n)")
+            names.insert("lpt\(n)")
+        }
+        return names
+    }()
+
+    /// A name Windows would refuse outright, given a trailing `_`.
+    ///
+    /// The underscore rather than a rename, because the album really is called
+    /// *Con* and the folder should still say so.
+    static func steppingAroundDeviceNames(_ name: String) -> String {
+        let stem = name.prefix { $0 != "." }.lowercased()
+        guard deviceNames.contains(stem) else { return name }
+        return name.isEmpty ? name : "\(name)_"
+    }
+
     /// Make one path component out of a title.
     ///
     /// The substitutions, and why each is there:
@@ -59,7 +119,7 @@ public enum ImportNames {
     /// A leading `.` is dropped because it hides the file, which no one ever
     /// means by a title, and trailing dots and spaces are dropped because
     /// Finder and the shell both treat them as typing accidents.
-    public static func component(_ text: String) -> String {
+    public static func component(_ text: String, policy: Policy = .native) -> String {
         // The spaced forms first, or the bare rule below would have eaten the
         // separator before anything could tell the two apart.
         var text = text
@@ -73,6 +133,10 @@ public enum ImportNames {
         for scalar in text.unicodeScalars {
             switch scalar {
             case "/", ":":
+                out.unicodeScalars.append("-")
+            case _ where policy.reserved.contains(scalar):
+                // A dash, like the two above, so one substitution reads as one
+                // substitution wherever it came from.
                 out.unicodeScalars.append("-")
             default:
                 // `properties.generalCategory` rather than a range test: this
@@ -92,6 +156,18 @@ public enum ImportNames {
         out = out.split(separator: " ", omittingEmptySubsequences: true).joined(separator: " ")
         while let last = out.last, last == "." || last == " " { out.removeLast() }
         while let first = out.first, first == "." || first == " " { out.removeFirst() }
+        // The trailing-dot and trailing-space trim above is already what
+        // Windows needs, and it was there before this policy existed — it is
+        // the one Win32 rule D96 happened to keep by accident, for Finder's
+        // reasons rather than for Windows'.
+        //
+        // **The device names are not checked here**, though it is tempting: a
+        // title is a *fragment* of a name and the rule is about the whole path
+        // component. An album called *Con* in a folder of its own needs the
+        // step; the same word as a track title lands in `01 - Con.flac`, whose
+        // stem is `01 - Con` and was never at risk. Checking the fragment would
+        // write `01 - Con_.flac` and be wrong about a file Windows would have
+        // opened.
         return clamp(out)
     }
 
@@ -132,9 +208,9 @@ public enum ImportNames {
     /// above removed. Without it that track would be written as `07 .flac`.
     public static func trackFile(
         number: Int, title: String, format: ImportFormat,
-        style: TrackStyle = .dash
+        style: TrackStyle = .dash, policy: Policy = .native
     ) -> String {
-        let clean = component(title)
+        let clean = component(title, policy: policy)
         let number2 = String(format: "%02d", number)
         let stem =
             clean.isEmpty
@@ -212,16 +288,17 @@ public enum ImportNames {
     /// an error. The disc is still perfectly rippable; nobody knows what it is,
     /// and the folder saying so is more use than a refusal.
     public static func recordFolder(
-        album: String, albumArtist: String, style: FolderStyle = .album
+        album: String, albumArtist: String, style: FolderStyle = .album,
+        policy: Policy = .native
     ) -> String {
-        let record = component(album)
-        let artist = component(albumArtist)
+        let record = component(album, policy: policy)
+        let artist = component(albumArtist, policy: policy)
         // `.album` still falls back to the artist when the record has no name
         // of its own, because a folder called `Untitled Record` beside fifty
         // named ones says less than the artist does.
         guard style == .artistAndAlbum else {
             let alone = record.isEmpty ? artist : record
-            return clamp(alone.isEmpty ? "Untitled Record" : alone)
+            return finish(alone.isEmpty ? "Untitled Record" : alone, policy: policy)
         }
         let joined =
             switch (artist.isEmpty, record.isEmpty) {
@@ -230,7 +307,14 @@ public enum ImportNames {
             case (false, true): artist
             case (true, true): "Untitled Record"
             }
-        return clamp(joined)
+        return finish(joined, policy: policy)
+    }
+
+    /// The last pass over a whole path component, where the device-name rule
+    /// belongs — see `component` for why it is not in there.
+    static func finish(_ name: String, policy: Policy) -> String {
+        let stepped = policy.avoidsDeviceNames ? steppingAroundDeviceNames(name) : name
+        return clamp(stepped)
     }
 
     /// A name nothing is standing on yet.

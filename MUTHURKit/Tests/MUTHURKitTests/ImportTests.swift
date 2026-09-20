@@ -522,6 +522,122 @@ struct ImportTests {
         #expect(empty.keys.first?.map(\.label) == ["DONE"])
     }
 
+    // MARK: - Naming for the volume it is going to (D98)
+
+    @Test("the native policy keeps the punctuation D96 kept")
+    func nativeKeeps() {
+        // Unchanged from D96, and the measurement is why: macOS refuses none
+        // of these on any filesystem this machine has.
+        for name in ["Where Is My Mind?", "*Fazer*", #"A\B"#, "a|b", "a<b>c", #"a"b"#] {
+            #expect(ImportNames.component(name, policy: .native) == ImportNames.component(name))
+        }
+        #expect(ImportNames.component("Where Is My Mind?", policy: .native) == "Where Is My Mind?")
+    }
+
+    @Test("the portable policy substitutes exactly the seven Win32 refuses")
+    func portableSubstitutes() {
+        #expect(ImportNames.component("Where Is My Mind?", policy: .portable) == "Where Is My Mind-")
+        #expect(ImportNames.component("*Fazer*", policy: .portable) == "-Fazer-")
+        #expect(ImportNames.component("a|b", policy: .portable) == "a-b")
+        #expect(ImportNames.component("a<b>c", policy: .portable) == "a-b-c")
+        #expect(ImportNames.component(#"a"b"#, policy: .portable) == "a-b")
+        #expect(ImportNames.component(#"A\B"#, policy: .portable) == "A-B")
+    }
+
+    @Test("everything else is untouched by the portable policy")
+    func portableLeavesTheRestAlone() {
+        // The apostrophes, accents and non-Latin scripts that are legal
+        // everywhere, and were measured to round-trip on exFAT.
+        for name in ["I’m So Lonesome I Could Cry", "émigré", "日本", "AC-DC", "Gold - Greatest Hits"] {
+            #expect(ImportNames.component(name, policy: .portable) == name)
+        }
+        // And the colon rule is the same rule under both, because it was never
+        // about Windows.
+        #expect(
+            ImportNames.component("American IV: The Man Comes Around", policy: .portable)
+                == "American IV - The Man Comes Around")
+    }
+
+    @Test("a folder named after a DOS device is stepped around, a track is not")
+    func deviceNames() {
+        // `CON.flac` is as unopenable on Windows as `CON`.
+        #expect(ImportNames.recordFolder(album: "Con", albumArtist: "", policy: .portable) == "Con_")
+        #expect(ImportNames.recordFolder(album: "aux", albumArtist: "", policy: .portable) == "aux_")
+        #expect(ImportNames.recordFolder(album: "COM1", albumArtist: "", policy: .portable) == "COM1_")
+        // Not under the native policy, where the name is perfectly good.
+        #expect(ImportNames.recordFolder(album: "Con", albumArtist: "") == "Con")
+        // And never on a track, whose stem always begins with a number — the
+        // check is on the whole component, not on the title fragment.
+        #expect(
+            ImportNames.trackFile(number: 3, title: "Con", format: .flac, policy: .portable)
+                == "03 - Con.flac")
+        // A word that merely starts with a device name is not one.
+        #expect(
+            ImportNames.recordFolder(album: "Control", albumArtist: "", policy: .portable)
+                == "Control")
+    }
+
+    @Test("the plan counts the names it changed, and only the ones it changed")
+    func countsRenames() throws {
+        let plain = try ImportPlan.make(
+            record: ImportTests.record(titles: ["Hurt", "Desperado"]),
+            destination: URL(fileURLWithPath: "/tmp/rips"), format: .flac,
+            naming: .portable, exists: { _ in false })
+        // Nothing here offends Windows, so nothing is said.
+        #expect(plain.renamed == 0)
+
+        let awkward = try ImportPlan.make(
+            record: ImportTests.record(titles: ["Where Is My Mind?", "Hurt"]),
+            destination: URL(fileURLWithPath: "/tmp/rips"), format: .flac,
+            naming: .portable, exists: { _ in false })
+        #expect(awkward.renamed == 1)
+        #expect(awkward.naming == .portable)
+        #expect(
+            awkward.entries[0].destination.lastPathComponent == "01 - Where Is My Mind-.flac")
+        // The tag keeps the question mark — only the filename loses it.
+        #expect(awkward.entries[0].title == "Where Is My Mind?")
+
+        // Under the native policy the same record changes nothing.
+        let native = try ImportPlan.make(
+            record: ImportTests.record(titles: ["Where Is My Mind?", "Hurt"]),
+            destination: URL(fileURLWithPath: "/tmp/rips"), format: .flac,
+            naming: .native, exists: { _ in false })
+        #expect(native.renamed == 0)
+        #expect(
+            native.entries[0].destination.lastPathComponent == "01 - Where Is My Mind?.flac")
+    }
+
+    @Test("the volume decides, and an unknown one is treated as native")
+    func volumePolicies() {
+        #expect(Volume(filesystem: "apfs").naming == .native)
+        #expect(Volume(filesystem: "hfs").naming == .native)
+        #expect(Volume(filesystem: "exfat").naming == .portable)
+        #expect(Volume(filesystem: "msdos").naming == .portable)
+        #expect(Volume(filesystem: "smbfs").naming == .portable)
+        #expect(Volume(filesystem: "ntfs").naming == .portable)
+        // **The direction of the fallback is the decision.** Something this
+        // port has never met gets the treatment that changes fewest characters,
+        // because guessing toward substitution would quietly rename tracks on a
+        // volume nobody said anything about.
+        #expect(Volume(filesystem: "zfs").naming == .native)
+        #expect(Volume(filesystem: "").naming == .native)
+        // A path on nothing answers nothing, and that is native too.
+        #expect(Volume.at(URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)")) == nil)
+        #expect(
+            Volume.naming(for: URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)"))
+                == .native)
+    }
+
+    @Test("this machine's own volumes answer with a filesystem name")
+    func realVolumes() throws {
+        // Weak on purpose, per `CLAUDE.md`: nothing is claimed about *which*
+        // filesystems this machine has, only that the home directory is on one
+        // that will say its name.
+        let home = try #require(Volume.at(URL(fileURLWithPath: NSHomeDirectory())))
+        #expect(!home.filesystem.isEmpty)
+        #expect(home.filesystem == home.filesystem.lowercased())
+    }
+
     // MARK: - The menu, saved
 
     @Test("the format survives a relaunch and the defaults stand without one")

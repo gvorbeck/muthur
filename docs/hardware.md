@@ -840,6 +840,18 @@ against a shelf that had been right for years: a colon belongs to ` - ` and not
 to a dash welded onto the first word, a record inside an artist's folder should
 not repeat the artist, and tracks are `01 - Title`. See **D96**, amended.
 
+**And a third thing, one release later, which is the one worth reading.** 0.8.0
+shipped a release note saying that a title containing `?`, `*`, `|`, `<`, `>`,
+`"` or `\` would *fail its write* on this exFAT disk and be skipped. Nobody had
+tried it. Tried — through `FileManager`, the API the app actually uses — every
+one of them writes, lists back byte-exact and reads back, on exFAT exactly as on
+APFS, along with a trailing dot and a trailing space. The restriction is
+Windows', not the format's. **A shipped note asserting a failure mode that does
+not exist is worse than the silence it replaced**, and the rule that stands
+(**D98**) is about portability rather than legality: the destination is asked
+what filesystem it is, and a disk formatted for interchange gets names the other
+side can open.
+
 **What this step cannot prove.** That the read is *accurate* — only that it is
 faithful to what cddafs handed over. The bit-for-bit comparison above is against
 the disc, which is as far as this can go: proving the read itself would mean
