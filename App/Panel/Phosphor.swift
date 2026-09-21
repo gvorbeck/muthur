@@ -14,11 +14,22 @@ import SwiftUI
 /// thing than it was and not two: a deflection fault that walks a soft band down
 /// the raster every several seconds, and a wordmark that tears for a tenth of a
 /// second every minute or so. The distinction the old sentence was defending still
-/// holds and is the reason those are the only two — an effect that runs
+/// holds and is the reason those are the only two **faults** — an effect that runs
 /// continuously is a filter, and a fault you see four times an hour is a fault.
 /// Both are gated on the record playing, on the window being on screen, on Reduce
 /// Motion being off and on `MUTHUR_CRT` not being `0`; the schedule they run to
 /// is `Tube`, in the kit, so it can be asserted instead of watched.
+///
+/// **"Only two" has since had to grow the word "faults" in it, and that is the
+/// third time a sentence here has been amended rather than left disagreeing with
+/// the code** (`spec.md`'s restraint rules carry the same amendment). D99 is the
+/// tube *striking* when a record arrives — an event, over in under a second, and
+/// not repeatable without putting another record on. D100 is a readout keeping
+/// the figure that has just gone — a decay, which is the tube working rather than
+/// failing, so `MUTHUR_CRT` does not silence it. D101 is the needle in the
+/// run-out — a reading, gated on nothing, for the reason a meter head is not held
+/// still by Reduce Motion. None of the three is an effect that runs continuously,
+/// which was always what the rule was about.
 ///
 /// Two looks were built and neither won whole (D28). The deep one had the better
 /// glass and took the type down with it; the shallow one had the better type and
@@ -59,9 +70,32 @@ enum Composition: String, Sendable {
 struct RunoutField: View {
     let rows: Int
 
+    /// Where the needle is in the lead-out — 0 at the first groove, 1 in the
+    /// dead groove — or nil for a record that is not on its last track (D101).
+    ///
+    /// **A reading, which is why it is not gated on anything.** Reduce Motion
+    /// and `MUTHUR_CRT` hold D52's two faults still because a fault is the tube
+    /// having an opinion; this moves for the same reason the meter head moves,
+    /// and a meter that stopped under Reduce Motion would be a broken meter.
+    var needle: Double?
+
     /// How hard the spiral closes. Two and a bit is where it stops reading as a
     /// ruled field and starts reading as an ending.
     private let closing = 2.4
+
+    /// Where a groove `t` of the way through the lead-out falls. One function
+    /// rather than two copies of the same expression, because the needle has to
+    /// ride the grooves that are actually drawn — a stylus half a groove off the
+    /// field it is supposed to be in reads as a mark laid on top of the record.
+    ///
+    /// It is also what gives the needle its acceleration for free. Equal time
+    /// per groove against a pitch that is closing means a mark that runs down
+    /// the screen faster the nearer it gets to the label, which is a record
+    /// running out, and it arrives in the dead groove exactly as the music
+    /// stops.
+    private func depth(_ t: Double, of height: CGFloat) -> CGFloat {
+        height * (1 - pow(1 - t, closing))
+    }
 
     var body: some View {
         Canvas { context, size in
@@ -74,7 +108,7 @@ struct RunoutField: View {
 
             for groove in 1...count {
                 let t = Double(groove) / Double(count)
-                let y = size.height * (1 - pow(1 - t, closing))
+                let y = depth(t, of: size.height)
                 // Once the spiral is closer than the phosphor can resolve, more
                 // lines is just a solid block. Stop drawing them.
                 if y - last < 2 { continue }
@@ -100,6 +134,30 @@ struct RunoutField: View {
                         x: 0, y: size.height - Theme.cell.height * 0.5,
                         width: size.width, height: 2)),
                 with: .color(Theme.runoutField))
+
+            // The needle, on the last track and nowhere else (D101).
+            //
+            // Drawn last so it sits on top of the groove it is lighting rather
+            // than under the next one down, which at the bottom of the field is
+            // a difference of about a point and the whole of whether it reads
+            // as in the record or on it.
+            guard let needle else { return }
+            let t = min(1, max(0, needle))
+            let y = depth(t, of: size.height)
+            context.fill(
+                Path(CGRect(x: 0, y: y, width: size.width, height: 1.5)),
+                with: .color(Theme.runoutLit))
+            // The stylus: one column in from the edge, small, and the only
+            // thing in this field that moves. Without it the lit groove reads
+            // as a row somebody has selected; with it, the same line is a
+            // needle sitting in it.
+            let r = Theme.cell.width * 0.3
+            context.fill(
+                Path(
+                    ellipseIn: CGRect(
+                        x: Theme.cell.width - r, y: y + 0.75 - r,
+                        width: r * 2, height: r * 2)),
+                with: .color(Theme.needle))
         }
         .frame(
             width: Grid.columns(PanelGrid.width - PanelGrid.gutter),
@@ -224,6 +282,46 @@ extension View {
         }
     }
 
+    /// Shiver the raster and bring the phosphor up with it, once, because a
+    /// record has just arrived (D99).
+    ///
+    /// **A `TimelineView` rather than an animated uniform, and only while the
+    /// coil is live.** A shader argument is not an animatable modifier — a
+    /// `withAnimation` around the write would put the new value on screen in
+    /// one frame and call it animated — so the envelope is sampled against the
+    /// clock instead. The cost of that is a display-rate redraw of the picture,
+    /// which is why `strike.since` going nil at the end takes the whole
+    /// `TimelineView` out of the hierarchy rather than merely feeding it zeroes:
+    /// between records there is not so much as a timer here, which is the same
+    /// bargain `ScanSweep` strikes.
+    ///
+    /// `active` is three of `faulting`'s four gates — `MUTHUR_CRT`, Reduce
+    /// Motion, the window being on screen. The fourth, the record playing, is
+    /// the one gate that cannot apply: this fires at the instant the record
+    /// arrives, which is *before* the engine has said it is playing, and a
+    /// strike that waited for the mode to change would be a tube that came up
+    /// after the music did.
+    @ViewBuilder
+    func struck(by strike: TubeStrike, size: CGSize, active: Bool) -> some View {
+        if active, let since = strike.since, size.width > 0, size.height > 0 {
+            TimelineView(.animation) { context in
+                let elapsed = context.date.timeIntervalSince(since)
+                distortionEffect(
+                    ShaderLibrary.default.tubeStrike(
+                        .float2(size),
+                        .float(Float(Strike.shiver(elapsed: elapsed))),
+                        .float(Float(Theme.strikeAmplitude)),
+                        .float(Float(Theme.strikeWaves))
+                    ),
+                    maxSampleOffset: CGSize(width: Theme.strikeAmplitude, height: 0)
+                )
+                .brightness(Strike.surge(elapsed: elapsed) * Theme.strikeLift)
+            }
+        } else {
+            self
+        }
+    }
+
     /// Bulge the glass toward the deflection fault (D53), rather than only
     /// lighting up where it is (D61).
     ///
@@ -302,6 +400,37 @@ final class TubeFault {
     /// the bottom. Read by `ScanSweep`'s own offset and by `tubeBulge`'s Y
     /// uniform — the same value, so the two are never two frames apart.
     var fallen = false
+}
+
+/// When the coil last fired (D99), and nothing else.
+///
+/// One `Date` rather than a phase, because the envelope is `Strike`'s and the
+/// clock is `TimelineView`'s — what is left for this to own is only *when it
+/// started*, and whether it is still going. Nil is a tube sitting still, which
+/// is also what takes the timeline out of the hierarchy.
+///
+/// The task is what puts it back to nil. A degauss is a coil discharging and a
+/// discharge ends; leaving `since` set would be a picture whose shiver had
+/// decayed to nothing but which was still being redrawn at display rate to say
+/// so. Firing again while one is running restarts it rather than overlapping —
+/// two records handed to the set in under a second is one arrival as far as the
+/// yoke is concerned.
+@MainActor
+@Observable
+final class TubeStrike {
+    private(set) var since: Date?
+
+    @ObservationIgnored private var settling: Task<Void, Never>?
+
+    func fire() {
+        settling?.cancel()
+        since = .now
+        settling = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Strike.settling))
+            guard !Task.isCancelled else { return }
+            self?.since = nil
+        }
+    }
 }
 
 /// The raster.

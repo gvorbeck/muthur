@@ -40,6 +40,11 @@ struct PanelView: View {
     /// both need to read the same fall in the same frame.
     @State private var tubeFault = TubeFault()
 
+    /// When the tube last struck, because a record arrived (D99). Owned here
+    /// for the same reason `tubeFault` is — `screen` is what gets shivered, and
+    /// `screen` is what this view draws.
+    @State private var strike = TubeStrike()
+
     var body: some View {
         Chassis { screen }
             .frame(minWidth: Theme.panelWidth, minHeight: Grid.rows(28))
@@ -72,6 +77,16 @@ struct PanelView: View {
             .onChange(of: model.library.finding) { _, finding in
                 if !finding { focused = true }
             }
+            // A record has been put on: strike the tube (D99).
+            //
+            // The *arrival* and not the open, which is `open(source:kind:)`
+            // clearing `record` before it adopts one — so every path in, folder
+            // or zip or disc or a sleeve off the shelf, crosses nil on the way
+            // and every one of them gets exactly one strike. Asking the engine
+            // instead would have been a strike per stop and start.
+            .onChange(of: model.record != nil) { _, arrived in
+                if arrived { strike.fire() }
+            }
             // A screen that has gone takes its pointer with it. The shelf is torn
             // down under a still pointer, and no exit ever arrives to put the
             // veils back.
@@ -103,6 +118,14 @@ struct PanelView: View {
     /// `.task(id:)`, so a closed gate does not slow them down, it cancels them.
     private var faulting: Bool {
         Theme.faults && !still && onscreen && model.state.mode == .playing
+    }
+
+    /// Three of the four, for the strike (D99). The record playing is the one
+    /// that has to go: this fires at the instant a record is adopted, which is
+    /// ahead of the engine saying it has started, and a tube that came up after
+    /// the music did would be a set switched on by the sound.
+    private var striking: Bool {
+        Theme.faults && !still && onscreen
     }
 
     /// The pointer arriving on the cover and leaving it.
@@ -171,6 +194,11 @@ struct PanelView: View {
                         press: performMini)
                 }
             }
+            // Inside the reader, so the shiver is the *picture* losing its
+            // geometry and not the window. Outside it would take the veils and
+            // the chassis with it, and a degauss that moved the bezel would be
+            // a set somebody kicked.
+            .struck(by: strike, size: geometry.size, active: striking)
         }
         .padding(.vertical, Theme.blank)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

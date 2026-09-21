@@ -203,3 +203,75 @@ struct MatrixText: View {
         .gridLine()
     }
 }
+
+/// The figure that has just gone, still faintly on the glass (D100).
+///
+/// A seven-segment readout and a phosphor do the same thing when the number
+/// under them changes: the old figure does not vanish, it stops being driven,
+/// and what you see for the next third of a second is it giving up. `TRACK 04
+/// OF 11` becoming `TRACK 05 OF 11` is the one mechanical event in a gapless
+/// record — the music deliberately gives you nothing at that moment — and a
+/// readout that snapped to it threw the only mark there was.
+///
+/// **Not a cross-fade, and the two halves are why.** The new figure strikes in
+/// a fifth of a second and the old takes twice that to go, which is the
+/// asymmetry a phosphor actually has — struck hard, released slowly — and is
+/// what stops the two readings ever being equally legible at the same moment.
+/// Equal durations either way would be a dissolve between two numbers, which is
+/// a transition somebody wrote; this is one number arriving while the last one
+/// is still warm.
+///
+/// Held still by Reduce Motion and **not** by `MUTHUR_CRT`. That variable names
+/// D52's two *faults*, and this is the tube working correctly, the same
+/// distinction `Tube.faultsAllowed` already draws about the screws and the
+/// surround.
+struct Afterglow: View {
+    let text: String
+    let colour: Color
+
+    @Environment(\.accessibilityReduceMotion) private var still
+
+    /// The figure that is on its way out, or nil when there is only one reading
+    /// on the glass.
+    @State private var going: String?
+    @State private var rising = 1.0
+    @State private var falling = 0.0
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            if let going, !still {
+                MatrixText(text: going, colour: colour)
+                    .opacity(falling * Theme.afterglowDim)
+            }
+            MatrixText(text: text, colour: colour)
+                .opacity(still ? 1 : rising)
+        }
+        // Pinned to the live reading rather than left to the stack. A `ZStack`
+        // sizes to its largest child, so a label one column wider on its way out
+        // would push whatever is beside it sideways for a third of a second —
+        // and the one thing a meter must not do while the track changes is move.
+        .frame(width: Grid.columns(Columns.width(of: text)), alignment: .leading)
+        .onChange(of: text) { old, _ in
+            guard !still else { return }
+            going = old
+            // The two levels have to *start* where the event starts them, and
+            // an unanimated write is the only way to say so: animated, the
+            // reset would itself be a fade and the figure would arrive twice.
+            var snap = Transaction()
+            snap.disablesAnimations = true
+            withTransaction(snap) {
+                rising = 0
+                falling = 1
+            }
+            withAnimation(.easeOut(duration: Theme.afterglowIn)) { rising = 1 }
+            withAnimation(.easeIn(duration: Theme.afterglowOut)) { falling = 0 } completion: {
+                // A second change inside the first one's tail restarts `falling`,
+                // and this completion is the *old* animation's. Clearing on it
+                // regardless would take the newly-dying figure off the glass
+                // mid-decay; the level itself is the only honest test of whether
+                // there is still something fading.
+                if falling == 0 { going = nil }
+            }
+        }
+    }
+}

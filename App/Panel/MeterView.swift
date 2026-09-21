@@ -26,7 +26,7 @@ struct MeterView: View {
             // land on the same right-hand edge as the bar underneath.
             HStack(spacing: 0) {
                 Spacer().frame(width: Grid.margin)
-                MatrixText(text: label, colour: Theme.etch)
+                Afterglow(text: label, colour: Theme.etch)
                 Spacer().frame(
                     width: Grid.columns(
                         max(

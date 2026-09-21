@@ -38,3 +38,31 @@ using namespace metal;
     float2 push = float2(centred, 1.0) * bump * amplitude * gate;
     return position + push;
 }
+
+/// The tube striking when a record arrives (D99).
+///
+/// A degauss is the raster losing its geometry for a moment and getting it
+/// back, so what moves is the *width of each line* and not the picture as a
+/// whole: the line at one height stretches while the line a few below it
+/// squeezes, and the whole standing wave dies away. `shiver` is the signed
+/// envelope — `Strike.shiver`, in the kit — and its sign turning over is what
+/// makes the wave travel rather than merely breathe.
+///
+/// Horizontal only, and bowed out from the middle column the way `tubeBulge`
+/// is. A deflection yoke pushes the beam along the line it is already drawing;
+/// a degauss that moved the picture up and down would be a fault nobody has
+/// ever watched a television have.
+///
+/// Multiplying by `centred` is what makes this a stretch rather than a slide.
+/// The middle column stays where it is and the edges move most, which is a
+/// raster whose width is wrong for a moment — a picture that slid whole would
+/// be the window moving, and the window is not what has a coil in it.
+[[ stitchable ]] float2 tubeStrike(
+    float2 position, float2 size, float shiver, float amplitude, float waves
+) {
+    float height = max(size.y, 1.0);
+    float wave = sin(position.y / height * 6.2831853 * waves);
+    float midpoint = max(size.x * 0.5, 1.0);
+    float centred = (position.x - midpoint) / midpoint;
+    return position + float2(wave * shiver * amplitude * centred, 0.0);
+}

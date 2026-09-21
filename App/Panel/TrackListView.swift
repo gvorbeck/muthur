@@ -14,6 +14,28 @@ struct TrackListView: View {
     /// composition is the one that fills its budget.
     var runout: Int = 0
 
+    /// Where the needle is in the lead-out, or nil for a record that is not in
+    /// it yet (D101).
+    ///
+    /// **The last track and nothing before it.** A mark that crept down the
+    /// field all record long would be a second progress bar, and there are two
+    /// meters six rows below it already saying that better. What the run-out is
+    /// for is the last few minutes — the part of a side you can *see* coming to
+    /// an end, which is the one thing a digital deck cannot do and a record can.
+    ///
+    /// `finished` pins it in the dead groove rather than taking it away. The
+    /// needle does not leave the record when the music stops; it sits in the
+    /// groove it cannot get out of, which is the whole reason that groove is
+    /// drawn.
+    private var needle: Double? {
+        let state = model.state
+        guard state.mode != .stopped, record.order.count > 0 else { return nil }
+        guard state.row == record.order.count - 1 else { return nil }
+        if state.mode == .finished { return 1 }
+        guard state.trackDuration > 0 else { return nil }
+        return state.positionInTrack / state.trackDuration
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(model.visible), id: \.self) { row in
@@ -41,7 +63,7 @@ struct TrackListView: View {
             }
 
             if runout > 0 {
-                RunoutField(rows: runout)
+                RunoutField(rows: runout, needle: needle)
             }
 
             Spacer(minLength: 0)

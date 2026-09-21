@@ -148,6 +148,22 @@ wants the tube steady without turning the whole system's animation off. Honor
 Reduce Motion and Reduce Transparency. The retro treatment has to survive being
 looked at for an hour of listening.
 
+**The budget is for what runs while you are listening, and three things are
+not that** (D99–D101, amended in place rather than left disagreeing with the
+code, exactly as D52 amended D28's *nothing in it moves*). An **event** is
+over and cannot be seen again without an action: the tube striking when a
+record arrives (D99) lasts under a second and needs another record put on to
+happen twice, so it can never become the thing you are watching instead of the
+track list. A **decay** is the tube working rather than failing: a readout
+keeping the figure that has just gone (D100) for a third of a second is what a
+phosphor does, which is why Reduce Motion holds it still and `MUTHUR_CRT` —
+which names the *faults* — does not. A **reading** is an instrument answering:
+the needle descending the run-out through the last track (D101) moves for the
+same reason the meter head moves, and is gated on nothing, because a meter
+that stopped under Reduce Motion would not be a considerate meter, it would be
+a broken one. Anything that is none of these three is still spending the
+budget, and the budget is still spent.
+
 ## Open question — do not decide unilaterally
 
 Whether MU/TH/UR-the-mainframe becomes an interaction conceit — a computer that

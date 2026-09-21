@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-ninety-eight are settled. Recorded here with the answer so that a departure from
+hundred and one are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -206,6 +206,19 @@ guessing; 0.8.0's notes then said exFAT would refuse them outright. Neither had
 been measured, and the measurement says macOS's exFAT takes every one of them.
 The rule that stands is about neither — a disk is exFAT *so that Windows can
 read it*, and the destination is asked what it is rather than assumed.
+
+**D99 to D101 are three more things that move, and the first job of each was to
+survive `spec.md:144`** — the line that spends the entire movement budget on
+D52's two faults. Each of them passes it by not being the thing that line is
+about. D99 is the tube striking when a record arrives: an *event*, over in under
+a second and unrepeatable without putting another record on, so it can never
+become what you are watching instead of the track list. D100 is the readouts
+keeping the figure that has just gone, faintly, for a third of a second — the
+tube working rather than failing, which is the distinction `Tube.faultsAllowed`
+already draws, and which is why `MUTHUR_CRT` does not silence it. D101 is a
+needle descending the run-out through the last track: a *reading*, gated on
+nothing at all, for the same reason a meter head is not held still by Reduce
+Motion.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4310,3 +4323,103 @@ something actually changed, which on most records is never.
 **The tag keeps the question mark.** Only the filename loses it — `title` is
 written from the panel exactly as §21.3 says, and *Where Is My Mind?* is still
 called that inside the file wherever the file happens to live.
+
+**D99 — the tube strikes when a record arrives.** → §10
+
+A set that has just been handed something to draw does not simply have the
+picture appear on it. The degauss coil fires, the mask lets go of whatever field
+it had picked up, and the geometry shivers and settles — which on a tube this
+age takes the better part of a second, and which is the single most recognisable
+thing a CRT does that a flat panel cannot.
+
+**It is an event, not an effect, and that is the whole of why it is allowed to
+exist beside D52's two.** `spec.md:144` spends the entire budget for movement on
+the falling band and the tearing wordmark, and the budget is about what runs
+*while you are listening*. A strike cannot be seen a second time without putting
+another record on, so it can never become the thing you are watching instead of
+the track list. `Tube` is the schedule for a tube that is *failing*; this is the
+tube working, once, at the one moment it has been given something new.
+
+The envelope is `Strike`, in the kit, for the reason `Tube`'s is: a decay
+somebody has to watch a window for is not a test. Unlike `Tube` there is nothing
+random in it and no seed — **a degauss is the same every time, because it is one
+coil discharging into one yoke.** It is signed and oscillating rather than a
+fall from one to nothing, and that is the decision inside the decision: an
+envelope that only decayed would be a picture sliding back into place from
+wherever it was put, which reads as a transition somebody wrote. The sign
+turning over five or six times on the way down is what reads as a coil letting
+go.
+
+What moves is the *width of each line* and not the picture as a whole —
+horizontal only, bowed out from the middle column the way D61's bulge is. A
+deflection yoke pushes the beam along the line it is already drawing; a picture
+that slid whole would be the window moving, and the window is not the thing with
+a coil in it.
+
+**Three of D52's four gates, and the fourth is the one that cannot apply.**
+`MUTHUR_CRT`, Reduce Motion and the window being on screen all hold. The record
+playing does not, because this fires at the instant the record is adopted, ahead
+of the engine saying it has started — a tube that came up after the music did
+would be a set switched on by the sound. The trigger is `model.record` crossing
+nil, which `open(source:kind:)` guarantees on every path in, so a folder, a zip,
+a disc and a sleeve off the shelf each get exactly one.
+
+**Nothing here gates sound on the picture.** That is D8's first box and is not
+being reopened: the record is already playing underneath the strike either way.
+
+**D100 — the readouts keep the figure that has just gone.** → §10
+
+A seven-segment readout and a phosphor do the same thing when the number under
+them changes: the old figure does not vanish, it stops being driven, and what
+you see for the next third of a second is it giving up. `TRACK 04 OF 11`
+becoming `TRACK 05 OF 11` is the one mechanical event in a gapless record —
+the music deliberately gives you nothing at that moment, which is the whole
+point of gapless — and a readout that snapped to the new number threw away the
+only mark there was.
+
+**Not a cross-fade, and the two halves are why.** The new figure strikes in a
+fifth of a second and the old takes more than twice that to go. That asymmetry
+is what a phosphor actually has — struck hard, released slowly — and it is what
+stops the two readings ever being equally legible at the same moment. Equal
+durations in both directions would be a dissolve between two numbers, which is
+a transition somebody wrote; this is one number arriving while the last one is
+still warm.
+
+**Held still by Reduce Motion and not by `MUTHUR_CRT`.** That variable names
+D52's two *faults*; this is the tube working correctly, and it is the same
+distinction `Tube.faultsAllowed` already draws about the screws and the
+surround not being effects the tube is having. Under Reduce Motion the figure
+simply changes, which is what a person who asked for that wants and loses
+nothing but the flourish.
+
+The width is pinned to the live reading rather than left to the stack, and that
+is not a detail. A `ZStack` sizes to its largest child, so a label one column
+wider on its way out would push the counter beside it sideways for a third of a
+second — and the one thing a meter must not do while the track changes is move.
+
+**D101 — the needle runs down the run-out through the last track.** → §10
+
+D26 filled the room under the last track with a lead-out rather than leaving it
+blank, and until now it was a fixed picture: grooves tightening to a dead
+groove, drawn the same whatever the deck was doing. This puts the needle in it.
+
+**The last track and nothing before it.** A mark creeping down the field all
+record long would be a second progress bar, and there are two meters six rows
+below it already saying that better and to the second. What the run-out is for
+is the last few minutes — the part of a side you can *see* ending, which is the
+one thing a digital deck cannot do and a record can.
+
+It rides the grooves that are actually drawn, off the one function that places
+them, because a stylus half a groove off the field it is supposed to be in reads
+as a mark laid on top of the record. That also gives it its acceleration for
+free: equal time per groove against a pitch that is closing means a mark running
+faster the nearer it gets to the label, arriving in the dead groove exactly as
+the music stops. `finished` pins it there rather than taking it away — the
+needle does not leave the record when the music does, it sits in the groove it
+cannot get out of, which is the whole reason that groove is drawn.
+
+**Gated on nothing at all**, and that is the decision. Reduce Motion and
+`MUTHUR_CRT` hold D52's two faults still because a fault is the tube having an
+opinion; this moves for the same reason the meter head moves. A meter that
+stopped under Reduce Motion would not be a considerate meter, it would be a
+broken one.

@@ -16,8 +16,8 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All ninety-eight are settled; they
-  are §16, and §16 is now `decisions.md`, so that a difference from `player` is
+  the reasoning and the decision it came from. All hundred and one are settled;
+  they are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
   way — thirty-nine against §16's forty-six, and later eighty-two against its
@@ -31,7 +31,7 @@ Three kinds of entry:
   entries themselves, which is the only count that is ever authoritative.)*
 
 **Three files, one numbering.** This document is §1–§15, §17, the five questions
-in §18 that are still open, and §20. `decisions.md` is §16 and the twenty-three
+in §18 that are still open, §20 and §21. `decisions.md` is §16 and the twenty-three
 answered questions of §18. `hardware.md` is §19. The split happened when the
 answers had grown to four times the checklist they were answering for; nothing
 was renumbered by it, and every `§n`, `§n.n` and `Dn` reference in all three
@@ -66,16 +66,35 @@ part worth porting.
 **321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 36 of 43). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 36 of 43 in `hardware.md`. **The count did not move this pass and could
-not have**, which is a different statement from the last three passes' and is
-worth making precisely: this one added a section. §21 is importing a disc, and
-there is nothing in either script for a box of it to be parity with — `player`
-reads a disc and `burncd` writes one, and taking a disc *and keeping it* was
-always done with some other program. So the numerator and the denominator both
-stand still while the app grew a third thing it can do with a drive.
+and 36 of 43 in `hardware.md`. **Neither number moved this pass, and §19's did
+not either.** What moved is §16, 98 → 101.
 
-**§19's denominator moved instead, 40 → 43, and then two of the three closed
-the same afternoon: 34 → 36.** §21 is the rare addition that really does need
+**The pass is D99 to D101, and all three are the panel moving.** The deck has
+been a still picture with two faults in it since D52, and `spec.md:144` says in
+as many words that those two are the entire budget for movement — so the first
+job of each of these was to survive that line, and each does it by not being
+the thing the line is about. **D99** is the tube striking when a record
+arrives: the geometry shivering and settling the way a degauss does, over in
+under a second, and unrepeatable without putting another record on. An event,
+not an effect. **D100** is the readouts keeping the figure that has just gone,
+faintly, for a third of a second — `TRACK 04 OF 11` becoming `TRACK 05 OF 11`
+is the one mechanical event in a gapless record, and a readout that snapped to
+it threw away the only mark there was. The tube working rather than failing,
+which is why `MUTHUR_CRT` does not silence it and Reduce Motion does.
+**D101** is the needle: through the last track and only then, a mark running
+down the lead-out D26 put under the list, riding the grooves that are actually
+drawn and reaching the dead groove as the music stops. A reading, gated on
+nothing at all, for the same reason a meter head is not held still by Reduce
+Motion.
+
+**Nothing here is parity with anything**, which is why the boxes stand still. A
+terminal has no raster to degauss, no phosphor to decay and no room under the
+last track to draw a lead-out in — D26 already said that, and these are three
+more things the chassis can do that the character grid never could. The only
+count that moves is the one counting decisions.
+
+**§19's denominator moved on the pass before, 40 → 43, and then two of the three
+closed the same afternoon: 34 → 36.** §21 is the rare addition that really does need
 hardware to prove — the suite can synthesise a directory of `pcm_s16be` AIFFs
 shaped exactly like a cddafs mount, and what it cannot synthesise is cddafs.
 Step 15 has the readings: *American IV: The Man Comes Around* off `/dev/disk4`,
@@ -97,7 +116,7 @@ and it walks whatever is mounted rather than naming a filesystem. The second is
 by a shelf that had been sitting on the same machine being right about them for
 years.
 
-**The pass is D95 to D98.** D95 is the feature: `I IMPORT` on the deck beside
+**The pass before was D95 to D98.** D95 is the feature: `I IMPORT` on the deck beside
 `B BURN`, bound only while there is a disc to take it off, with an Import menu
 behind it because ⌘I is the only way a modifier-less key gets found. D96 is
 where the files land — one folder per record, `NN Title.ext`, names sanitised
@@ -110,10 +129,11 @@ was never measured and is false — macOS's exFAT takes every one of them. Names
 are now made for the volume they are going to, and the volume is asked.
 
 **A denominator counts what somebody thought to ask for**, and a green field
-says only that every question asked so far has an answer. This pass is the
-clearest case of that the document has had: a whole section arrived, several
-hundred lines of it are under test, and the number at the top of this page did
-not so much as twitch.
+says only that every question asked so far has an answer. §21 was the clearest
+case of that the document had had — a whole section arrived, several hundred
+lines of it under test, and the number at the top of this page did not so much
+as twitch — and D99 to D101 are the same point made a second time in a much
+smaller space.
 
 **The library (D91) moves no count, and is not meant to.** Neither script has
 one, so there is nothing in either for a box to be parity with: it is the
@@ -412,6 +432,18 @@ lighting it, asked for directly and reusing the same four gates and the same
 `Tube` schedule D52–D56 already built — no new requirement in `spec.md`, no
 new switch, just the existing fault doing one more thing where it already
 was. Still nothing here for `player` to have an opinion on, so still no box.
+
+**And three more after that, D99–D101, which is where the running tally in this
+paragraph stops being kept as a number.** A strike when the record arrives, a
+readout keeping the figure that has just gone, a needle down the run-out: none
+of them a box, for the same reason none of the six before them was. What is
+different is that they are the first additions here that needed `spec.md`'s
+restraint rules amended rather than merely satisfied — the budget was written
+as *the two faults above*, and the amendment says what it was always about,
+that an effect running continuously is what is rationed. An event, a decay and
+a reading are not that. **Counting visual changes was always going to go the
+way counting screens went** (§10's faceplate box says so in as many words), so
+the count here is now the decisions, which `decisions.md` keeps.
 
 **Neither figure moved when the document split into three, either.** The count is of
 requirements, and a requirement does not stop being one by changing file — which

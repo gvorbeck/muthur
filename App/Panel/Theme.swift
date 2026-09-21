@@ -337,12 +337,49 @@ enum Theme {
     /// halves of D61 fade out together rather than one outrunning the other.
     static var warpDepth: CGFloat { cell.height * 4 }
 
+    /// The strike, when a record arrives (D99). How far the raster's edges are
+    /// out at the worst of it, in points.
+    ///
+    /// Two characters, which is much larger than anything else the tube is
+    /// permitted to do and is right here for the reason the others are small:
+    /// those run while you are reading and this one runs before there is
+    /// anything to read. Under about a character it stops being a machine
+    /// coming up and becomes a rendering artefact.
+    static var strikeAmplitude: CGFloat { cell.width * 2.0 }
+
+    /// How many full waves of it stand in the window's height. Three is enough
+    /// that the stretch plainly varies down the screen and few enough that each
+    /// one is a bend rather than a ripple.
+    static var strikeWaves: Double { 3 }
+
+    /// The phosphor coming up with the geometry. A lift on the picture, not on
+    /// the glass — the veils are drawn outside it, so what brightens is what is
+    /// being driven and not the tube's black level.
+    static var strikeLift: Double { 0.16 }
+
     /// How long the glass takes to come off the sleeve, and to go back on (D56).
     ///
     /// Long enough not to be a switch, short enough that it is not something you
     /// wait through. Both directions the same: an asymmetric fade reads as the
     /// panel having an opinion about which state it prefers.
     static var reveal: Double { 0.28 }
+
+    // MARK: - The readouts
+
+    /// What is left of the figure that has just changed (D100): how bright the
+    /// outgoing reading is allowed to be at the moment it starts going.
+    ///
+    /// Well under half. The outgoing figure is not a second reading competing
+    /// with the new one — it is the light that has not finished leaving the
+    /// glass, and anything you could read it off at is too much.
+    static var afterglowDim: Double { 0.4 }
+
+    /// How fast the new figure strikes, and how long the old one takes to go.
+    /// Asymmetric on purpose: a phosphor comes up faster than it falls, and the
+    /// asymmetry is also what stops the two readings ever being equally legible
+    /// in the same frame.
+    static var afterglowIn: Double { 0.18 }
+    static var afterglowOut: Double { 0.42 }
 
     // MARK: - The box
 
@@ -358,4 +395,15 @@ enum Theme {
     /// The run-out: the dead groove at the end of a side. Dark, striated, still
     /// unmistakably part of the record.
     static var runoutField: Color { aged(phosphorRamp[2], by: 0.7).color }
+
+    /// The needle running in (D101): the groove it is in, and the stylus on it.
+    ///
+    /// The groove is lit rather than merely marked, because the needle is not
+    /// an indicator laid over the lead-out — it is *in* one of these grooves,
+    /// and the one it is in is where the light is coming from. The stylus is
+    /// the panel's brightest step, which is the rule the whole palette is on:
+    /// the data is the brightest thing on the screen, and where the playhead
+    /// has got to is data.
+    static var runoutLit: Color { amber(.etch) }
+    static var needle: Color { amber(.head) }
 }
