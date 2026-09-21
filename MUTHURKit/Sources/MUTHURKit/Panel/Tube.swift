@@ -9,6 +9,14 @@ import Foundation
 /// deflection fault that walks one soft band down the raster every so often, and a
 /// wordmark that tears for a fraction of a second and comes back.
 ///
+/// **Still two, and D102 is careful to have left it at two.** What that entry
+/// changed is *when* they happen: both schedules now take how far into the record
+/// the needle is, and both close their rests up as it runs in, so a set is at its
+/// steadiest on the lead-in and at its most restless in the run-out. No third
+/// fault, nothing bigger, nothing new to look at — the same two events, at the end
+/// of forty minutes rather than at the start of them. `spec.md:144` rations the
+/// number of things that move, and this adds none.
+///
 /// **The schedule lives here, in the kit, and it is seedable.** Two reasons, and
 /// the second is the one that put the file in this target rather than in `App/`.
 ///
@@ -80,6 +88,23 @@ public struct Tube: Sendable, Equatable {
     private static let wait = 22.0...80.0
     private static let hold = 0.07...0.17
 
+    /// How much of a rest window's span is gone by the run-out (D102).
+    ///
+    /// A set that has been on for forty minutes is not the set that was switched
+    /// on forty minutes ago, and the two faults are the only place this panel has
+    /// to say so. So the **rests** close up as the needle runs in: the same fault,
+    /// the same size, oftener.
+    ///
+    /// **From the top only, and that is the whole of the restraint.** The lower
+    /// bound of each window is a number with an argument behind it — twenty-two
+    /// seconds is what keeps the tear an event rather than a tic — and a factor
+    /// applied to the whole range would walk straight through it by the second
+    /// side. Narrowing from above leaves every bound that was reasoned about
+    /// exactly where it was and only stops the *long* gaps being drawn: the mean
+    /// wait falls from about fifty-one seconds to about thirty-five, and the
+    /// shortest gap the tube can have is the one it could always have had.
+    private static let wear = 0.55
+
     private var generator: SeededGenerator
 
     /// Nil seeds from the system, which is what the app does — two windows open
@@ -88,11 +113,25 @@ public struct Tube: Sendable, Equatable {
         generator = seed.map(SeededGenerator.init(seed:)) ?? SeededGenerator()
     }
 
-    public mutating func nextSweep() -> Sweep {
-        Sweep(rest: draw(Self.rest), travel: draw(Self.travel))
+    /// `worn` is how far into the record the needle is, 0 at the lead-in and 1 at
+    /// the run-out. The default is a record that has just gone on, which is also
+    /// every caller that has no record — and is exactly today's schedule.
+    ///
+    /// **`travel` is not worn.** How fast the band falls is the beat between the
+    /// mains and the field rate, and neither of those gets tired. What changes is
+    /// how long the tube holds its line between passes, which is the only half of
+    /// this a warm set actually has an opinion about.
+    public mutating func nextSweep(worn: Double = 0) -> Sweep {
+        Sweep(rest: draw(Self.narrowed(Self.rest, by: worn)), travel: draw(Self.travel))
     }
 
-    public mutating func nextSlip() -> Slip {
+    /// `worn` as in `nextSweep(worn:)`, and with the same half left alone: the
+    /// **tear itself never grows**. `hold`, the slice count, the depths and above
+    /// all `shift` are drawn from the windows they always were — three dots is the
+    /// bound at which the badge stops looking torn and starts looking like it
+    /// moved, and a badge that moves is a layout bug wearing a costume. A tired
+    /// tube loses its line more often, not further.
+    public mutating func nextSlip(worn: Double = 0) -> Slip {
         let count = Int.random(in: 2...4, using: &generator)
         // Sorted, because a tear is one place the beam lost its line and the
         // slices below it inherit the fault — drawn out of order they read as
@@ -106,7 +145,34 @@ public struct Tube: Sendable, Equatable {
                     shift: draw(-3.0...3.0))
             }
             .sorted { $0.top < $1.top }
-        return Slip(wait: draw(Self.wait), hold: draw(Self.hold), slices: slices)
+        return Slip(
+            wait: draw(Self.narrowed(Self.wait, by: worn)), hold: draw(Self.hold),
+            slices: slices)
+    }
+
+    /// A rest window with its top brought down, the needle's depth into the
+    /// record deciding how far.
+    ///
+    /// **Squared, so the first side of a record is very nearly untouched.** Linear
+    /// wear would have the tube already noticeably restless four tracks in, which
+    /// is a set that was tired when you put the record on. At the halfway mark the
+    /// window has given up an eighth of its span; the rest of it goes in the last
+    /// quarter, which is where sitting through a whole record is a thing you have
+    /// actually done.
+    ///
+    /// **Nothing at all at zero**, and by return rather than by arithmetic that
+    /// happens to come out the same. `lower + (upper - lower)` is `upper` for the
+    /// four windows above and is not `upper` in general, and a schedule that drew
+    /// imperceptibly different numbers on a fresh tube than it did before this
+    /// existed would be a change nobody asked for hiding in the last bit of a
+    /// Double.
+    private static func narrowed(_ range: ClosedRange<Double>, by worn: Double)
+        -> ClosedRange<Double>
+    {
+        guard worn > 0 else { return range }
+        let depth = min(1, worn)
+        let span = (range.upperBound - range.lowerBound) * (1 - wear * depth * depth)
+        return range.lowerBound...(range.lowerBound + span)
     }
 
     private mutating func draw(_ range: ClosedRange<Double>) -> Double {

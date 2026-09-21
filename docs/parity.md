@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All hundred and one are settled;
+  the reasoning and the decision it came from. All hundred and two are settled;
   they are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
@@ -67,9 +67,31 @@ part worth porting.
 counted; it stands separately at 36 of 43). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 36 of 43 in `hardware.md`. **Neither number moved this pass, and §19's did
-not either.** What moved is §16, 98 → 101.
+not either.** What moved is §16, 101 → 102.
 
-**The pass is D99 to D101, and all three are the panel moving.** The deck has
+**The pass is D102, and it is one entry that adds nothing to look at.** The ask
+was for static and artifacts as a record nears its end; taken literally that is a
+third moving thing, and `spec.md:144` has no room for one. So it is taken as a
+question about the two faults that already exist. D52's deflection band and
+wordmark tear have never known what record was on; now both schedules take how
+far the needle has run, and both close their **rests** up as it goes. The set is
+at its steadiest on the lead-in and at its most restless in the run-out — the
+same two events, at the end of forty minutes rather than at the start of them.
+
+**What it deliberately does not do is the interesting half.** The tear never
+grows — the slice count, the depths and above all the three-dot `shift` are drawn
+from the windows they always were, because a badge that moves is a layout bug
+wearing a costume. The band never falls faster, since how fast it falls is the
+beat between the mains and the field rate and neither of those gets tired. And no
+lower bound moves: the narrowing takes 55% off the *top* of each window, so
+twenty-two seconds is still the shortest gap between tears it could ever have
+had, and what actually stops happening is the long ones. Squared, so a record is
+nearly untouched through its first side and does its tiring in the last quarter.
+The depth comes off the playhead rather than a clock of its own, which means a
+new record resets it for free — and lands it on D99's event, so the tube is
+struck back to its freshest at the instant one goes on.
+
+**The pass before was D99 to D101, and all three are the panel moving.** The deck has
 been a still picture with two faults in it since D52, and `spec.md:144` says in
 as many words that those two are the entire budget for movement — so the first
 job of each of these was to survive that line, and each does it by not being
@@ -90,8 +112,10 @@ Motion.
 **Nothing here is parity with anything**, which is why the boxes stand still. A
 terminal has no raster to degauss, no phosphor to decay and no room under the
 last track to draw a lead-out in — D26 already said that, and these are three
-more things the chassis can do that the character grid never could. The only
-count that moves is the one counting decisions.
+more things the chassis can do that the character grid never could. D102 has
+even less claim on the count than they do: it does not add a thing the chassis
+can do, it changes when two of them happen. The only count that moves is the one
+counting decisions.
 
 **§19's denominator moved on the pass before, 40 → 43, and then two of the three
 closed the same afternoon: 34 → 36.** §21 is the rare addition that really does need
@@ -444,6 +468,14 @@ that an effect running continuously is what is rationed. An event, a decay and
 a reading are not that. **Counting visual changes was always going to go the
 way counting screens went** (§10's faceplate box says so in as many words), so
 the count here is now the decisions, which `decisions.md` keeps.
+
+**D102 is the tenth, and the first that needed no exemption at all.** It does
+not add anything to the panel: the two faults D52 built are handed how far the
+needle has run, and both of them close their rests up as it goes. Nothing new
+runs, nothing existing grows, and the restraint rules did not have to be amended
+a second time — the budget is for effects running continuously, and this is the
+same two events arriving oftener at the end of a record than at the start of
+one. Still not a box: a terminal has no raster to get tired.
 
 **Neither figure moved when the document split into three, either.** The count is of
 requirements, and a requirement does not stop being one by changing file — which

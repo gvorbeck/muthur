@@ -45,6 +45,8 @@ struct WordmarkView: View {
     var glitching = false
     /// Nil takes the system generator, as `PlaybackEngine.load` does.
     var seed: UInt64?
+    /// How far the record has run (D102). Read once per tear, in `tear()`.
+    var wear = TubeWear()
 
     @State private var torn: Tube.Slip?
 
@@ -118,6 +120,11 @@ struct WordmarkView: View {
     /// Wait, tear, put it back. Never animated — a tear that eases in is a
     /// transition, and the point of this one is that it was already over by the
     /// time you looked up.
+    ///
+    /// **The wait shortens as the record runs out; the tear does not change at
+    /// all** (D102). `Tube` is where that is decided and where it is argued; all
+    /// that happens here is that the loop says where the needle is when it asks
+    /// for the next one.
     @MainActor
     private func tear() async {
         guard glitching else { return }
@@ -126,7 +133,7 @@ struct WordmarkView: View {
         snap.disablesAnimations = true
 
         while !Task.isCancelled {
-            let slip = tube.nextSlip()
+            let slip = tube.nextSlip(worn: wear.worn)
             guard await wait(slip.wait) else { return }
             withTransaction(snap) { torn = slip }
             guard await wait(slip.hold) else {

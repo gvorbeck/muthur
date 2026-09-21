@@ -45,6 +45,11 @@ struct PanelView: View {
     /// `screen` is what this view draws.
     @State private var strike = TubeStrike()
 
+    /// How far into the record the needle is, for the two fault schedules to get
+    /// restless on (D102). Owned here because both of them are downstream of this
+    /// view and neither is downstream of the other.
+    @State private var tubeWear = TubeWear()
+
     var body: some View {
         Chassis { screen }
             .frame(minWidth: Theme.panelWidth, minHeight: Grid.rows(28))
@@ -87,6 +92,19 @@ struct PanelView: View {
             .onChange(of: model.record != nil) { _, arrived in
                 if arrived { strike.fire() }
             }
+            // …and the same event puts the tube back to its freshest (D102),
+            // because a new record is a record at its lead-in. Nothing has to
+            // say so: `worn` is derived from the playhead, and the playhead
+            // going back to nought takes it with it.
+            //
+            // **Driven from the playhead rather than from a timer of its own.**
+            // `positionInRecord` already ticks twenty times a second, and a
+            // second clock running beside it at a rate nobody could name would
+            // be a thing to keep in step for no gain. `initial: true` is for the
+            // window that opens onto a record already playing.
+            .onChange(of: model.state.positionInRecord, initial: true) {
+                tubeWear.worn = recordWorn
+            }
             // A screen that has gone takes its pointer with it. The shelf is torn
             // down under a still pointer, and no exit ever arrives to put the
             // veils back.
@@ -118,6 +136,24 @@ struct PanelView: View {
     /// `.task(id:)`, so a closed gate does not slow them down, it cancels them.
     private var faulting: Bool {
         Theme.faults && !still && onscreen && model.state.mode == .playing
+    }
+
+    /// How far the needle has run into the record, 0 at the lead-in and 1 in the
+    /// run-out (D102).
+    ///
+    /// **Clamped here, so the schedule never has to wonder.** A record's duration
+    /// is the sum of what the taggers said the tracks were, and a rip whose last
+    /// track is longer than its tag will run the playhead past the end of its own
+    /// record for a few seconds. `Tube` guards against it too, because a public
+    /// function that takes a fraction should not trust its caller, but the honest
+    /// place to say *the duration was a guess* is the side that made it.
+    ///
+    /// A deck with nothing on it reports a duration of zero, which is a record
+    /// that is not worn rather than a division to be performed.
+    private var recordWorn: Double {
+        let whole = model.state.recordDuration
+        guard whole > 0 else { return 0 }
+        return min(1, max(0, model.state.positionInRecord / whole))
     }
 
     /// Three of the four, for the strike (D99). The record playing is the one
@@ -214,7 +250,8 @@ struct PanelView: View {
                     sweeping: faulting,
                     hole: revealing
                         ? anchor.map { Hole(rect: proxy[$0], open: reveal) } : nil,
-                    fault: tubeFault)
+                    fault: tubeFault,
+                    wear: tubeWear)
             }
         }
     }
@@ -227,6 +264,7 @@ struct PanelView: View {
             meta: model.faceplateMeta,
             treatment: model.sleeveTreatment,
             glitching: faulting,
+            wear: tubeWear,
             legend: legend,
             status: model.statusLine,
             lit: lit,
@@ -295,7 +333,8 @@ struct PanelView: View {
 
     private func panel(rows: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-                FaceplateView(meta: model.faceplateMeta, glitching: faulting)
+                FaceplateView(
+                    meta: model.faceplateMeta, glitching: faulting, wear: tubeWear)
                 PanelBlank()
 
                 // No fixed height, unlike the picker: how tall this screen is

@@ -24,6 +24,9 @@ struct FaceplateView: View {
     /// Passed straight through to the wordmark: the faceplate itself has nothing
     /// to say about whether the tube is behaving.
     var glitching = false
+    /// Straight through as well, and for the same reason (D102). How far the
+    /// record has run is a fact about the set, not about this strip of it.
+    var wear = TubeWear()
 
     /// `CFBundleShortVersionString`, which `Info.plist` quotes from
     /// `MARKETING_VERSION` — so it is the number the release was cut as.
@@ -45,7 +48,7 @@ struct FaceplateView: View {
         HStack(spacing: 0) {
             Spacer().frame(width: Grid.margin)
 
-            WordmarkView(glitching: glitching)
+            WordmarkView(glitching: glitching, wear: wear)
 
             if let stamp {
                 MatrixText(text: stamp, colour: Theme.etch)

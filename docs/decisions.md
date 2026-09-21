@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-hundred and one are settled. Recorded here with the answer so that a departure from
+hundred and two are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -219,6 +219,13 @@ already draws, and which is why `MUTHUR_CRT` does not silence it. D101 is a
 needle descending the run-out through the last track: a *reading*, gated on
 nothing at all, for the same reason a meter head is not held still by Reduce
 Motion.
+
+**D102 is the fourth, and it survives that line by adding nothing.** A wish for
+static as an album nears its end, answered by making D52's existing two faults
+restless rather than by inventing a third: both schedules now take how far the
+needle has run, and both close their rests up as it goes. The tear does not grow,
+the band does not fall faster, and no lower bound moves — only the long gaps stop
+being drawn, and only in the last quarter of a record.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4423,3 +4430,51 @@ cannot get out of, which is the whole reason that groove is drawn.
 opinion; this moves for the same reason the meter head moves. A meter that
 stopped under Reduce Motion would not be a considerate meter, it would be a
 broken one.
+
+**D102 — the tube gets tired as the record runs out.** → §10
+
+The instinct this answers was for static and artifacts arriving as an album nears
+its end. Taken literally that is a third moving thing and a fourth, and
+`spec.md:144` has no room for either — the movement budget was spent on D52's two
+faults and D99–D101 each had to argue their way past it. So it is taken as a
+question about *those two* instead: the deflection band and the wordmark tear
+already exist, already read as a set that is not well, and neither of them has
+ever known what record is on. Now both schedules take how far in the needle is,
+and both close their **rests** up as it runs. Nothing new to look at — the same
+two events, at the end of forty minutes rather than at the start of them.
+
+**The rests only, and from the top only.** These are two separate pieces of
+restraint and both are load-bearing. The tear itself never grows: `hold`, the
+slice count, the depths and above all `shift` are drawn from the windows they
+always were, because three dots is the bound at which the badge stops looking
+torn and starts looking like it moved, and a badge that moves is a layout bug
+wearing a costume. `travel` is left alone for a different reason — how fast the
+band falls is the beat between the mains and the field rate, and neither of those
+gets tired. And the narrowing takes 55% off the top of each window while leaving
+every lower bound exactly where it was: twenty-two seconds is the number that
+keeps the tear an event rather than a tic, and a factor applied to the whole
+range would have walked straight through it by the second side. What actually
+happens is that the *long* gaps stop being drawn — the mean wait falls from about
+fifty-one seconds to about thirty-five, and the shortest gap the tube can have is
+the one it could always have had.
+
+**Squared, so the first side is very nearly untouched.** Linear wear would have
+the tube noticeably restless four tracks in, which is a set that was tired when
+you put the record on. At the halfway mark the window has given up an eighth of
+its span; the rest of it goes in the last quarter, which is where sitting through
+a whole record is a thing you have actually done.
+
+The depth is derived from the playhead rather than kept on a clock of its own, so
+it needs nothing to reset it: a new record puts `positionInRecord` back to nought
+and takes the wear with it. Which lands the two entries on the same event — D99
+strikes the tube when a record arrives, and the tube it strikes is, from that
+instant, its freshest.
+
+**It is read, not watched.** `TubeWear` is written twenty times a second and read
+once every few seconds, by two `Task` loops that are already deciding how long to
+wait next. A `while` loop is not a tracked scope, so nothing is invalidated;
+had the value fed a `body` instead, the panel would redraw at the playhead's tick
+rate for the sake of a band that moves four times an hour. The cost is that each
+schedule lags by one pass — the rest about to be taken was sized by where the
+record was when the last one ended — which is a few seconds out on a quantity
+that takes a whole side to move.

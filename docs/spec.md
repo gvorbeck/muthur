@@ -119,7 +119,10 @@ laboratory oscilloscopes and spectrum analysers.
   walks down the raster every several seconds, and the wordmark loses its line
   for a tenth of a second every minute or so. Rare, faint, brief — thirty years
   of service, not a machine coming apart. Neither fault may cost a character of
-  legibility and neither may move the layout.
+  legibility and neither may move the layout. **And the set gets tired** (D102):
+  both gaps close up as the needle runs into the record, so the lead-in is the
+  steadiest the tube is all evening and the run-out the most restless — oftener,
+  never bigger.
 - Chunky beveled hardware panels around the screen area — the physical chassis
   the CRT is mounted in. **All four of its screws are on screen**, and no two sit
   at the same angle — hand-tightened, by fixed constants and never at random: a
@@ -163,6 +166,13 @@ same reason the meter head moves, and is gated on nothing, because a meter
 that stopped under Reduce Motion would not be a considerate meter, it would be
 a broken one. Anything that is none of these three is still spending the
 budget, and the budget is still spent.
+
+**D102 does not spend it either, and does not claim an exemption to.** It adds
+no fourth thing: it is the two faults above getting restless as the record runs
+out, the rests in both schedules closing up while the tear and the band stay
+exactly the size they always were. Two events at the end of forty minutes rather
+than at the start of them is not more movement to read past — it is the same
+movement, arriving when a set that has been on all evening would have it.
 
 ## Open question — do not decide unilaterally
 

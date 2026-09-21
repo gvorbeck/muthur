@@ -181,9 +181,10 @@ then closed most of what it added: §21 has been run against a real CD, and two
 of its three steps are ticked. The third wants a click, not a disc.
 
 The same goes for what the tube does — the strike when a record goes on, the
-readouts holding the figure that has just gone, the needle down the run-out.
-A terminal has no raster, so there is nothing there to be parity with. Both
-lines above stand exactly where they did.
+readouts holding the figure that has just gone, the needle down the run-out, and
+now the two old faults getting restless as a record runs out. A terminal has no
+raster, so there is nothing there to be parity with. Both lines above stand
+exactly where they did.
 
 What to test next, as a checklist: [`TODO.md`](TODO.md).
 

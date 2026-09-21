@@ -372,6 +372,9 @@ struct ScreenEffects: View {
     /// same object to drive `tubeBulge(fault:size:active:)`, and a fault this
     /// view kept to itself would have nothing for that to read.
     var fault = TubeFault()
+    /// How far the record has run, which is how restless the band is allowed to
+    /// be (D102). Owned by the caller for the same reason `fault` is.
+    var wear = TubeWear()
 
     @Environment(\.accessibilityReduceTransparency) private var flat
 
@@ -382,7 +385,7 @@ struct ScreenEffects: View {
                 UnevenPhosphor(hole: hole)
                 Vignette(hole: hole)
                 Sheen(hole: hole)
-                ScanSweep(running: sweeping, hole: hole, fault: fault)
+                ScanSweep(running: sweeping, hole: hole, fault: fault, wear: wear)
             }
             .allowsHitTesting(false)
         }
@@ -400,6 +403,28 @@ final class TubeFault {
     /// the bottom. Read by `ScanSweep`'s own offset and by `tubeBulge`'s Y
     /// uniform — the same value, so the two are never two frames apart.
     var fallen = false
+}
+
+/// How far into the record the needle is, for the two faults to get restless on
+/// (D102).
+///
+/// Owned by `PanelView` and read by both schedules — `ScanSweep`'s band and the
+/// wordmark's tear — for `TubeFault`'s reason turned inside out. That one exists
+/// so two views move in step within a frame; this one exists so two *tasks* that
+/// have nothing else to do with each other agree about the same record, and
+/// neither has to be handed a model it would otherwise have no use for.
+///
+/// **Written twenty times a second and read once every few seconds, and that
+/// costs nothing.** `@Observable` notifies what has read a property inside a
+/// tracked scope, and nothing draws this: the only readers are `while` loops
+/// inside a `Task`, which is not one. A value that fed a `body` would be a panel
+/// invalidated at the playhead's tick rate for the sake of a band that moves four
+/// times an hour.
+@Observable
+final class TubeWear {
+    /// 0 on the lead-in, 1 in the run-out. Clamped by the writer, because a
+    /// schedule is not the place to find out that a duration was a guess.
+    var worn = 0.0
 }
 
 /// When the coil last fired (D99), and nothing else.
@@ -574,6 +599,8 @@ struct ScanSweep: View {
     var running = false
     var hole: Hole?
     var fault = TubeFault()
+    /// Read at the top of every pass, never held (D102). See `fall()`.
+    var wear = TubeWear()
     /// Production leaves this nil and takes the system generator, the way
     /// `PlaybackEngine.load(_:source:seed:)` does. A number is for a suite, or for
     /// standing two windows side by side and having them fault in step.
@@ -604,6 +631,14 @@ struct ScanSweep: View {
     /// and the animated one. Done in the other order the two land in the same
     /// frame and SwiftUI has every right to animate the return journey, which
     /// looks like the band going back up for another go.
+    ///
+    /// **The wear is read here, once a pass, and deliberately not watched** (D102).
+    /// The loop is already the thing that decides how long the next rest is, so
+    /// the needle's depth is just another number it asks for at that moment. It
+    /// therefore lags by one pass — the rest about to be taken was sized by where
+    /// the record was when the last one ended — which is a few seconds out on a
+    /// quantity that takes a whole side to move, and is the difference between
+    /// reading a value and subscribing to one.
     private func fall() async {
         guard running else { return }
         var tube = Tube(seed: seed)
@@ -611,7 +646,7 @@ struct ScanSweep: View {
         snap.disablesAnimations = true
 
         while !Task.isCancelled {
-            let sweep = tube.nextSweep()
+            let sweep = tube.nextSweep(worn: wear.worn)
             withTransaction(snap) { fault.fallen = false }
             guard await rest(sweep.rest) else { return }
             withAnimation(.linear(duration: sweep.travel)) { fault.fallen = true }

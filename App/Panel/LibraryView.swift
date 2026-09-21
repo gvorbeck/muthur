@@ -18,6 +18,9 @@ struct LibraryView: View {
     let meta: String
     let treatment: SleeveImage.Treatment
     let glitching: Bool
+    /// Handed down to the faceplate, which hands it to the wordmark (D102). The
+    /// shelf has no use for it and never looks at it.
+    var wear = TubeWear()
     let legend: [[Readout.Cap]]
     let status: String?
     /// The slot under the pointer, whose sleeve is lit. Stays set for the
@@ -68,7 +71,7 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 0) {
             Bloom {
                 VStack(alignment: .leading, spacing: 0) {
-                    FaceplateView(meta: meta, glitching: glitching)
+                    FaceplateView(meta: meta, glitching: glitching, wear: wear)
                     PanelBlank()
                     fields(shelf)
                     // **The find line stands in the blank over the shelf**
