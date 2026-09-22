@@ -401,6 +401,30 @@ struct CatalogueTests {
         #expect(location.url.path == "/Users/test/Sites/cd-collection/data/collection.csv")
     }
 
+    /// `forget` is the settings row's way back out (D105).
+    ///
+    /// **The key is written here rather than by `remember`, and that is the
+    /// honest shape of this test.** Making a security-scoped bookmark needs a
+    /// URL the process has actually been granted, which a test process has not
+    /// been and cannot arrange for itself — `remember` returning false on a CI
+    /// machine is a real possibility and not a bug. So what is asserted is what
+    /// this function promises on its own: the key it is pointed at is gone
+    /// afterwards, and `locate` is back on the default.
+    @Test func theCataloguePickedCanBeUnpicked() throws {
+        let suite = "muthur.forget.\(UUID().uuidString)"
+        let store = try #require(UserDefaults(suiteName: suite))
+        defer { store.removePersistentDomain(forName: suite) }
+        store.set(Data("not a bookmark".utf8), forKey: CatalogueFile.bookmarkKey)
+        #expect(store.data(forKey: CatalogueFile.bookmarkKey) != nil)
+
+        CatalogueFile.forget(defaults: store)
+        #expect(store.data(forKey: CatalogueFile.bookmarkKey) == nil)
+        let location = CatalogueFile.locate(
+            environment: [:], defaults: store, home: URL(fileURLWithPath: "/Users/test"))
+        #expect(location.url.path == "/Users/test/Sites/cd-collection/data/collection.csv")
+        #expect(location.scoped == false)
+    }
+
     @Test func aFileThatIsNotThereIsNotACatalogue() {
         #expect(
             CatalogueFile.read(

@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All hundred and four are settled;
+  the reasoning and the decision it came from. All hundred and five are settled;
   they are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
@@ -63,14 +63,53 @@ part worth porting.
 
 ## Status
 
-**321 of 325 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**322 of 326 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 36 of 43). Re-derived by counting the files:
-317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 36 of 43 in `hardware.md`. **Neither number moved this pass, and §19's did
-not either.** What moved is §16, 102 → 104.
+318 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
+and 36 of 43 in `hardware.md`. **The denominator moved for the tenth time, the
+ninth of them upward** — 325 → 326, for §14's settings screen: a requirement the
+window turned out to have and the script, started from a command line, never
+did. The box is ticked, so the numerator moved with it. **§19's did not move.**
+§16 is 104 → 105.
 
-**The pass is a read of the whole port, and it is the first one here that was
-not about a feature.** Nothing was asked for and nothing was added; eleven
+**The pass is the settings screen, and the thing it fixes is that fourteen
+switches had nowhere to live but the menu bar.** Every one of them arrived
+honestly — the burn's eight, the import's five, the catalogue — and every one of
+them was forgotten at quit, so choosing ALAC or pointing the shelf at a different
+CSV was a thing you did again tomorrow and the day after. **Three more were in no
+menu at all** — the tube's lettering, its numerals and what fills the room under
+the last track — reachable only by exporting a variable before launch, which for
+a double-clicked app means not reachable at all. §13 is the script's answer and
+it is the right one for a TUI: the line that starts the program is where the
+settings go. **A window is not started from a line.** So there is a screen now,
+`,` on the panel and ⌘, in the menu, phosphor like the check and the shelf
+rather than a `Settings { }` window — **D105**, and §14 has the box.
+
+**What is allowed to persist is the half that needed a decision.** D86 had said
+in as many words that the burn switches deliberately do not survive a quit, and
+that was flagged rather than quietly improved. It comes back **amended, not
+reversed**: D97's test decides each switch on its own — *a switch that describes
+your shelf is remembered; a switch that could make one run behave unlike the run
+you are watching is not* — and under it five of the burn's eight are saved while
+Rehearse, Demo and Start at Disc stay exactly as forgotten as D86 made them. The
+kit's `Saved` struct is the single place that knows which five, so the write is
+one `didSet` the next function to touch `burnOptions` cannot forget. An
+environment variable still wins for the launch it is typed on and is **never**
+written back, which is the rule that keeps a shell profile from turning into a
+preference nobody chose. Two of the switches are honestly next-launch — the
+scratch is made once at start-up — and the screen says so under them rather than
+looking like it did something.
+
+**Three variables the port had been reading for passes were named nowhere**, and
+the suite found them the moment `Preferences` moved them into the kit:
+`MUTHUR_LETTERING`, `MUTHUR_NUMERALS` and `MUTHUR_COMPOSITION` had only ever
+been read in `App/`, where D46's scanner does not look. They are on `--help`
+now. The picker's legend also went to two rows, because `, SETTINGS` put it at
+74 of the 69 columns — measured by `KeycapTests.fits`, not guessed, which is the
+second time that test has caught arithmetic done in prose.
+
+**The pass before was a read of the whole port, and it was the first one here
+that was not about a feature.** Nothing was asked for and nothing was added; eleven
 things were found by reading the code that exists, and the two that needed a
 decision are D103 and D104. The rest are repairs, and the reason the boxes stand
 still is that every one of them was already ticked — a box that was ticked for a
@@ -127,7 +166,7 @@ handed a `@MainActor @Sendable` function by name, so two call sites are written
 out as calls with a comment saying why they may not be tidied. Debug now treats
 warnings as errors, there being none left to treat.
 
-**The pass before was D102, and it is one entry that adds nothing to look at.** The ask
+**Before that was D102, and it is one entry that adds nothing to look at.** The ask
 was for static and artifacts as a record nears its end; taken literally that is a
 third moving thing, and `spec.md:144` has no room for one. So it is taken as a
 question about the two faults that already exist. D52's deflection band and
@@ -149,7 +188,7 @@ The depth comes off the playhead rather than a clock of its own, which means a
 new record resets it for free — and lands it on D99's event, so the tube is
 struck back to its freshest at the instant one goes on.
 
-**Two passes back it was D99 to D101, and all three are the panel moving.** The deck has
+**Three passes back it was D99 to D101, and all three are the panel moving.** The deck has
 been a still picture with two faults in it since D52, and `spec.md:144` says in
 as many words that those two are the entire budget for movement — so the first
 job of each of these was to survive that line, and each does it by not being
@@ -1071,10 +1110,12 @@ What has landed:
   not ours to write to, and nothing here writes to it, creates anything in it or
   assumes its layout will change. The panel side is one argument on
   `HeaderBlock(record:shelf:)` and a `Collection…` menu item that leaves a
-  security-scoped bookmark behind — there is no Settings screen for it to live in
-  until §11 and §13, and what matters about it is the bookmark rather than where
-  the control is drawn.
-- **953 tests in 64 suites**, `swift test --package-path MUTHURKit`. Two tiers,
+  security-scoped bookmark behind — there was no Settings screen for it to live
+  in when this was written, and what matters about it is the bookmark rather than
+  where the control is drawn. **§13 has the screen now** (**D105**) and the
+  chooser is a row on it, which changed nothing in this list: the same call, the
+  same bookmark, and the menu item still there beside it.
+- **1115 tests in 75 suites**, `swift test --package-path MUTHURKit`. Two tiers,
   and the distinction is the whole value of the number: the **rules** tier runs
   anywhere, and the **material** tier reads files already on the machine and
   skips itself when they are absent. The material gates are `ffmpeg` (the
@@ -2606,7 +2647,11 @@ no such relative path.
       `~/Sites/cd-collection/data/collection.csv`, overridable through a file
       picker so the choice is a security-scoped bookmark rather than a string
       that stops working the day the app is sandboxed. `PLAYER_COLLECTION`
-      becomes that setting.
+      becomes that setting. **There is a Settings screen for it to be in now**
+      (**D105**, §13, §14): the chooser is a row under THE SHELF, with the path
+      in force drawn beside it and a way back off it — `CatalogueFile.forget`
+      drops the bookmark and the default returns. Collection… in the menu is
+      still there and calls the same chooser.
 - [x] **The live file, read fresh each session. Not a copy imported into the app.**
       That CSV is maintained — it is the data behind the collection site in the
       same repository — and a copy would go stale silently. A stale note is worse
@@ -3189,7 +3234,7 @@ startup).
 
 ---
 
-## 13. Settings (from environment variables)
+## 13. Settings (from environment variables, and now from a screen)
 
 All eight are documented in the script's own header comment (`player:47`).
 
@@ -3218,6 +3263,21 @@ there as a group, and the suite asserts that the group is complete. `PLAYER_DIRS
 was the fourth until **D50**, and the page keeps a sentence about it for the
 person who has had it exported for years and is owed an answer about why it
 stopped working.
+
+**And the environment is no longer the only way to set one** (**D105**, §14).
+The section's heading is the script's assumption, and it is a fair one for a
+program you start by typing its name: the line that starts it is the place the
+settings go. A window has no such line, so most of what is above is also on a
+screen now — `,` on the panel, Settings in the menu — and what is set there is
+remembered across launches, which nothing in this table ever was. The table
+stays because it is still true: every variable in it is still read, still under
+the same name, and still with the same meaning. What changed is only the
+precedence, and it is one sentence — **a variable is for the launch it is typed
+on**. It beats the saved setting for that launch and is never written back over
+it, so the shell profile exported in 2019 keeps working exactly as it did and
+cannot turn into a preference the person never chose and cannot find to undo.
+Loading order is defaults, then what was saved, then the environment, and the
+suite holds the three in that order.
 
 ---
 
@@ -3329,6 +3389,31 @@ look for a line in the script to justify any of it; there is none.
 - [x] Reduce Motion and Reduce Transparency honoured — see §10. Transparency
       drops the veils; Motion has nothing to act on, because everything that
       moves on this panel is a reading and not an animation.
+- [x] **A settings screen, and settings that are still set next time.** A new
+      box on `BROWSE`'s and `E EJECT`'s precedent, adding a requirement rather
+      than inheriting one, so it moves the denominator (see Status). Found the
+      same third way `E EJECT` was — by using the window. §13 is the script's
+      whole answer to configuration and it is the right answer for a TUI: a
+      variable is typed on the line that starts the program, and the program
+      starts again tomorrow from the same shell profile. **A window is not
+      started from a line.** Every switch the port has added since — the burn's
+      eight (§20), the import's five (§21), the catalogue (§8) — arrived in the
+      menu bar because that was the only surface there was, and what had
+      accumulated there was fourteen controls with nothing behind them: set the
+      format to ALAC, quit, and it is FLAC again. Three more were in no menu at
+      all, only in the environment, which for an app you double-click is nowhere.
+      It is **D105**: a phosphor screen like the check and the shelf
+      rather than a `Settings { }` window, on `,` and on ⌘, — D30's rule one
+      layer up, both doors calling `PanelModel.toggleSettings()`. `↑↓` walks the
+      rows, `←→` moves the setting the cursor is on and is the one rocker on any
+      legend that does not repeat, and the menu bar keeps every switch it had.
+      What persists is D97's test applied to each one: a switch describing your
+      shelf is remembered, a switch that could make one run behave unlike the run
+      you are watching is not — which is **D86 amended rather than reversed**,
+      five of the burn's eight saved and Rehearse, Demo and Start at Disc still
+      forgotten at quit. An environment variable still wins for the launch it is
+      typed on and is never written back, so a profile exported years ago cannot
+      quietly become a preference nobody chose and nobody can find.
 
 **Three of these are blocked on hardware and material, not on work.** They are
 untouched deliberately, and each for a reason that no amount of code removes:
@@ -3984,7 +4069,11 @@ actionable, which is the standard the rest of this port's failures are held to.
       `cdda2wav` reads the whole of the CD-Text back off the lead-in.
 - [x] `--dummy` — rehearse with the laser off. The verb it changes is in the
       panel; the drive to rehearse on is here, and it has rehearsed three times.
-      Every flag in this list is a switch in the Burn menu (**D86**).
+      Every flag in this list is a switch in the Burn menu (**D86**), and five
+      of the eight are also rows on the settings screen and remembered between
+      launches (**D105**). This is not one of the five: a rehearsal that
+      outlived the evening it was asked for would be a burn that quietly did
+      not happen.
 - [x] `--verify` — read the disc back afterwards and check it. Three checks and
       not a comparison, because every drive reads audio at a small fixed offset
       from where it wrote it and a byte-for-byte compare fails on a perfectly
@@ -4023,7 +4112,9 @@ done with something else — Music.app, XLD, `cdparanoia` and a shell loop. So
 there is no `player:NNNN` under any of this and no box for a denominator to
 count. It is here rather than in `decisions.md` for the reason §20 is here: it
 is a feature area with behaviour worth writing down, not a single departure.
-The departures it did produce are **D95**, **D96** and **D97**.
+The departures it did produce are **D95**, **D96** and **D97** — and **D105**,
+which took D97's one persisted setting and made its reasoning the rule for every
+setting in the program.
 
 The proof that needs a drive is **`hardware.md` step 15**, which is why §19's
 denominator moved and this one did not. **Two of its three boxes are ticked**,
@@ -4071,7 +4162,10 @@ be the worse trade.
 One folder per record under the directory you chose — `American IV - The Man
 Comes Around` — holding `01 - The Man Comes Around.flac` and its siblings
 (**D96**). The format is the Import menu's, FLAC unless told otherwise, and it
-is the one setting in this program that survives a relaunch (**D97**).
+was the **first** setting in this program to survive a relaunch (**D97**) — it
+is no longer the only one, and the test it was decided by is the test every
+setting on §13's screen is now decided by (**D105**). All five of the Import
+menu's switches are rows on that screen, and all five are remembered.
 
 **All three of those naming rules were written from first principles and all
 three were wrong**, which the first real disc established before a byte was

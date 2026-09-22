@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-hundred and four are settled. Recorded here with the answer so that a departure from
+hundred and five are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -172,8 +172,10 @@ real straight after.
 
 **D86 to D94 came from using it.** D86 is the Burn menu: every flag `burncd`
 parses was already a field on `BurnJob` and none could be reached, so each is
-now a switch — not saved across launches, because a rehearsal remembered from
-last month is a burn nobody meant to rehearse. D87 tells an empty bay from a
+now a switch — none of them saved across launches at the time, because a
+rehearsal remembered from last month is a burn nobody meant to rehearse; D105
+later kept that rule for the three flags it is true of and lifted it from the
+five it is not. D87 tells an empty bay from a
 missing drive in `burncd:316`'s own words. D88 puts the version beside the
 wordmark and takes it away again on the one status line too wide to share. D89
 runs a cut title past its column, on the playing row and the one under the
@@ -235,6 +237,17 @@ field rather than by touching a format that is not allowed to change. D104 is
 three material tests that failed rather than skipped on a machine that had a
 library but not the particular fixture they wanted, which is how a suite teaches
 you to ignore it.
+
+**D105 is §13 finally getting a surface, and it is the entry that amends
+another.** The variables list was the settings screen for as long as this was a
+program you started from a shell; a window has no shell, so every §13 variable
+had become a setting reachable only by somebody who already knew it was there.
+The screen is phosphor rather than a `Settings { }` window, on the argument that
+a native pane would be the first surface here that is not the tube. The amendment
+is to D86: five of the eight burn flags now persist and three still do not, by
+D97's test rather than by a new one — a switch that could make one run behave
+unlike the run you are watching does not persist, and the three that fail it are
+the three that can cost you a blank or an hour.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -3807,7 +3820,7 @@ is the only copy of something a person typed, and a directory whose contract is
 ---
 
 **D86 — every `burncd` flag is a switch in a Burn menu, and none of them is
-saved.** → §20, amends D83
+saved.** → §20, amends D83, **amended by D105**
 
 D83 put `--demo` and `--dummy` behind environment variables and wrote down that
 this was the weakest part of §20. It was weaker than it said. `BurnJob` had a
@@ -3836,6 +3849,15 @@ it matter — a menu that remembered it would one day spend an hour rehearsing a
 burn somebody meant to keep. The variables D83 introduced, and the script's own
 `BURNCD_LEVEL` and `BURNCD_NO_MEDIA_CHECK`, still set where the menu *starts* at
 launch; the menu has the last word.
+
+> **D105 narrowed this paragraph and left the rest of the entry standing.** The
+> argument above is about `Rehearse`, `Demo` and `Start at Disc`, and about them
+> it is right — each describes *this run*, and each, remembered, quietly
+> produces a burn that is not the one you asked for. It was not right about
+> `Verify`, `Write CD-Text`, `Split Long Tracks`, `Level Loudness` and `Check
+> the Blank First`, which describe how somebody burns discs rather than what
+> they are doing this evening. Those five persist now, by D97's test. The three
+> named here do not, and stay on the Burn menu rather than joining §13's screen.
 
 **The menu is locked while a burn runs.** A switch flipped half-way through a
 job would describe a job that is not the one running.
@@ -4118,9 +4140,12 @@ record: a search is a way of looking at the shelf, not a smaller shelf.
 **D94 — a mini player at the foot of every screen that goes over the deck.** → §10
 
 Neither script needs one: `player` has one screen while a record is playing, and
-`burncd` plays nothing. The port has four screens that go over the deck without
-stopping it — the library (D91), the check, the plan and the burn — and each of
-them left the music with no way to be touched but going back to the deck for it.
+`burncd` plays nothing. The port has screens that go over the deck without
+stopping it — the library (D91), the check, the plan and the burn, and since
+**D105** the settings — and each of them left the music with no way to be touched
+but going back to the deck for it. The list is written out rather than counted
+here on purpose: it grew by one the first time a screen was added after this was
+written, and `showsMiniPlayer` is the only place the set is really kept.
 
 **Five lines, taken from the bottom of the screen and not drawn over it**: a
 blank, a `── NOW PLAYING` rule in the library's directory style (`── HELD` while
@@ -4257,7 +4282,7 @@ only setting under which an import can land beside files that were already
 there, which is why a cancel under it removes the planned files and nothing
 wider.
 
-**D97 — the import format outlives the launch, and the burn's switches still do not.** → §13, §21
+**D97 — the import format outlives the launch, and the burn's switches still do not.** → §13, §21, **its second clause amended by D105**
 
 `BurnOptions` is emphatic, and right: a switch that survived a relaunch would be
 *a flag you set last month and cannot see*, and `rehearsal` remembered is an
@@ -4288,6 +4313,15 @@ rather than refusing the set. `MUTHUR_IMPORT_FORMAT` beats what was saved for
 the launch it is set on and is never written back, because a variable exported
 in a shell profile that silently became the saved setting would be a preference
 nobody chose and could not find.
+
+> **D105 kept the test and moved the line it drew.** The heading above says the
+> burn's switches still do not persist, and for three of the eight that is still
+> exactly true. The other five were re-read against this entry's own test rather
+> than against a new one and came out the other side of it: `verify`,
+> `cdtext`, `splitLong`, `level` and `mediaCheck` describe how this person burns
+> discs, not what one burn is to do. Nothing here about *why* the two sets are
+> stored differently changed — `Saved` is still a separate shape, and it is
+> still the only thing that decides which switches it holds.
 
 **D98 — names are made for the volume they are going to, and the volume is asked.** → §21
 
@@ -4534,3 +4568,108 @@ So each now has a predicate naming what it actually needs, and the predicate and
 the fixture are the same code rather than two descriptions of one thing that can
 drift apart. Loud when the material is there and broken; quiet when it was never
 there at all.
+
+**D105 — a settings screen, on the panel, and what is allowed to persist.** → §13, §8, §20, §21
+
+§13 is the variables list, and for most of this port that list *was* the settings
+screen: `player` reads its environment at line 62 and never looks again, which is
+a perfectly good arrangement for a program you start from a shell, because a
+program you start from a shell already has a settings screen — the shell. A
+window has not got one. Every variable §13 names had therefore quietly become a
+setting reachable only by somebody who already knew it existed, and the ones that
+did get a surface got it as a menu item because a menu item was the only surface
+going: the format on the Import menu, the catalogue under File, eight burn flags
+on a menu of their own.
+
+**It is a phosphor screen and not a `Settings { }` window**, which was the first
+question asked and is the one the rest follows from. A native pane would be the
+first surface in this program that is not the tube: system fonts, system
+controls, a second window with a second idea of what this application looks like,
+sitting beside a panel that has spent the whole port refusing to look like
+anything but 1979. The panel already knows how to draw a list with a cursor on
+it. So the settings go over the deck the way the shelf and the check screen do,
+with their own legend, reached by `,` from the deck, the picker and the shelf —
+and by ⌘, which is where a Mac hand goes without reading a legend at all.
+
+**`,` and not a letter.** Every letter worth having was spoken for twice over
+before this feature started, and `,` is where macOS keeps settings anyway, which
+makes the keycap and the menu item the same key rather than two.
+
+**`←→ CHANGE` is the one rocker in the program that does not auto-repeat**, and
+that is the exception proving `Readout.repeats`'s rule rather than an oversight
+in it. Everything else with two ends is something you hold: a seek, a cursor, a
+volume. A held `→` on this screen would flip *Verify After Burning* twenty times
+a second and leave it wherever the finger came off, which is exactly the coin
+that function refuses to let `S` and `M` be.
+
+**The hard half was `BurnOptions`, and D86 has been amended rather than
+reversed.** D86 said none of the eight burn flags persisted, and gave the reason:
+a flag is typed per invocation, and a switch that survived a relaunch would be a
+flag you set last month and cannot see. That is exactly right about `rehearsal`,
+which is the case it was written for — a menu that remembered it would one day
+spend an hour rehearsing a burn somebody meant to keep — and exactly right about
+`demo` and `from`, which are the same shape. It was not right about the other
+five, and building this screen is what made that visible. `verify`, `cdText`,
+`splitLong`, `level` and `mediaCheck` are not instructions about one run; they
+are how this person burns discs, on this drive, and the answer is the same next
+month.
+
+**The test is D97's, unchanged: a switch that could make one run behave unlike
+the run you are watching does not persist; a switch that describes your shelf
+does.** The five are shelf facts by it and the three are not, and the three that
+do not persist are the three that can cost you a blank or an hour, which is not a
+coincidence but the same test read from the other end. The split is written as a
+`private struct Saved` naming exactly the five, so a field added to `BurnOptions`
+later cannot drift into the persisted set by being forgotten about.
+
+The three that stay per-run stay on the Burn menu, and the settings screen says
+so in as many words. A person who has found this screen and not found *Rehearse*
+is owed the reason rather than left to conclude the port forgot.
+
+**The environment still wins, and is still never written back.** Defaults, then
+what was saved, then the variable — `ImportOptions.load`'s order, kept word for
+word because having two rules would be worse than having one rule twice. A
+variable was typed *this* launch and the saved value is from some other one, so
+the variable wins; and a variable exported in a shell profile that silently
+became the saved setting would be a preference nobody chose and could not find.
+`--no-mb` is the same shape one layer up: it turns the network off for this
+launch without touching the setting, so a session started with the flag shows
+`OFF`, which is true, and still comes up `ON` tomorrow.
+
+**`Theme`'s four `static let`s had to become computed properties, and two draw
+calls had to move.** A `static let` read once at launch is not a thing SwiftUI
+can watch, so the lettering, the numerals, the composition and the faults are now
+read through an `@Observable` store. That is not sufficient on its own: a
+`Canvas`'s draw closure runs *after* `body` has returned, so a setting read
+inside one registers no dependency and the face would change only at the next
+launch. `MatrixText` and `SegmentText` ask in `body` and carry the answer into
+the closure, which is the whole reason those two lines exist.
+
+**The scratch settings take effect at the next launch, and the screen says so
+rather than pretending otherwise.** `Scratch.workBase` and `Scratch.keepRequested`
+read a dictionary, and `Scratch.open` is reached four calls down inside
+`SourceOpener` on a path that exists to open a record; threading a preference to
+it would put one in the signature of every function in between. So `main.swift`
+puts the two storage settings into the process environment with `setenv` at
+start-up, before `--check` and `-n` as well as before the window, and the setting
+behaves exactly like the variable it replaces. It is also the honest promise: the
+session's scratch directory is made once, and a zip already unpacked into it is
+not going to walk across.
+
+**`CatalogueFile.forget` is new because a row that can be set and never unset is
+a trap.** `remember` had no opposite while the picker was a menu item, since a
+menu item that opens a file chooser has nowhere to put an *unpick*. A settings
+row has: it shows the path standing, and `←` drops it. The bookmark is the only
+thing that goes — the file it pointed at is not ours and is not touched.
+
+**The menu bar keeps every switch that is on this screen.** This is a second way
+to the same settings and not a replacement for the first: a menu is where a Mac
+user looks, `,` is where somebody living in the panel looks, and both go through
+the same `PanelModel` functions. That is D30's rule about the caps and the keys,
+one layer up.
+
+**`--help` gained three variables it had never listed.** `MUTHUR_LETTERING`,
+`MUTHUR_NUMERALS` and `MUTHUR_COMPOSITION` were read in the app target only, so
+the test that scans the kit for environment reads had never seen them. Moving
+them into `Preferences` put them in front of it, and it failed — correctly, about
+a gap that had been there since D26 and D52.

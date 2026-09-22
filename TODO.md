@@ -6,8 +6,14 @@ needs a drive, a blank, or a particular file. Tick it in `docs/parity.md` or
 
 ## On the machine with the burner
 
-Use **Burn ▸** in the menu bar. Nothing in it is remembered between launches, so
-set it each time.
+Use **Burn ▸** in the menu bar, or the settings screen — `,` on the panel, ⌘, in
+the menu. Five of the eight switches are remembered between launches now (D105)
+and five of them are on that screen: Verify, Write CD-Text, Split Long Tracks,
+Level Loudness and Check the Blank First. **Rehearse, Demo and Start at Disc are
+not**, deliberately — they are instructions about one burn, so they are on the
+menu only and you set them each time. Which matters for the two steps below:
+step one turns Rehearse on, and if you quit between it and step two the laser is
+back on by itself rather than waiting for you to remember.
 
 - [ ] **Rehearse a record.** Open an album, press `B`, choose
       **Burn ▸ Rehearse — Laser Off**, then burn. It should run the whole screen

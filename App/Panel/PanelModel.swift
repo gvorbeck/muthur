@@ -109,6 +109,143 @@ final class PanelModel {
 
     func closeCheck() { report = nil }
 
+    // MARK: - The settings screen (§13, D105)
+
+    /// Whether `,` has been pressed. Over the deck and over the shelf, the way
+    /// the check screen is — the record goes on playing while you change how it
+    /// is drawn, which is most of the point of being able to change it.
+    private(set) var settingsOpen = false
+
+    /// Which row the cursor is on, as an index into `settingsRows`. Not a
+    /// `Cursor`: that value follows the music and settles a window around a
+    /// track, and there is nothing here for it to follow.
+    private(set) var settingsCursor = 0
+
+    /// **Under the jobs and over the shelf.** A burn, a plan or an import has
+    /// its own legend that is the only way out of it, and a switch moved under
+    /// a running job would be the switch that lied about the job on screen —
+    /// which is what `canSetBurnOptions` already refuses.
+    var isSettings: Bool {
+        settingsOpen && !isChecking && !isPlanning && !isBurning && !isImporting
+    }
+
+    /// Rebuilt on every ask, because `SettingsScreen` says why: a copy kept
+    /// here would be a fourth answer to *what is the format*.
+    var settingsRows: [SettingRow] { SettingsScreen.rows(self) }
+
+    func toggleSettings() { settingsOpen ? closeSettings() : showSettings() }
+
+    func showSettings() {
+        guard !isBurning, !isPlanning, !isImporting else { return }
+        closeCheck()
+        // The cursor starts on the first row that is a setting rather than on
+        // row zero, which is a heading: a cursor sitting on a line no key acts
+        // on is a cursor that looks broken until you press something.
+        settingsCursor = settingsRows.firstIndex(where: \.selectable) ?? 0
+        settingsOpen = true
+    }
+
+    func closeSettings() { settingsOpen = false }
+
+    /// `↑↓`, stopping at either end rather than wrapping. Headings, blanks and
+    /// notes are stepped straight over — the cursor only ever lands on a row
+    /// that a press would do something to.
+    func settingsStep(by delta: Int) {
+        let rows = settingsRows
+        var next = settingsCursor
+        while true {
+            next += delta
+            guard rows.indices.contains(next) else { return }
+            if rows[next].selectable {
+                settingsCursor = next
+                return
+            }
+        }
+    }
+
+    /// A page is that many presses of `↑` or `↓`, not a jump of that many rows.
+    /// The difference is the headings and the notes: a cursor moved twelve
+    /// positions lands on whatever is there and a cursor moved twelve *rows*
+    /// skips a section, and one of those is what the key is promising.
+    func settingsPage(by rows: Int) {
+        let step = rows < 0 ? -1 : 1
+        for _ in 0..<abs(rows) { settingsStep(by: step) }
+    }
+
+    /// `←→`, and `⏎` as a zero. The row decides what a step means — a switch
+    /// flips, a choice cycles, a chooser opens a panel — which is why this
+    /// knows nothing about any of them.
+    func settingsChange(by step: Int) {
+        let rows = settingsRows
+        guard rows.indices.contains(settingsCursor) else { return }
+        rows[settingsCursor].act?(step)
+    }
+
+    /// The picker's two-click rule (`player:3213`): the first click moves the
+    /// cursor and the second acts. A settings screen wants it more than a track
+    /// list does — clicking a row to read it and having the switch flip under
+    /// the pointer is a change nobody asked for.
+    func settingsClick(row: Int) {
+        let rows = settingsRows
+        guard rows.indices.contains(row), rows[row].selectable else { return }
+        if row == settingsCursor {
+            settingsChange(by: 0)
+        } else {
+            settingsCursor = row
+        }
+    }
+
+    /// The visible window, the picker's arithmetic. The cursor is kept in the
+    /// middle where there is room for it to be.
+    var settingsVisible: Range<Int> {
+        let count = settingsRows.count
+        let rows = visibleRows
+        if count <= rows { return 0..<count }
+        var top = settingsCursor - rows / 2
+        top = max(0, min(top, count - rows))
+        return top..<min(top + rows, count)
+    }
+
+    var settingsBelow: Int {
+        max(0, settingsRows.count - settingsVisible.upperBound)
+    }
+
+    // MARK: - The two choosers the settings screen opens (D5, D105)
+
+    /// D5's file picker, moved off the menu item and into the model.
+    ///
+    /// It is the same move `browse()` made when the `BROWSE` cap arrived, and
+    /// for the same reason: the menu item and the settings row must not be two
+    /// file pickers that have to be kept agreeing with each other. What matters
+    /// about the choice has not changed — it leaves a **security-scoped
+    /// bookmark** behind rather than a string, so it goes on working the day
+    /// this is sandboxed and survives the file being moved.
+    func chooseCatalogue() {
+        let panel = NSOpenPanel()
+        panel.message = "The catalogue this player reads the shelf out of."
+        panel.prompt = "Read"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.directoryURL = CatalogueFile.locate().url.deletingLastPathComponent()
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        CatalogueFile.remember(url)
+    }
+
+    /// Where zips unpack. A directory and not a file, and no bookmark —
+    /// `Preferences.work` says why the two paths are stored differently.
+    func chooseWorkDirectory() -> URL? {
+        let panel = NSOpenPanel()
+        panel.message = "Where archives are unpacked while they play."
+        panel.prompt = "Use"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK else { return nil }
+        return panel.url
+    }
+
     // MARK: - The library (D91)
 
     /// Built now and asked nothing until it is opened — D50's rule, which is
@@ -119,7 +256,7 @@ final class PanelModel {
     /// goes over the library the way it goes over the deck, and closing it
     /// comes back to the shelf rather than to whatever was under the shelf.
     var isLibrary: Bool {
-        library.isOpen && !isChecking && !isPlanning && !isBurning && !isImporting
+        library.isOpen && !isChecking && !isSettings && !isPlanning && !isBurning && !isImporting
     }
 
     /// **D94** — the strip at the foot of a screen that went over the deck.
@@ -132,7 +269,7 @@ final class PanelModel {
         guard record != nil, state.mode == .playing || state.mode == .paused else {
             return false
         }
-        return isLibrary || isChecking || isPlanning || isBurning || isImporting
+        return isLibrary || isChecking || isSettings || isPlanning || isBurning || isImporting
     }
 
     /// `L` on the start screen, ⌘L anywhere. **Over the deck and not instead of
@@ -146,6 +283,7 @@ final class PanelModel {
     func showLibrary() {
         guard !isBurning, !isPlanning, !isLoading, !isImporting else { return }
         closeCheck()
+        closeSettings()
         library.show()
     }
 
@@ -369,11 +507,23 @@ final class PanelModel {
         stage = "▪ \(message)"
     }
 
-    /// `--no-mb`, set once at launch (`player:81`'s `USE_MB`, which is a global
-    /// there for the same reason it is a property here). Every path that opens
-    /// a disc goes through `open(source:kind:)`, so this is the only place it
-    /// has to be remembered.
-    var useMusicBrainz = true
+    /// `--no-mb` (`player:81`'s `USE_MB`, which is a global there for the same
+    /// reason it is a property here). Every path that opens a disc goes through
+    /// `open(source:kind:)`, so this is the only place it has to be remembered.
+    ///
+    /// **This is what is in force now, and `Preferences.useMusicBrainz` is what
+    /// will be in force next time** (D105). It starts as the setting, `--no-mb`
+    /// turns it off for this launch without touching the setting, and changing
+    /// it on the settings screen moves both. So a session started with the flag
+    /// shows `OFF` — which is true — and still comes up `ON` tomorrow, which is
+    /// the rule every other variable in the program keeps.
+    var useMusicBrainz = SettingsStore.shared.preferences.useMusicBrainz
+
+    /// From the settings screen: this launch and every launch after it.
+    func setUseMusicBrainz(_ on: Bool) {
+        useMusicBrainz = on
+        SettingsStore.shared.edit { $0.useMusicBrainz = on }
+    }
 
     /// Open a source — folder or zip — by URL and kind.
     func open(source url: URL, kind: SourceKind) {
@@ -995,9 +1145,21 @@ final class PanelModel {
 
     // MARK: - The Burn menu (D86)
 
-    /// `burncd`'s flags, as the Burn menu holds them. Seeded from the
-    /// environment once and never saved — `BurnOptions` says why.
-    private(set) var burnOptions = BurnOptions.atLaunch()
+    /// `burncd`'s flags, as the Burn menu and the settings screen hold them.
+    ///
+    /// **Written through on every change, and `BurnOptions.save` decides how
+    /// much of it lands** (D86 as D105 amended it): five of the eight are in
+    /// `Saved` and three are not, so `Rehearse` can be flipped here all evening
+    /// without a byte moving. Putting the write in `didSet` rather than in the
+    /// two setters is deliberate — it is one line that cannot be forgotten by
+    /// the next function that touches this, and the kit is already the thing
+    /// that knows which switches are allowed out of the session.
+    private(set) var burnOptions = BurnOptions.atLaunch() {
+        didSet {
+            guard burnOptions != oldValue else { return }
+            burnOptions.save()
+        }
+    }
 
     /// Whether the menu can be touched at all. Not while a job is running: the
     /// job has its own copy on another thread, and a switch that moved under it
@@ -1112,10 +1274,11 @@ final class PanelModel {
 
     /// The Import menu, as `ImportOptions` holds it (**D95**).
     ///
-    /// Unlike `burnOptions` this is loaded from disk and written back on every
-    /// change — `ImportOptions` argues the difference out, and the short form
-    /// is that a format is a statement about your shelf while `--dummy` is an
-    /// instruction about one run.
+    /// Loaded from disk and written back on every change, all of it — which is
+    /// the difference from `burnOptions`, where only five of the eight go. The
+    /// test is the same in both places and `ImportOptions` is where it is
+    /// argued out: a format is a statement about your shelf, while `--dummy` is
+    /// an instruction about one run. Nothing in here is the second kind.
     private(set) var importOptions = ImportOptions.load()
 
     /// Not while a job is running: it has its own copy on another thread, and a

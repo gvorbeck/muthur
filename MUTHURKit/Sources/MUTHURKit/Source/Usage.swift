@@ -123,6 +123,13 @@ public enum Usage {
                                  band, no wordmark glitch. The screws, the chassis
                                  and the true sleeve under the pointer stay either
                                  way. Reduce Motion does this on its own.
+              MUTHUR_LETTERING   type or matrix — the character generator the
+                                 chrome is drawn with (default type)
+              MUTHUR_NUMERALS    type or segment — the figures on the readouts
+                                 and the two counters (default type)
+              MUTHUR_COMPOSITION runout or deck — whether the room under the
+                                 last track is filled with the dead groove at
+                                 the end of a side (default runout)
               MUTHUR_LEVEL       off, album or track — how a burn is levelled
                                  (default off). album is one gain for the whole
                                  record and never turns anything down; track
@@ -145,14 +152,11 @@ public enum Usage {
               MUTHUR_DEMO        set to start with Burn ▸ Demo on: no drive, no disc
                                  Every burn variable above only sets where the
                                  Burn menu starts; the menu has the last word.
+                                 Rehearse, Demo and Start at Disc are forgotten
+                                 at quit. The other five are remembered.
               MUTHUR_IMPORT_FORMAT
                                  flac, alac, aiff, wav, mp3 or opus — what an
-                                 imported disc is written as (default flac).
-                                 Unlike the burn variables this one has a saved
-                                 setting behind it: the Import menu remembers
-                                 the format between launches, and this beats
-                                 what was saved for the launch it is set on
-                                 without replacing it.
+                                 imported disc is written as (default flac)
               XDG_CACHE_HOME     where the scratch and the sleeve cache live
               XDG_DATA_HOME      where your corrections live (D85) — the year
                                  or title you typed on the plan screen, kept
@@ -160,6 +164,12 @@ public enum Usage {
                                  files. Delete corrections.json under it and
                                  every record goes back to what its tags say.
               XDG_STATE_HOME     where the resume file lives
+
+            Most of what is above is also on the settings screen — , on the panel,
+            or Settings in the menu — and what you set there is remembered. A
+            variable is for the launch it is typed on: it beats the saved setting
+            for that launch and is never written back over it, so a shell profile
+            cannot quietly become a preference you did not choose and cannot find.
 
             MUTHUR_WORK, MUTHUR_KEEP and MUTHUR_COLLECTION are read under their
             PLAYER_ names too, for somebody who has had those exported for years.

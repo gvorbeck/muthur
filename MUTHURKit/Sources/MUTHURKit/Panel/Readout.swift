@@ -221,6 +221,19 @@ public enum Readout {
         /// not then take.
         case find
 
+        // The settings screen (§13, **D105**).
+
+        /// Onto the settings and back off them. One key both ways, which is
+        /// `.library`'s arrangement and for the same reason: a screen you got
+        /// to with `,` is a screen you expect `,` to leave.
+        case settings
+        /// The rocker that moves the setting the cursor is on. **Not
+        /// `selectLeft`/`selectRight` borrowed**, on the rule D91 already
+        /// wrote down — a press is named for what it asks, and changing a
+        /// setting is not selecting one. Not `seekBack`/`seekForward` either,
+        /// which is the same objection with a record in it.
+        case changeBack, changeForward
+
         case quit
     }
 
@@ -284,6 +297,14 @@ public enum Readout {
     /// 58 of 69 and the cap wants eleven plus its gap, which is 72. Row three
     /// is 19, so it goes there: after `MUTE`, last in and last placed, on the
     /// row that exists precisely because this happened once before.
+    ///
+    /// **`, SETTINGS` is row three's fourth, and `,` is not a free letter — it
+    /// is the right key** (D105). Every letter that would have done is spoken
+    /// for twice over by now, and the comma is the key macOS has meant
+    /// *settings* on for twenty years; ⌘, is in the app menu beside it, which
+    /// is where a Mac user looks first and is the same argument D92 made for
+    /// ⌘L. It goes after `LIBRARY` — last in, last placed — and takes the row
+    /// from 19 to 31, measured by `KeycapTests.fits`.
     public static let legend: [[Cap]] = [
         [
             Cap("␣", "PLAY", .play),
@@ -304,6 +325,7 @@ public enum Readout {
             Cap("-=", "VOL", .volumeDown, .volumeUp),
             Cap("M", "MUTE", .mute),
             Cap("L", "LIBRARY", .library),
+            Cap(",", "SETTINGS", .settings),
         ],
     ]
 
@@ -358,19 +380,31 @@ public enum Readout {
     /// screen was drawn appears (`player:1018`). The bay is all there is left to
     /// look at, and looking again at it is still worth a key.
     ///
-    /// Measured against the 69 columns, by the arithmetic `KeycapTests.fits`
-    /// uses — a plate is ` KEY `, a legend is ` LABEL`, three columns between
-    /// caps. With the disc: 36 of caps and 9 of gaps, **45**. With an empty bay:
-    /// 28 and 6, **34**. The row that used to be there was 59, so there is more
-    /// air on this screen than there was, not less.
+    /// **It is two rows now, and the second one is `SETTINGS` and `QUIT`**
+    /// (D105). Measured by the arithmetic `KeycapTests.fits` uses — a plate is
+    /// ` KEY `, a legend is ` LABEL`, three columns between caps — the one row
+    /// stood in 59 with the disc, and `,  SETTINGS` wants fifteen more than
+    /// that. So the split is forced, and the place it falls is the one the row
+    /// already had: everything above is *do something about a record*, and
+    /// below are the two ways out of the screen. `Q` stays last of all.
+    ///
+    /// With the disc the rows are **48** and **23**; with an empty bay, 33 and
+    /// 23. The start screen is the emptiest in the program and had the line to
+    /// spare, which is the other half of why the cap went here.
     public static func pickerLegend(hasDisc: Bool) -> [[Cap]] {
         var caps: [Cap] = []
         if hasDisc { caps.append(Cap("⏎", "OPEN", .jump)) }
         caps.append(Cap("R", "RESCAN", .rescan))
         caps.append(Cap("B", "BROWSE", .browse))
         caps.append(Cap("L", "LIBRARY", .library))
-        caps.append(Cap("Q", "QUIT", .quit))
-        return [caps]
+        return [
+            caps,
+            // **The start screen is where most people will first want the
+            // settings** (D105) — nothing is playing, nothing is at stake, and
+            // the cap has to be somewhere a person who has just launched the
+            // app can see it.
+            [Cap(",", "SETTINGS", .settings), Cap("Q", "QUIT", .quit)],
+        ]
     }
 
     /// The library's rows (D91).
@@ -448,6 +482,30 @@ public enum Readout {
             Cap("R", "RECHECK", .rescan),
             Cap("Q", "QUIT", .quit),
         ],
+    ]
+
+    /// The settings screen's row (§13, **D105**).
+    ///
+    /// **`←→ CHANGE` and `⏎ CHOOSE` are two caps because the rows are two
+    /// kinds.** Most of a settings list is switches and choices, which a rocker
+    /// moves without ever opening anything; three rows are a file or a folder,
+    /// and those want a chooser, which is a `⏎` and a panel coming up. One cap
+    /// for both would have had `⏎` mean *flip this* on nineteen rows and *open
+    /// a dialog* on three, which is the kind of key you press once and then
+    /// stop trusting.
+    ///
+    /// **`ESC BACK` and not `, BACK`**, though `,` does it too — the library's
+    /// own trade in reverse. There the way in was worth printing as the way
+    /// out because `L` is a letter you remember; a comma is not, and `⎋` is
+    /// what a hand reaches for to leave a screen it has finished with.
+    public static let settingsLegend: [[Cap]] = [
+        [
+            Cap("↑↓", "SELECT", .selectUp, .selectDown),
+            Cap("←→", "CHANGE", .changeBack, .changeForward),
+            Cap("⏎", "CHOOSE", .jump),
+            Cap("ESC", "BACK", .settings),
+            Cap("Q", "QUIT", .quit),
+        ]
     ]
 
     /// The plan screen's rows (§20.4, `burncd:1181`).
@@ -559,6 +617,16 @@ public enum Readout {
     /// held down, and nine deliberate presses is the same coin flipped the
     /// other way. It stops on its own at either end, where `moveTrack` declines
     /// and the cursor stays put.
+    ///
+    /// **`←→ CHANGE` is the one rocker that does not repeat, and it is a real
+    /// exception** (D105). Every other plate with two ends is held down to run
+    /// through something continuous — a track, a list, a level — where passing
+    /// through the values on the way is the point. Most rows on the settings
+    /// screen are switches, and a held `→` flipping *Verify After Burning*
+    /// twenty times a second is exactly the coin this function refuses to let
+    /// `S` and `M` be; the choices have three or four values each and would
+    /// spin past the one that was wanted. There is nothing under this plate
+    /// long enough to need running through.
     public static func repeats(_ press: Press) -> Bool {
         switch press {
         case .seekBack, .seekForward, .selectUp, .selectDown, .volumeDown, .volumeUp,

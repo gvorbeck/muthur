@@ -13,15 +13,10 @@ import SwiftUI
 ///
 /// Drawn as paths on the same cell the type uses, so `2:58` under a title still
 /// lands where the column arithmetic says it does.
-enum Numerals: String, Sendable {
-    /// Figures in the panel's own face. Monospaced type is already a readout on
-    /// a character grid — the column arithmetic was written for it — and at 13pt
-    /// it keeps the one thing seven segments give away: a `1` that cannot be
-    /// mistaken for anything else.
-    case type
-    /// Seven bars and the dark `8` behind them.
-    case segment
-}
+///
+/// Which of the two is on is `Numerals`, in the kit for `Preferences`'s sake.
+/// Type is the default and keeps the one thing seven segments give away: a `1`
+/// that cannot be mistaken for anything else.
 
 enum Segments {
 
@@ -99,8 +94,10 @@ struct SegmentText: View {
 
     var body: some View {
         let string = laid
+        // In `body`, not in the closure — `MatrixText` has the reason at length.
+        let figures = Theme.numerals
         Canvas { context, size in
-            guard Theme.numerals == .segment else {
+            guard figures == .segment else {
                 DotMatrix.set(
                     string, in: &context, origin: .zero, colour: colour,
                     height: size.height)

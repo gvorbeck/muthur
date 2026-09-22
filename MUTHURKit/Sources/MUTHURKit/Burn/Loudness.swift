@@ -10,10 +10,22 @@ import Foundation
 /// and what is left before true peak reaches the ceiling — and where those two
 /// disagree, the ceiling wins and the disc stays quiet. `levelNote` is what
 /// makes that a stated outcome rather than a mystery.
-public enum LevelMode: String, Sendable, CaseIterable {
+public enum LevelMode: String, Sendable, CaseIterable, Equatable, Codable {
     case off
     case album
     case track
+
+    /// The menu's words and the settings screen's, in one place now that there
+    /// are two of them — a level that read `Album` in one and
+    /// `Album — One Gain for All` in the other would be two settings as far as
+    /// anybody reading the screen is concerned.
+    public var label: String {
+        switch self {
+        case .off: "Off"
+        case .album: "Album — One Gain for All"
+        case .track: "Track — Each on Its Own"
+        }
+    }
 
     /// `BURNCD_LEVEL` (`burncd:81`), under the port's own name first.
     ///

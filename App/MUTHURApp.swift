@@ -27,7 +27,14 @@ struct MUTHURApp: App {
                         // one call: `--no-mb` outlives the launch. A disc put
                         // in later and opened off the picker (`r`, §1.2) is
                         // still this session's disc, and the flag still holds.
-                        model.useMusicBrainz = options.useMusicBrainz
+                        //
+                        // **Only when the flag was actually given** (D105). The
+                        // model already starts at the saved setting, and an
+                        // unconditional assignment here would hand it `true`
+                        // every launch the flag was absent — which is the
+                        // setting being quietly overwritten by the default of
+                        // the thing that is meant to override it.
+                        if !options.useMusicBrainz { model.useMusicBrainz = false }
                         if let path = options.sourcePath {
                             let (url, kind) = try SourceOpener.resolve(path: path)
                             model.open(source: url, kind: kind)
@@ -43,18 +50,42 @@ struct MUTHURApp: App {
         }
         .windowResizability(.contentMinSize)
         .commands {
-            // Under About, where a question about the machine belongs — the
-            // same screen `--check` prints, kept reachable by someone who
-            // launched this from the Dock and has no command line to type it
-            // on (§11).
+            // Both under About: settings first, where every Mac keeps them,
+            // then the health check — a question about the machine belongs in
+            // the same menu, and `--check`'s screen has to stay reachable by
+            // somebody who launched this from the Dock and has no command line
+            // to type it on (§11).
+            //
+            // **`after: .appInfo` and not `replacing: .appSettings`, which is
+            // a trap** (D105). That group is built by AppKit only for an app
+            // that declares a `Settings` scene, and this one deliberately does
+            // not — the settings are a phosphor screen, not a second window. So
+            // there was nothing to replace, and SwiftUI drops the replacement
+            // without a word: it compiles, it runs, and the item is simply not
+            // in the menu. Found by reading the menu bar off a running copy,
+            // which is the only place it could have been found.
+            //
+            // ⌘, still lands, because the shortcut travels with the item. The
+            // item and the `,` cap are one switch, D30's rule: both call this.
             CommandGroup(after: .appInfo) {
+                Button(model.isSettings ? "Hide Settings" : "Settings…") {
+                    model.toggleSettings()
+                }
+                .keyboardShortcut(",")
+                .disabled(model.isBurning || model.isPlanning || model.isImporting)
                 Button("Health Check") { model.check() }
                     .keyboardShortcut("k")
             }
             CommandGroup(after: .newItem) {
                 Button("Open Record…") { model.browse() }
                     .keyboardShortcut("o")
-                Button("Collection…") { chooseCollection() }
+                // Still here, and still doing what it did — the settings screen
+                // is a second door to the same chooser, not a replacement for
+                // the first (D105). Both go through `PanelModel`.
+                Button("Collection…") {
+                    model.chooseCatalogue()
+                    model.catalogueChanged()
+                }
             }
             LibraryCommands(model: model)
             ImportCommands(model: model)
@@ -73,25 +104,13 @@ struct MUTHURApp: App {
     // up with no record in it. A window cannot die on the user like that, and
     // having invented that state the port owes it a way out.
 
-    /// D5's file picker. There is no Settings screen yet — §11 and §13 are
-    /// where one arrives — so the setting is a menu item until there is
-    /// somewhere for it to live. What matters about it is not where it is
-    /// drawn: it is that the choice leaves a **security-scoped bookmark**
-    /// behind rather than a string, so it goes on working the day this is
-    /// sandboxed and survives the file being moved.
-    @MainActor
-    private func chooseCollection() {
-        let panel = NSOpenPanel()
-        panel.message = "The catalogue this player reads the shelf out of."
-        panel.prompt = "Read"
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.commaSeparatedText]
-        panel.directoryURL = CatalogueFile.locate().url.deletingLastPathComponent()
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        CatalogueFile.remember(url)
-        model.catalogueChanged()
-    }
+    // D5's file picker used to be written out here, because a menu item was the
+    // only place it could be reached from. It is `PanelModel.chooseCatalogue`
+    // now — the settings screen opens the same chooser, and two copies of an
+    // `NSOpenPanel` is two things that have to keep agreeing about what a
+    // catalogue is (D105). What matters about it has not changed: the choice
+    // leaves a **security-scoped bookmark** behind rather than a string, so it
+    // goes on working the day this is sandboxed and survives the file moving.
 }
 
 /// The library (D91), from anywhere.
@@ -156,8 +175,8 @@ struct LibraryCommands: Commands {
 /// **⌘I is half the reason this menu exists**, on the argument D92 makes about
 /// ⌘L: `I` on the deck is the key, and a key with no modifier on it is one you
 /// find by reading the legend or not at all. The other half is the format,
-/// which has nowhere else to live — there is no Settings screen yet (§11, §13),
-/// so a setting is a menu item until there is somewhere for it to be.
+/// which was here because it had nowhere else to be; §13's screen is where it
+/// lives now, and this stays as the second door to it (**D105**).
 ///
 /// **It is not built like `BurnCommands` and the difference is on purpose.**
 /// Every switch there is a flag typed per invocation and forgotten after it;
@@ -228,6 +247,13 @@ struct ImportCommands: Commands {
 /// built every job with none of them. A window has no argument list, so the
 /// argument list is here — the kind of burn first, what goes on the disc next,
 /// the drive last — and it is read at the one moment it matters: `⏎ BURN`.
+///
+/// **Five of these eight are also on the settings screen and three are not**
+/// (D105). The three are `Rehearse`, `Demo` and `Start at Disc`, which are the
+/// three that do not persist and are the three that describe *this* run — so a
+/// menu you open on the way to a burn is the right and only place for them, and
+/// the settings screen says so in as many words rather than leaving somebody
+/// hunting for a switch that was never going to be there.
 struct BurnCommands: Commands {
     let model: PanelModel
 

@@ -897,6 +897,7 @@ struct KeycapTests {
             + Readout.libraryLegend(directories: true, records: true, finding: true)
             + Readout.importLegend(finished: false, canReveal: false)
             + Readout.importLegend(finished: true, canReveal: true)
+            + Readout.settingsLegend
         for caps in legends {
             // The plate is ` KEY `, the legend is ` LABEL`, and three columns
             // between one cap and the next.
@@ -932,6 +933,29 @@ struct KeycapTests {
         }
     }
 
+    /// **`←→ CHANGE` is a rocker with two ends that does not repeat, and it is
+    /// the only one** (D105) — which is why `settingsLegend` is not in the list
+    /// above rather than being an oversight there.
+    ///
+    /// The rule the rockers test states is right about every other plate: a
+    /// seek, a cursor, a volume are all things you hold. A held `→` on the
+    /// settings screen would flip *Verify After Burning* twenty times a second
+    /// and leave it wherever the finger came off, which is exactly the coin
+    /// that function refuses to let `S` and `M` be. So the exception is in the
+    /// same direction as the rule, and is pinned here so that a later tidy-up
+    /// of `repeats` has to argue with it.
+    @Test("The settings rocker is the one that does not repeat")
+    func changeDoesNotRepeat() {
+        let plates = Readout.settingsLegend.flatMap { $0 }
+        let change = plates.first { $0.key == "←→" }
+        #expect(change?.presses == [.changeBack, .changeForward])
+        #expect(Readout.repeats(.changeBack) == false)
+        #expect(Readout.repeats(.changeForward) == false)
+        // `↑↓` on the same legend is an ordinary rocker and still repeats: the
+        // exception is about what the key *does*, not about the screen.
+        #expect(plates.first { $0.key == "↑↓" }?.presses.allSatisfy(Readout.repeats) == true)
+    }
+
     /// The legend is a picture of the keyboard, so anything the caps can ask for
     /// has to be something a key asks for too — and the other way round is not
     /// required, because `u` is deliberately not on it, bound only while there is
@@ -955,8 +979,12 @@ struct KeycapTests {
             (Readout.importLegend(finished: false, canReveal: false)
                 + Readout.importLegend(finished: true, canReveal: true))
                 .flatMap { $0 }.flatMap(\.presses))
+        // §13's own, which is the only legend `.changeBack` and `.changeForward`
+        // appear on — and `.settings` is on three, because the way to a screen
+        // is on every screen it can be reached from (D105).
+        let settings = Set(Readout.settingsLegend.flatMap { $0 }.flatMap(\.presses))
         let all = playing.union(picker).union(check).union(plan).union(library)
-            .union(importing)
+            .union(importing).union(settings)
         #expect(all == Set(Readout.Press.allCases))
     }
 
@@ -979,6 +1007,7 @@ struct KeycapTests {
             ("importing", Readout.importLegend(finished: false, canReveal: false)),
             ("imported", Readout.importLegend(finished: true, canReveal: true)),
             ("finding", Readout.libraryLegend(directories: true, records: true, finding: true)),
+            ("settings", Readout.settingsLegend),
         ]
         for (name, legend) in screens {
             let keys = legend.flatMap { $0 }.map(\.key)
@@ -1012,7 +1041,7 @@ struct KeycapTests {
         let withDisc = Readout.legend(canImport: true)
         // Row three, after LIBRARY — last in, last placed, on the row D58 made
         // and D92 already used for exactly this reason.
-        #expect(withDisc[2].map(\.label) == ["VOL", "MUTE", "LIBRARY", "IMPORT"])
+        #expect(withDisc[2].map(\.label) == ["VOL", "MUTE", "LIBRARY", "SETTINGS", "IMPORT"])
         #expect(withDisc[2].last?.presses == [.importDisc])
         // Not on the transport row, and not on the row `QUIT` ends: row two is
         // 58 of 69 and this cap wants ten plus a gap.
@@ -1030,8 +1059,17 @@ struct KeycapTests {
     func theOpenCapFollowsTheDisc() {
         let withDisc = Readout.pickerLegend(hasDisc: true).flatMap { $0 }
         let empty = Readout.pickerLegend(hasDisc: false).flatMap { $0 }
-        #expect(withDisc.map(\.label) == ["OPEN", "RESCAN", "BROWSE", "LIBRARY", "QUIT"])
-        #expect(empty.map(\.label) == ["RESCAN", "BROWSE", "LIBRARY", "QUIT"])
+        #expect(
+            withDisc.map(\.label) == [
+                "OPEN", "RESCAN", "BROWSE", "LIBRARY", "SETTINGS", "QUIT",
+            ])
+        #expect(empty.map(\.label) == ["RESCAN", "BROWSE", "LIBRARY", "SETTINGS", "QUIT"])
+        // Two rows since D105, split where the meaning already split: what you
+        // do about a record above, the two ways off the screen below. `OPEN`
+        // coming and going only ever touches the first.
+        #expect(Readout.pickerLegend(hasDisc: true).count == 2)
+        #expect(
+            Readout.pickerLegend(hasDisc: false)[1].map(\.label) == ["SETTINGS", "QUIT"])
         // `RESCAN` survives an empty bay because an empty bay is exactly when it
         // means something: it is how a disc put in after launch gets noticed.
         #expect(empty.contains { $0.presses.contains(.rescan) })
@@ -1075,10 +1113,15 @@ struct KeycapTests {
     /// row two, but row two is 58 of 69 and the cap wants eleven and a gap.
     @Test("VOL and MUTE are the third row, after QUIT, with LIBRARY after them")
     func volumeAndMuteAreTheThirdRow() {
-        #expect(Readout.legend[2].map(\.label) == ["VOL", "MUTE", "LIBRARY"])
+        #expect(Readout.legend[2].map(\.label) == ["VOL", "MUTE", "LIBRARY", "SETTINGS"])
         #expect(Readout.legend[2][0].presses == [.volumeDown, .volumeUp])
         #expect(Readout.legend[2][1].presses == [.mute])
         #expect(Readout.legend[2][2].presses == [.library])
+        // **D105** put `SETTINGS` after it, on the same row for the same
+        // reason: rows one and two are 67 and 58 of 69, and this cap wants
+        // twelve plus a gap. Row three had the air and the company — the shelf
+        // and the settings are the two screens that go *over* a playing record.
+        #expect(Readout.legend[2][3].presses == [.settings])
         // The deck is the only screen that can be left *for* the shelf while
         // something is still spinning, so it is the only one where the cap
         // means "over this" rather than "instead of this".

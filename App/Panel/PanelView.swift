@@ -342,6 +342,20 @@ struct PanelView: View {
                 // is clipped at the bottom loses its verdict.
                 if let report = model.report {
                     CheckView(report: report)
+                } else if model.isSettings {
+                    // §13, over whatever was here — the deck, the picker, the
+                    // shelf. `isSettings` is already false while a job or a
+                    // check is up, so the order below it is not load-bearing;
+                    // it reads where it does because that is where it sits on
+                    // the glass (D105).
+                    SettingsView(
+                        rows: model.settingsRows,
+                        cursor: model.settingsCursor,
+                        visibleRange: model.settingsVisible,
+                        below: model.settingsBelow,
+                        click: { model.settingsClick(row: $0) }
+                    )
+                    .frame(height: Grid.rows(rows + 4))
                 } else if let burning = model.burning {
                     BurnView(
                         burn: burning, rows: rows,
@@ -454,6 +468,7 @@ struct PanelView: View {
     /// the current screen does not answer is the same lie the dead ⌘O was.
     private var legend: [[Readout.Cap]] {
         if model.isChecking { return Readout.checkLegend }
+        if model.isSettings { return Readout.settingsLegend }
         if model.isLibrary {
             return Readout.libraryLegend(
                 directories: !model.library.library.directories.isEmpty,
@@ -473,8 +488,8 @@ struct PanelView: View {
     /// use for them, and a ghost of chrome that is not above it is worse than
     /// no ghost at all.
     private var deck: Bool {
-        !model.isPicking && !model.isChecking && !model.isLoading && !model.isPlanning
-            && !model.isImporting
+        !model.isPicking && !model.isChecking && !model.isSettings && !model.isLoading
+            && !model.isPlanning && !model.isImporting
     }
 
     // MARK: - How big the sleeve may be (§5)
@@ -668,6 +683,10 @@ struct PanelView: View {
             performCheck(press)
             return
         }
+        if model.isSettings {
+            performSettings(press)
+            return
+        }
         if model.isLibrary {
             performLibrary(press)
             return
@@ -722,8 +741,15 @@ struct PanelView: View {
         // screen does (D92). `L` is the same key here as on the start screen and
         // on the shelf itself, which is what cost the vi seek pair.
         case .library: model.showLibrary()
+        // §13, from anywhere the record does not need the key (D105). It does
+        // not stop the record either: the settings go over the deck the way the
+        // shelf and the check screen do.
+        case .settings: model.toggleSettings()
         // The shelf's own keys (D91), which are the shelf's alone.
         case .selectLeft, .selectRight, .addDirectory, .removeDirectory, .find: break
+        // The settings screen's rocker, which is nobody else's: `←→` on the
+        // deck is the seek pair and always was.
+        case .changeBack, .changeForward: break
         // The import screen's, answered by `performImport` where the screen it
         // belongs to is up. Nothing on the deck reveals anything.
         case .reveal: break
@@ -747,6 +773,26 @@ struct PanelView: View {
         // One cap both ways: `/ FIND` puts the line up, and `ESC CLEAR` on the
         // line's own legend takes it down.
         case .find: model.library.finding ? model.library.endFind() : model.library.find()
+        case .settings: model.showSettings()
+        case .quit: NSApplication.shared.terminate(nil)
+        default: break
+        }
+    }
+
+    /// §13's five caps (**D105**).
+    ///
+    /// `↑↓` walks the rows a cursor may land on, `←→` moves the setting it is
+    /// on, and `⏎` is the third end of the rocker — a switch flips, a choice
+    /// steps forward, and a chooser opens its panel, which is why it is a cap
+    /// of its own rather than an alias for `→`.
+    private func performSettings(_ press: Readout.Press) {
+        switch press {
+        case .selectUp: model.settingsStep(by: -1)
+        case .selectDown: model.settingsStep(by: 1)
+        case .changeBack: model.settingsChange(by: -1)
+        case .changeForward: model.settingsChange(by: 1)
+        case .jump: model.settingsChange(by: 0)
+        case .settings, .close, .eject: model.closeSettings()
         case .quit: NSApplication.shared.terminate(nil)
         default: break
         }
@@ -811,6 +857,9 @@ struct PanelView: View {
         case .rescan: model.rescan()
         case .browse: model.browse()
         case .library: model.showLibrary()
+        // The start screen is where most people will first want these: nothing
+        // is playing, so nothing is in the way of going and looking (D105).
+        case .settings: model.showSettings()
         case .quit: NSApplication.shared.terminate(nil)
         default: break
         }
@@ -824,6 +873,7 @@ struct PanelView: View {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if model.isChecking { return handleCheck(press) }
+        if model.isSettings { return handleSettings(press) }
         if model.isLibrary { return handleLibrary(press) }
         if model.isBurning { return handleBurn(press) }
         if model.isImporting { return handleImport(press) }
@@ -880,6 +930,30 @@ struct PanelView: View {
             case "x": perform(.removeDirectory)
             case "r": perform(.rescan)
             case "l": perform(.library)
+            case ",": perform(.settings)
+            case "q": perform(.quit)
+            default: return .ignored
+            }
+        }
+        return .handled
+    }
+
+    /// §13's keys (**D105**). `⎋` and `,` both leave, which is `L` on the shelf
+    /// twice over: the key that brought you here takes you back, and the key
+    /// that leaves everything else leaves this too.
+    private func handleSettings(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .leftArrow: perform(.changeBack)
+        case .rightArrow: perform(.changeForward)
+        case .upArrow: perform(.selectUp)
+        case .downArrow: perform(.selectDown)
+        case .pageUp: model.settingsPage(by: -model.visibleRows)
+        case .pageDown: model.settingsPage(by: model.visibleRows)
+        case .return, .space: perform(.jump)
+        case .escape: perform(.settings)
+        default:
+            switch press.characters.lowercased() {
+            case ",": perform(.settings)
             case "q": perform(.quit)
             default: return .ignored
             }
@@ -1058,6 +1132,7 @@ struct PanelView: View {
         case "r": model.rescan()
         case "b": model.browse()
         case "l": model.showLibrary()
+        case ",": perform(.settings)
         case "q": NSApplication.shared.terminate(nil)
         default: return .ignored
         }
@@ -1101,6 +1176,10 @@ struct PanelView: View {
         case "-", "_": perform(.volumeDown)
         case "=", "+": perform(.volumeUp)
         case "m": perform(.mute)
+        // **`,` and not a letter** (D105): every letter worth having is spoken
+        // for twice over, and `,` is where a Mac keeps its settings anyway —
+        // the menu item beside it is ⌘,.
+        case ",": perform(.settings)
         default: return .ignored
         }
         return .handled

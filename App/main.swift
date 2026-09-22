@@ -47,6 +47,28 @@ if parsed.help {
     exit(0)
 }
 
+// **The two storage settings become environment variables, once, here** (D105).
+//
+// `Scratch.workBase` and `Scratch.keepRequested` read a dictionary, because
+// that is what they have always read and because it is what makes them
+// testable. `Scratch.open` is reached four calls down inside `SourceOpener`, on
+// a path that exists to open a record, so threading a settings value to it
+// would put a preference in the signature of every function in between.
+// Applied to the process environment at start-up instead, the setting behaves
+// exactly like the variable it replaces — which is also the honest promise to
+// make about a scratch directory, since this session's is made once and a zip
+// already unpacked into it is not going to walk across.
+//
+// `storageOverrides` hands back only what is *not* already set, so a variable
+// exported in a shell still wins, and the program is not quietly writing back
+// every variable it inherited. Before `--check` and `-n` as well as before the
+// window: `--check` reports the run it is in, and `-n` unpacks into the
+// directory a real run would have used. `--help` has already gone, and prints
+// the same page either way.
+for (name, value) in Preferences.load().storageOverrides() {
+    setenv(name, value, 1)
+}
+
 if parsed.check {
     // `player --check --no-mb` prints the warned row, because the script merges
     // the flag into `USE_MB` in the same argument loop that sets `CHECK`

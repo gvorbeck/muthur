@@ -164,7 +164,7 @@ before uploading.
 
 ```
 SELF TEST ──────────────────────────────────────────────
-PARITY     █████████████████████████████▒  321 / 325
+PARITY     █████████████████████████████▒  322 / 326
 HARDWARE   █████████████████████████▒░░░░   36 / 43
 ```
 
@@ -183,16 +183,27 @@ of its three steps are ticked. The third wants a click, not a disc.
 The same goes for what the tube does — the strike when a record goes on, the
 readouts holding the figure that has just gone, the needle down the run-out, and
 now the two old faults getting restless as a record runs out. A terminal has no
-raster, so there is nothing there to be parity with. Both lines above stand
-exactly where they did.
+raster, so there is nothing there to be parity with. The hardware line stands
+exactly where it did.
 
-They stand still for a different reason after the latest pass, which was a read
-of the whole port rather than a feature: eleven repairs to boxes that were
-already ticked. The one worth naming is that a zip whose last four bytes happened
-to read like an end-of-archive marker — a half-finished download, say — took the
-whole program down rather than being refused, and it did it during the walk that
-only asks whether a file is worth offering. Two of the eleven needed a decision
-of their own and are D103 and D104.
+**The parity line moved by one, and it is the tenth time it has ever moved.** The
+latest pass is a settings screen — `,` on the panel, ⌘, in the menu — and it
+counts because it is a requirement the window has and the script never did: a
+program you start by typing its name takes its settings from the line that starts
+it, and a window has no such line. Fourteen switches had accumulated in the menu
+bar with nothing behind them, so the format you chose was FLAC again tomorrow.
+Now what you set is what you get next time, with one rule: a setting describing
+your shelf is remembered, a setting that could make one run behave unlike the run
+you are watching is not — which is why Rehearse and Demo are still forgotten at
+quit. An environment variable still wins for the launch it is typed on, and is
+never written back over what you chose.
+
+The pass before was a read of the whole port rather than a feature: eleven
+repairs to boxes that were already ticked. The one worth naming is that a zip
+whose last four bytes happened to read like an end-of-archive marker — a
+half-finished download, say — took the whole program down rather than being
+refused, and it did it during the walk that only asks whether a file is worth
+offering. Two of the eleven needed a decision of their own and are D103 and D104.
 
 What to test next, as a checklist: [`TODO.md`](TODO.md).
 

@@ -17,14 +17,9 @@ import SwiftUI
 /// the faceplate rule twice. Dots in a `Canvas` have no such machinery: they are
 /// drawn where the grid says and clipped if there is no room, which is a fact
 /// you can see rather than a lie about the content.
-enum Lettering: String, Sendable {
-    /// The face the grid is measured from. The panel's own type, aged and
-    /// bloomed with everything else — a character generator is a character
-    /// generator, and this one has the advantage of knowing every alphabet.
-    case type
-    /// The 5×7 table below.
-    case matrix
-}
+///
+/// Which of the two is on is `Lettering`, which is now in the kit so that
+/// `Preferences` can name it — this is still the code it is about.
 
 enum DotMatrix {
 
@@ -183,8 +178,13 @@ struct MatrixText: View {
     var body: some View {
         let string = laid
         let width = Grid.columns(Columns.width(of: string))
+        // Asked here rather than in the closure below, and that is the whole of
+        // why this line exists: a `Canvas`'s draw closure runs after `body` has
+        // returned, so a setting read inside it is a setting nothing is watching
+        // — the face would change only at the next launch (D105).
+        let face = Theme.lettering
         Canvas { context, size in
-            switch Theme.lettering {
+            switch face {
             case .type:
                 DotMatrix.set(
                     string, in: &context, origin: .zero, colour: colour,

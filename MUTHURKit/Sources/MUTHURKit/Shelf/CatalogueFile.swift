@@ -120,6 +120,17 @@ public enum CatalogueFile {
         return true
     }
 
+    /// Drop the picked file and fall back to the default (**D105**).
+    ///
+    /// `remember` had no opposite while the picker was a menu item, because a
+    /// menu item that opens a file chooser has nowhere to put an *unpick*. A
+    /// settings row does: it shows the path standing, and a row showing a
+    /// choice with no way back out of it is a trap. The bookmark is the only
+    /// thing that goes — the file it pointed at is not ours and is not touched.
+    public static func forget(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: bookmarkKey)
+    }
+
     private static func resolveBookmark(defaults: UserDefaults) -> Location? {
         guard let data = defaults.data(forKey: bookmarkKey) else { return nil }
         var stale = false

@@ -93,10 +93,24 @@ enum Theme {
 
     // MARK: - The wear
 
+    /// **The four that used to be `static let`s off the environment, and are now
+    /// read through a live value (D105).**
+    ///
+    /// They were variables because they were things to look at during the build,
+    /// and a variable read once at launch is all a thing to look at needs. Three
+    /// of them turned out to be the settings screen's whole display section, and
+    /// the fourth — `faults` — was the one already documented as a switch
+    /// somebody watching an hour of a record might actually want. The reads
+    /// below are the same reads; what changed is that the answer can change
+    /// while the panel is up, so they are `var`s, and any view that asks during
+    /// `body` is redrawn when it does.
+    ///
+    /// The variables all still mean what they meant — `Preferences.load` reads
+    /// every one of them, and lets a typed one beat the saved setting.
+    private static var settings: Preferences { SettingsStore.shared.preferences }
+
     /// What happens to the room under the last track (D26).
-    static let composition =
-        Composition(rawValue: ProcessInfo.processInfo.environment["MUTHUR_COMPOSITION"] ?? "")
-        ?? .runout
+    static var composition: Composition { settings.composition }
 
     /// **The character generator, for the chrome and for the figures.**
     ///
@@ -106,23 +120,21 @@ enum Theme {
     /// than assumed. Nothing downstream cares which is on: both are laid on the
     /// same cell and both are drawn in a canvas, so the columns land in the same
     /// place and neither can be truncated.
-    static let lettering =
-        Lettering(rawValue: ProcessInfo.processInfo.environment["MUTHUR_LETTERING"] ?? "")
-        ?? .type
+    ///
+    /// **Both are asked for inside a `Canvas`'s draw closure**, which runs after
+    /// `body` and so registers no dependency on anything it reads. Each of the
+    /// two call sites hoists the read into its `body` and hands it in, and says
+    /// so at the line; without that the face would change only at a relaunch,
+    /// which is the thing the screen exists to stop.
+    static var lettering: Lettering { settings.lettering }
 
-    static let numerals =
-        Numerals(rawValue: ProcessInfo.processInfo.environment["MUTHUR_NUMERALS"] ?? "")
-        ?? .type
+    static var numerals: Numerals { settings.numerals }
 
     /// `MUTHUR_CRT` — whether the tube is allowed to be failing as well as old
     /// (D52). The read is in the kit, with the rest of the variables, because that
     /// is where `--help`'s suite looks for them; this is the one place the panel
     /// asks.
-    ///
-    /// Unlike the three above it, this one is documented: the others are here to
-    /// be looked at during the build and this is a switch somebody watching an
-    /// hour of a record might actually want.
-    static let faults = Tube.faultsAllowed()
+    static var faults: Bool { settings.faults }
 
     /// **The resting level, after nine months on.**
     ///

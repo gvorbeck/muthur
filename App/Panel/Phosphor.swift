@@ -48,10 +48,9 @@ import SwiftUI
 ///   the last track and the meters go on the next line. Faithful to a terminal,
 ///   where the window *is* the terminal and there is no chassis to reach the
 ///   bottom of. Kept because the divergence should stay visible.
-enum Composition: String, Sendable {
-    case deck
-    case runout
-}
+///
+/// `Composition` itself is in the kit, for `Preferences` to name. The choice it
+/// describes is drawn here.
 
 /// The dead groove after the last track.
 ///
