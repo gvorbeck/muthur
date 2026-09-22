@@ -641,4 +641,27 @@ struct PlaybackEngineTests {
         #expect(await engine.state.status == nil)
         #expect((capture.channels[0].map(abs).max() ?? 0) > 0.5)
     }
+
+    /// And by the **track** meter, which is the same gesture an inch to the
+    /// right. It was the one that did not start the deck: the needle went back
+    /// and the record stayed stopped, with END OF RECORD still on the
+    /// faceplate. `nudge` comes with it, being `seekInTrack` with the arithmetic
+    /// done first.
+    @Test("Seeking within a finished record starts it playing again")
+    func seekInTrackAfterTheEndPlays() async throws {
+        let folder = try ToneFolder()
+        let engine = PlaybackEngine(offline: true)
+        try await engine.load(tones([2, 2], in: folder))
+        await engine.pick(row: 0)
+        _ = try await engine.renderToEnd(limitSeconds: 20)
+        #expect(await engine.state.mode == .finished)
+
+        await engine.seekInTrack(to: 0.5)
+        let capture = try await engine.render(seconds: 0.2)
+        #expect(await engine.state.mode == .playing)
+        // The run-out goes with it: END OF RECORD is a report about a record
+        // that has stopped, and this one is playing.
+        #expect(await engine.state.status == nil)
+        #expect((capture.channels[0].map(abs).max() ?? 0) > 0.5)
+    }
 }

@@ -100,7 +100,27 @@ public struct ResumeFile: Sendable {
             self.sourceLabel = sourceLabel
         }
 
-        var line: String { "\(key)\t\(row)\t\(position)\t\(sourceLabel)" }
+        var line: String { "\(key)\t\(row)\t\(position)\t\(Entry.oneLine(sourceLabel))" }
+
+        /// **D103.** A line of this file is a line, and macOS lets a folder be
+        /// called anything at all — a newline in a name is legal, rare and
+        /// entirely possible, and written out raw it split one entry into two:
+        /// a truncated record on the first line and a fragment on the second
+        /// that reads as an album key belonging to nothing.
+        ///
+        /// The format is frozen (§18.19) and this does not touch it. Field four
+        /// is a human-readable label that is written and never read back, so
+        /// folding its whitespace to spaces changes nothing but the spelling of
+        /// a caption — and it keeps the promise the freeze was for, which is
+        /// that bash can still read every line of what this writes.
+        ///
+        /// Carriage returns go with it: `read -r` would leave one on the end of
+        /// the field, and a stray `\r` in a terminal redraws the line it is on.
+        static func oneLine(_ label: String) -> String {
+            String(
+                label.map { $0 == "\n" || $0 == "\r" || $0 == "\r\n" ? " " : $0 }
+            )
+        }
 
         /// Field four absorbs the rest of the line, tabs and all, because
         /// `read -r k row pos rest` does.

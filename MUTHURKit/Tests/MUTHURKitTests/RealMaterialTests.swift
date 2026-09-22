@@ -146,7 +146,7 @@ struct RealMaterialTests {
     /// the material is on the machine and the fixture stopped finding it.
     @Test(
         "an untagged AIFF rip lands on 9999 and orders by its filenames",
-        .enabled(if: Fixtures.canHuntZipFixtures)
+        .enabled(if: Fixtures.hasUntaggedMaterial)
     )
     func untaggedZippedAlbumOrdersByName() async throws {
         let fixture = try #require(

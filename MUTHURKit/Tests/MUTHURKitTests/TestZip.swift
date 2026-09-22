@@ -29,6 +29,10 @@ struct TestZip {
         /// Claim more compressed bytes than are written, which is what a
         /// truncated archive looks like from the central directory.
         var overclaim: UInt32 = 0
+        /// The uncompressed size to put in the directory instead of the real
+        /// one. There is nothing checking this figure before it is summed, so
+        /// an archive is free to say anything it likes about what it comes to.
+        var claimsUnpacked: UInt32?
 
         init(_ name: String, _ text: String) {
             self.name = name
@@ -41,7 +45,10 @@ struct TestZip {
         }
     }
 
-    static func write(_ members: [Member], to url: URL) throws {
+    /// `comment` is the archive comment, which is the last thing in the file
+    /// and is allowed to hold anything at all — including, as §2.2's scan has
+    /// to survive, the four bytes that open an end record.
+    static func write(_ members: [Member], to url: URL, comment: [UInt8] = []) throws {
         var out: [UInt8] = []
         var directory: [UInt8] = []
         var count = 0
@@ -66,7 +73,8 @@ struct TestZip {
 
             directory += le32(0x0201_4b50)
             directory += le16(20) + le16(20) + le16(flags) + le16(method) + le16(0) + le16(0x21)
-            directory += le32(checksum) + le32(compressed) + le32(UInt32(member.bytes.count))
+            let unpacked = member.claimsUnpacked ?? UInt32(member.bytes.count)
+            directory += le32(checksum) + le32(compressed) + le32(unpacked)
             directory += le16(UInt16(name.count)) + le16(0) + le16(0)
             directory += le16(0) + le16(0) + le32(0) + le32(offset)
             directory += name
@@ -77,7 +85,8 @@ struct TestZip {
         out += directory
         out += le32(0x0605_4b50) + le16(0) + le16(0)
         out += le16(UInt16(count)) + le16(UInt16(count))
-        out += le32(UInt32(directory.count)) + le32(directoryOffset) + le16(0)
+        out += le32(UInt32(directory.count)) + le32(directoryOffset)
+        out += le16(UInt16(comment.count)) + comment
 
         try Data(out).write(to: url)
     }

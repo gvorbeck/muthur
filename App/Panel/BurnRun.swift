@@ -237,22 +237,49 @@ private struct Sink: Sendable {
 
 /// The insert prompt, from the thread's side: block until somebody presses
 /// something, then say which (`stage_insert`'s `read_key` loop, `burncd:2425`).
+///
+/// **A key press answers the prompt that is standing, or it is thrown away.**
+/// This was a counting semaphore, and a count is the wrong shape for a
+/// question: presses that arrived when nothing was asking added to it and sat
+/// there, and on a two-disc job the surplus was still sitting there when the
+/// job came back to ask for disc two — which then returned instantly, with an
+/// answer given before disc one had even been written. The drive was told to go
+/// at whatever was in the tray, which is the disc the operator had not swapped
+/// yet.
+///
+/// Two presses is not a rare way to hold a keyboard. `⏎` at the prompt does
+/// nothing visible for as long as the media check takes, and a second press is
+/// the ordinary response to that; the guard on the key handler cannot help,
+/// because the stage it reads is updated a main-queue hop later and both
+/// presses of a double-tap land inside that hop.
+///
+/// So: `wait` arms, and only an armed gate takes an answer. A press with
+/// nothing waiting is discarded, and so is the second press of a pair — the
+/// first one answered the question and the question is gone.
 private final class Gate: @unchecked Sendable {
-    private let waiting = DispatchSemaphore(value: 0)
-    private let lock = NSLock()
-    private var answer = false
+    private let condition = NSCondition()
+    private var armed = false
+    private var answer: Bool?
 
     func decide(_ go: Bool) {
-        lock.lock()
+        condition.lock()
+        defer { condition.unlock() }
+        // Not armed: nobody asked, so nobody is told. Already answered: the
+        // prompt this belongs to has been dealt with and the next one is a
+        // different question.
+        guard armed, answer == nil else { return }
         answer = go
-        lock.unlock()
-        waiting.signal()
+        condition.signal()
     }
 
     func wait() -> Bool {
-        waiting.wait()
-        lock.lock()
-        defer { lock.unlock() }
-        return answer
+        condition.lock()
+        defer { condition.unlock() }
+        // Anything said before the question was asked is stale by definition.
+        answer = nil
+        armed = true
+        while answer == nil { condition.wait() }
+        armed = false
+        return answer ?? false
     }
 }

@@ -21,7 +21,10 @@ struct PlanView: View {
     /// say, and nothing at all when it is not.
     let correction: String?
     let click: (Int) -> Void
-    let typed: (String) -> Void
+    /// Carried `@MainActor @Sendable` the whole way down rather than being
+    /// promoted at the hand-off, for `PlanPromptView.typed`'s reason: the
+    /// promotion is the thing the compiler will not vouch for.
+    let typed: @MainActor @Sendable (String) -> Void
     let commit: () -> Void
     let cancel: () -> Void
 
@@ -173,7 +176,10 @@ struct PlanView: View {
 /// keeps it, which is the script's only way out of the prompt and all it needs.
 private struct PlanPromptView: View {
     let prompt: PanelModel.PlanPrompt
-    let typed: (String) -> Void
+    /// `@MainActor @Sendable` for `FindLineView.typed`'s reason — `Binding`'s
+    /// setter is both, and a plain closure handed to it is a warning rather
+    /// than a promise.
+    let typed: @MainActor @Sendable (String) -> Void
     let commit: () -> Void
     let cancel: () -> Void
 
@@ -186,9 +192,12 @@ private struct PlanPromptView: View {
             Spacer().frame(width: Grid.columns(1))
             MatrixText(text: prompt.label, colour: Theme.etch, columns: HeaderBlock.labelWidth)
             Spacer().frame(width: Grid.columns(1))
+            // Written as a call rather than `set: typed` for the reason given
+            // at `FindLineView`'s field: the thunk that a bare reference asks
+            // for crashes the 6.2.4 frontend outright.
             TextField(
                 "",
-                text: Binding(get: { prompt.value }, set: typed),
+                text: Binding(get: { prompt.value }, set: { typed($0) }),
                 prompt: Text("[\(prompt.current.isEmpty ? "empty" : prompt.current)]")
                     .foregroundStyle(Theme.dim)
             )

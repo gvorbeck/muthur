@@ -56,7 +56,7 @@ struct GaplessMaterialTests {
     /// identical.
     @Test(
         "A real album seam is the concatenation of its two tracks, sample for sample",
-        .enabled(if: Fixtures.canHuntZipFixtures)
+        .enabled(if: Fixtures.hasSeamMaterial)
     )
     func realSeamIsExact() async throws {
         let (before, after) = try #require(Self.seam, Comment(rawValue: Self.wanted))
@@ -110,7 +110,7 @@ struct GaplessMaterialTests {
     /// the join that is not already all over the record.
     @Test(
         "The join is no steeper than the music either side of it",
-        .enabled(if: Fixtures.canHuntZipFixtures)
+        .enabled(if: Fixtures.hasSeamMaterial)
     )
     func realSeamHasNoStep() async throws {
         let (before, after) = try #require(Self.seam, Comment(rawValue: Self.wanted))

@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All hundred and two are settled;
+  the reasoning and the decision it came from. All hundred and four are settled;
   they are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
@@ -67,9 +67,67 @@ part worth porting.
 counted; it stands separately at 36 of 43). Re-derived by counting the files:
 317 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
 and 36 of 43 in `hardware.md`. **Neither number moved this pass, and §19's did
-not either.** What moved is §16, 101 → 102.
+not either.** What moved is §16, 102 → 104.
 
-**The pass is D102, and it is one entry that adds nothing to look at.** The ask
+**The pass is a read of the whole port, and it is the first one here that was
+not about a feature.** Nothing was asked for and nothing was added; eleven
+things were found by reading the code that exists, and the two that needed a
+decision are D103 and D104. The rest are repairs, and the reason the boxes stand
+still is that every one of them was already ticked — a box that was ticked for a
+thing that crashes was ticked for the sentence rather than for the behaviour, and
+what this pass did was make the two agree.
+
+**The one that could take the program down was §2.2's end-record scan.** The zip
+reader scans backwards for `PK\x05\x06` and then reads fields at fixed offsets
+past it, and the scan asked only for the four bytes of the signature — so a file
+whose last four bytes happened to read that way, which is exactly what a download
+cut off mid-record looks like, produced an index into an array that stopped
+twenty bytes earlier. Not a thrown error: an index out of range, which nothing
+can catch, in the middle of a picker walk over a folder, on a file that was only
+being asked whether it was worth offering. The scan now asks for the twenty-two
+bytes of the record. Pinned by a test, which is how the same read found the
+second half: the *last* signature is not always the record either, because the
+archive comment is the last thing in the file and may contain those four bytes,
+so a valid archive with an unlucky comment was refused as damaged. The end record
+says how long its own comment is and a real one runs to the end of the file; that
+arithmetic now picks between candidates, and falls back to the old answer when
+none of them agrees, so it is a preference rather than a new way to refuse a file.
+
+**The others are the panel and the deck.** A seek from the *track* meter left a
+finished record finished — the needle moved, the deck stayed stopped and END OF
+RECORD stayed on the faceplate — while the album meter and a row click had both
+promoted the mode for as long as they have existed; `nudge` is `seekInTrack` with
+the arithmetic done first, so it was the same bug twice. The burn panel counted
+⏎ presses on a semaphore, so a surplus press during disc one was still sitting
+there to answer disc two's *insert the next disc* on its own; it is an armed
+condition now, and a press with nothing waiting for it is discarded. Opening a
+second record while the first was still opening let whichever finished last win
+and leaked the loser's scratch directory, which is a generation counter's job.
+A failure part-way through starting the audio graph left a node attached that
+`teardown` would not collect, because `teardown` tests a flag set on the last
+line. `adopt` swallowed the error from starting the deck with `try?`, so a record
+that would not play said nothing at all. The sleeve fetch had no ceiling on what
+it would read into memory and rounded a sub-second timeout to zero, which
+`URLRequest` reads as *use the default*, which is sixty seconds.
+
+**What it deliberately did not do is worth as much as what it did.** A bound on
+the sleeve body that holds against a server lying *low* about its length means
+reading the response a byte at a time, which measured at three and a quarter
+seconds for an ordinary five-hundred-kilobyte cover — a fault every single time,
+to prevent one that has never happened. The weaker rule is the one written and
+the comment says so. `Inflate` was flagged, before it was read, as the likeliest
+place left for a memory fault; it turns out to be a wrapper over Apple's
+`Compression`, and is not one. A saturating sum in §2.1's fit check is correct
+by inspection and is not covered by a test, because provoking it wants zip64 in
+the test writer for the sake of one line; the test that exists pins the half that
+can be pinned, which is that the figure is the archive's claim and nothing has
+checked it. And Swift 6.2.4 crashes outright — no diagnostic, a frontend stack
+trace — on the thunk that `Binding`'s `@isolated(any)` setter wants when it is
+handed a `@MainActor @Sendable` function by name, so two call sites are written
+out as calls with a comment saying why they may not be tidied. Debug now treats
+warnings as errors, there being none left to treat.
+
+**The pass before was D102, and it is one entry that adds nothing to look at.** The ask
 was for static and artifacts as a record nears its end; taken literally that is a
 third moving thing, and `spec.md:144` has no room for one. So it is taken as a
 question about the two faults that already exist. D52's deflection band and
@@ -91,7 +149,7 @@ The depth comes off the playhead rather than a clock of its own, which means a
 new record resets it for free — and lands it on D99's event, so the tube is
 struck back to its freshest at the instant one goes on.
 
-**The pass before was D99 to D101, and all three are the panel moving.** The deck has
+**Two passes back it was D99 to D101, and all three are the panel moving.** The deck has
 been a still picture with two faults in it since D52, and `spec.md:144` says in
 as many words that those two are the entire budget for movement — so the first
 job of each of these was to survive that line, and each does it by not being
@@ -117,7 +175,7 @@ even less claim on the count than they do: it does not add a thing the chassis
 can do, it changes when two of them happen. The only count that moves is the one
 counting decisions.
 
-**§19's denominator moved on the pass before, 40 → 43, and then two of the three
+**§19's denominator moved three passes back, 40 → 43, and then two of the three
 closed the same afternoon: 34 → 36.** §21 is the rare addition that really does need
 hardware to prove — the suite can synthesise a directory of `pcm_s16be` AIFFs
 shaped exactly like a cddafs mount, and what it cannot synthesise is cddafs.
@@ -140,7 +198,7 @@ and it walks whatever is mounted rather than naming a filesystem. The second is
 by a shelf that had been sitting on the same machine being right about them for
 years.
 
-**The pass before was D95 to D98.** D95 is the feature: `I IMPORT` on the deck beside
+**Four passes back it was D95 to D98.** D95 is the feature: `I IMPORT` on the deck beside
 `B BURN`, bound only while there is a disc to take it off, with an Import menu
 behind it because ⌘I is the only way a modifier-less key gets found. D96 is
 where the files land — one folder per record, `NN Title.ext`, names sanitised
@@ -1544,6 +1602,12 @@ The single most load-bearing piece of hard-won reasoning in the program.
       goes to the filesystem as the bytes the archive stored — nothing is
       normalised, transcoded, or re-encoded on the way. A name that climbs out
       of the album, or claims to be absolute, is skipped rather than obeyed.
+      **Reading it directly means owning the end-record scan**, and the scan
+      asks for the whole twenty-two-byte record rather than the four bytes of
+      its signature — a bare match at the very end of a cut-off download leaves
+      the fields nothing to be read out of. It also prefers a candidate whose
+      comment length reaches the end of the file, because the archive comment is
+      the last thing in there and may contain the signature itself.
 - [x] Encrypted archives are refused with one sentence, not a prompt. The bash
       version hands `tar` a passphrase it will certainly not accept and `unzip`
       an empty one, purely to turn a hang nobody can see into an error
@@ -2460,7 +2524,9 @@ Not in `spec.md`. It is in the program (`player:1529`).
 - [x] Stored at `~/.local/state/player/resume` (`XDG_STATE_HOME` respected), tab
       separated, upserted via a temp file and a rename so a player killed halfway
       through a write leaves the old file whole (`player:1579`). Capped at ~200
-      other albums.
+      other albums. A line of it is a line: field four's newlines and carriage
+      returns become spaces on the way out, because macOS will let a folder be
+      called anything and the format is not allowed to change (**D103**).
 - [x] **Not offered** for row 0 at under 30 seconds — that is where the record
       starts anyway, and by the time reading the offer is over you could have
       been there. Anything further in was a real listening session

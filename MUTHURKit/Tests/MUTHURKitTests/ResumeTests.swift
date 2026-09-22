@@ -226,6 +226,28 @@ struct ResumeTests {
         #expect(scratch.lines == ["j\t0\t44\tOther", "k\t2\t3\tKin"])
     }
 
+    @Test("D103 — a folder with a newline in its name is still one line")
+    func labelStaysOnOneLine() {
+        let scratch = Scratch()
+        // macOS will let a folder be called this. Written out raw it made two
+        // lines of one entry, and the second of them read as an album key
+        // belonging to nothing — which the next read would then offer.
+        scratch.file.save(
+            key: "k", row: 3, position: 90, sourceLabel: "Songs\nFor Drella\rSide A"
+        )
+        #expect(scratch.lines == ["k\t3\t90\tSongs For Drella Side A"])
+
+        // And it is still four fields, read exactly the way bash reads them,
+        // because the freeze in §18.19 is the thing this must not break.
+        #expect(
+            scratch.file.entries() == [
+                ResumeFile.Entry(
+                    key: "k", row: 3, position: 90, sourceLabel: "Songs For Drella Side A"
+                )
+            ]
+        )
+    }
+
     @Test("Two hundred other albums, and the oldest goes off the top")
     func cap() {
         let scratch = Scratch()

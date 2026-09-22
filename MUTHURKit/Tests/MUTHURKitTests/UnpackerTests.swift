@@ -266,6 +266,63 @@ struct UnpackerTests {
         }
     }
 
+    @Test("a signature in the last four bytes is refused, not read past")
+    func signatureWithNothingBehindIt() throws {
+        let temp = TempDirectory()
+        let out = temp.directory("album")
+        let stub = temp.appending("Half A Download.zip")
+        // Forty bytes of nothing and then the four that open an end record,
+        // which is what the tail of a download cut off mid-record looks like.
+        // The fields the reader wants are at fixed offsets up to twenty-two
+        // bytes past that point, and there are four. This used to be read
+        // anyway: an index out of range, which is not an error anybody can
+        // catch — the process stopped, in the middle of a picker walk, on a
+        // file that is only being asked whether it is worth offering.
+        try Data(Array(repeating: UInt8(0), count: 40) + [0x50, 0x4B, 0x05, 0x06])
+            .write(to: stub)
+
+        #expect(throws: UnpackFailure.notAZip(label: "Half A Download.zip")) {
+            try Unpacker.unpack(zip: stub, into: out, freeSpace: Self.roomy)
+        }
+    }
+
+    @Test("an end record hiding behind its own comment is still found")
+    func decoySignatureInTheComment() throws {
+        let temp = TempDirectory()
+        let zip = temp.appending("Tusk.zip")
+        let out = temp.directory("album")
+        // Nothing forbids the comment from containing the signature, and the
+        // scan runs backwards — so the decoy is found first and a directory
+        // offset gets read out of the middle of somebody's sleeve notes. The
+        // real record is the one whose comment length reaches the end of the
+        // file, and that is what picks it out.
+        let comment = Array("SIDE TWO ".utf8) + [0x50, 0x4B, 0x05, 0x06] + Array(repeating: 0x20, count: 64)
+        try TestZip.write([.init("01 Over & Over.flac", "one")], to: zip, comment: comment)
+
+        _ = try Unpacker.unpack(zip: zip, into: out, freeSpace: Self.roomy)
+        #expect(FileManager.default.fileExists(atPath: out.appending(path: "01 Over & Over.flac").path))
+    }
+
+    @Test("the figure the fit check reads is the one the archive claims")
+    func unpackedSizeIsTheClaim() throws {
+        let temp = TempDirectory()
+        let zip = temp.appending("Exabyte.zip")
+        // Nothing checks this number before it is summed, which is the whole
+        // reason the sum saturates rather than wrapping. The wrap itself wants
+        // entries adding past `UInt64`, and that needs zip64 in the writer —
+        // scaffolding for one line. What is pinned here is the half that can
+        // be: the claim goes through unexamined, so the sum is fed figures
+        // nobody has vouched for.
+        var first = TestZip.Member("01 Track.flac", "one")
+        first.claimsUnpacked = .max
+        var second = TestZip.Member("02 Track.flac", "two")
+        second.claimsUnpacked = .max
+        try TestZip.write([first, second], to: zip)
+
+        let archive = try ZipArchive(url: zip)
+        #expect(archive.unpackedSize == UInt64(UInt32.max) * 2)
+    }
+
     @Test("unreadable: it is there and it will not open (player:1248)")
     func unreadableArchive() throws {
         let temp = TempDirectory()

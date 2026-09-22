@@ -186,6 +186,14 @@ now the two old faults getting restless as a record runs out. A terminal has no
 raster, so there is nothing there to be parity with. Both lines above stand
 exactly where they did.
 
+They stand still for a different reason after the latest pass, which was a read
+of the whole port rather than a feature: eleven repairs to boxes that were
+already ticked. The one worth naming is that a zip whose last four bytes happened
+to read like an end-of-archive marker — a half-finished download, say — took the
+whole program down rather than being refused, and it did it during the walk that
+only asks whether a file is worth offering. Two of the eleven needed a decision
+of their own and are D103 and D104.
+
 What to test next, as a checklist: [`TODO.md`](TODO.md).
 
 ### ▸ Docs

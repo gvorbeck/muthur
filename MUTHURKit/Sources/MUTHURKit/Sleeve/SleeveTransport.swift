@@ -27,6 +27,18 @@ public protocol SleeveTransport: Sendable {
 public struct URLSessionSleeveTransport: SleeveTransport {
     let session: URLSession
 
+    /// What a sleeve is allowed to weigh before it stops being a sleeve.
+    ///
+    /// `curl -o` streams to a file and the script never had to think about
+    /// this; a body read into memory does. Nothing on the other end is
+    /// promising anything — the Cover Art Archive answers with a redirect to
+    /// archive.org, so the host that actually sends the bytes is not even the
+    /// host that was asked — and §5.2's own probe is happy to be handed a
+    /// short body that turns out not to be a picture. Thirty-two megabytes is
+    /// two orders of magnitude above the largest front cover anybody scans and
+    /// still small enough that a bad answer cannot fill the machine.
+    public static let ceiling = 32 * 1024 * 1024
+
     public init(session: URLSession = .shared) {
         self.session = session
     }
@@ -34,9 +46,31 @@ public struct URLSessionSleeveTransport: SleeveTransport {
     public func get(_ url: URL, timeout: Duration) async -> SleeveAnswer {
         var request = URLRequest(url: url)
         request.setValue(MUTHUR.userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = Double(timeout.components.seconds)
+        // Whole seconds are what every caller asks in, but a sub-second
+        // timeout must not round down to zero — `URLRequest` reads zero as
+        // "use the default", which is sixty seconds, the opposite of what was
+        // asked for.
+        let seconds = Double(timeout.components.seconds)
+        request.timeoutInterval = seconds > 0 ? seconds : 1
         do {
-            let (data, _) = try await session.data(for: request)
+            let (data, response) = try await session.data(for: request)
+            // **What this does and does not promise.** A server that declares
+            // a body over the ceiling is refused on the declaration, before
+            // the bytes are looked at, and one that turns out to have sent
+            // more than it said is refused on the way out. A server that lies
+            // *low* and then streams is not caught by either, and is not
+            // caught here at all: bounding that means reading the response a
+            // byte at a time, which was measured at three and a quarter
+            // seconds for an ordinary five-hundred-kilobyte cover. A fetch
+            // that slow is a fault every single time, to avoid one that has
+            // never happened — so the weaker rule is the one written, and this
+            // is the note saying why.
+            if let http = response as? HTTPURLResponse,
+                http.expectedContentLength > Int64(URLSessionSleeveTransport.ceiling)
+            {
+                return .body(Data())
+            }
+            guard data.count <= URLSessionSleeveTransport.ceiling else { return .body(Data()) }
             return .body(data)
         } catch {
             return URLSessionSleeveTransport.classify(error)

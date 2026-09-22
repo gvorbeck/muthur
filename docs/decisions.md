@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-hundred and two are settled. Recorded here with the answer so that a departure from
+hundred and four are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -226,6 +226,15 @@ restless rather than by inventing a third: both schedules now take how far the
 needle has run, and both close their rests up as it goes. The tear does not grow,
 the band does not fall faster, and no lower bound moves — only the long gaps stop
 being drawn, and only in the last quarter of a record.
+
+**D103 and D104 came out of a read of the whole port rather than of a feature**,
+which makes them the first two entries here that nobody set out to write. D103 is
+a folder whose name contains a newline, written into the one file this program
+shares with the script and splitting an entry in half — answered by folding the
+field rather than by touching a format that is not allowed to change. D104 is
+three material tests that failed rather than skipped on a machine that had a
+library but not the particular fixture they wanted, which is how a suite teaches
+you to ignore it.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4478,3 +4487,50 @@ rate for the sake of a band that moves four times an hour. The cost is that each
 schedule lags by one pass — the rest about to be taken was sized by where the
 record was when the last one ended — which is a few seconds out on a quantity
 that takes a whole side to move.
+
+**D103 — a source label is folded onto one line.** → §7
+
+The resume file is the one file this port shares with the script (§18.19), and
+its format is frozen: four tab-separated fields, read by `read -r k row pos
+rest`, forever. Field four is the folder or zip as it was named on screen —
+written so a human can look at the file, and never read back by either program.
+
+macOS will let a folder be called anything at all. A newline is legal in a name,
+rare, and entirely possible; a name carrying one was written into field four raw,
+and a line of this file is a line. One entry came out as two: a truncated record
+on the first, and on the second a fragment that parses as an album key belonging
+to nothing — which the next read offers, and `u` acts on.
+
+**The fix is not to the format, because the format is not allowed to change.**
+Newlines and carriage returns in field four become spaces on the way out. Bash
+reads exactly what it always read; a caption is spelt slightly differently than
+the folder it names, which is the whole of the cost, and field four is the one
+field where that costs nothing because nothing ever reads it. Carriage returns go
+with newlines for a second reason: `read -r` leaves a stray `\r` on the end of
+the field, and a `\r` in a terminal redraws the line it lands on.
+
+Tabs are deliberately **not** folded. Field four absorbs the rest of the line,
+tabs and all, in both programs — that is what `rest` means — so a tab in a folder
+name is already read back correctly and folding it would be the improvement this
+project is not allowed to make.
+
+**D104 — a gate per piece of material, not one for the lot.** → §6, §3.1
+
+The suite is in two tiers: rules that pass on any machine, and material tests
+that need real audio and are gated on finding it. The gate is the point — a
+material test that is *loud* when material is present but unusable is how a rip
+that has quietly stopped decoding gets noticed, and that half is kept exactly as
+it was.
+
+What was wrong is that three tests asked the wrong question. A seam test needs a
+zip with two adjacent tracks in it; an ordering test needs a folder of untagged
+rips. Both were gated on whether *any* material was present, so on a machine with
+a library but no seam zip they did not skip — they ran, found nothing to work
+with, and failed. A red suite that means "you do not happen to own this
+particular fixture" trains the eye to skip red, which costs more than the three
+tests were worth.
+
+So each now has a predicate naming what it actually needs, and the predicate and
+the fixture are the same code rather than two descriptions of one thing that can
+drift apart. Loud when the material is there and broken; quiet when it was never
+there at all.

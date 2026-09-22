@@ -260,19 +260,35 @@ public actor PlaybackEngine {
         play()
     }
 
+    /// **It puts back what it put out, if it cannot finish.** `teardown` undoes
+    /// this, but only `if running` — and `running` is the last thing set here,
+    /// so a throw on the way up left the node attached and, offline, manual
+    /// rendering still enabled, with nothing that would ever take them down
+    /// again. The next `load` then built its graph on top of that one, and the
+    /// second failure looked nothing like the first. Rare — `start()` throws
+    /// when there is no output device to start on — but an error path that
+    /// makes the *next* error unreadable is the worst kind to leave untested.
     private func startGraph() throws {
         engine.attach(player)
-        if offline {
-            try engine.enableManualRenderingMode(
-                .offline, format: canonical, maximumFrameCount: PlaybackEngine.manualRenderFrames
-            )
+        do {
+            if offline {
+                try engine.enableManualRenderingMode(
+                    .offline, format: canonical,
+                    maximumFrameCount: PlaybackEngine.manualRenderFrames
+                )
+            }
+            // Through the main mixer, not straight to the output: §6.1a's gain is
+            // *ours*, not the system's, and §9's analyser tap wants a node between
+            // the player and the speakers to hang off.
+            engine.connect(player, to: engine.mainMixerNode, format: canonical)
+            applyGain()
+            try engine.start()
+        } catch {
+            engine.disconnectNodeOutput(player)
+            engine.detach(player)
+            if engine.manualRenderingMode != .realtime { engine.disableManualRenderingMode() }
+            throw error
         }
-        // Through the main mixer, not straight to the output: §6.1a's gain is
-        // *ours*, not the system's, and §9's analyser tap wants a node between
-        // the player and the speakers to hang off.
-        engine.connect(player, to: engine.mainMixerNode, format: canonical)
-        applyGain()
-        try engine.start()
         running = true
         listener?.tap(player)
         startConfigWatcherIfNeeded()
@@ -603,9 +619,25 @@ public actor PlaybackEngine {
     // MARK: - §6.4 The meters as controls
 
     /// Click the **track** meter.
+    ///
+    /// **A needle put down on a finished record starts it**, which is the rule
+    /// `serviceSeek` has always had for the album meter and `pick` has always
+    /// had for a row. This did not have it, and the result was a control that
+    /// looked broken: `restart` reopened the file and filled the queue, then
+    /// declined to start the node because the mode was still FINISHED, and
+    /// §6.2 pins both meters at full in that mode — so a `←` at the run-out
+    /// groove moved nothing, said nothing, and left a file open behind the
+    /// screen. `pick` names the same symptom in its own note about the failure
+    /// pause: *the row changes and nothing plays.*
     public func seekInTrack(to seconds: Double) {
         guard rows.indices.contains(currentRow) else { return }
         let clamped = min(max(seconds, 0), Double(rows[currentRow].duration))
+        if mode == .finished {
+            mode = .playing
+            // And the run-out with it. `endOfAlbum` is a report about a record
+            // that has stopped, and this one is about to be playing.
+            status = nil
+        }
         restart(
             row: currentRow, offsetSeconds: clamped, historyIndex: visitHistory[currentVisit]
         )

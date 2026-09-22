@@ -272,7 +272,11 @@ private struct FindLineView: View {
     /// Bumped by `/` while the line is already up, so a field that lost the
     /// focus to a click can be given it back by the key that opened it.
     let summons: Int
-    let typed: (String) -> Void
+    /// `@MainActor @Sendable` because `Binding`'s setter is, and a plain
+    /// closure converted into one is a warning rather than a promise. It costs
+    /// nothing to say: this is a view, it is only ever called while drawing,
+    /// and the thing it writes to is on the main actor already.
+    let typed: @MainActor @Sendable (String) -> Void
     let step: (LibraryShelf.Move) -> Void
     let commit: () -> Void
     let cancel: () -> Void
@@ -288,9 +292,15 @@ private struct FindLineView: View {
             Spacer().frame(width: Grid.columns(1))
             MatrixText(text: "FIND", colour: Theme.etch, columns: HeaderBlock.labelWidth)
             Spacer().frame(width: Grid.columns(1))
+            // `set: { typed($0) }` and not `set: typed`. `Binding`'s setter is
+            // `@isolated(any)`, and handing it this one by name asks the
+            // compiler for a thunk between the two — which Swift 6.2.4 does not
+            // survive: it takes the whole frontend down in IR generation, with
+            // a stack trace and no diagnostic. Written out as a call, the
+            // closure is simply built at the shape wanted and no thunk exists.
             TextField(
                 "",
-                text: Binding(get: { query }, set: typed),
+                text: Binding(get: { query }, set: { typed($0) }),
                 prompt: Text("[title, artist or path]").foregroundStyle(Theme.dim)
             )
             .textFieldStyle(.plain)

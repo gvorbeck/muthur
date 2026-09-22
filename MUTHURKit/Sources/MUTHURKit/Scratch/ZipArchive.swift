@@ -51,8 +51,19 @@ public struct ZipArchive: Sendable {
 
     /// What it comes to unpacked, which is what decides whether to start at all
     /// (§2.1).
+    ///
+    /// **Saturating, not wrapping.** These are sizes the archive claims about
+    /// itself and nothing has checked them; a set of them summing past the
+    /// top of the type used to come back round as a small number and sail
+    /// through the fits-check that this figure exists to feed. Pinned at the
+    /// maximum instead, which is the honest answer — an archive claiming more
+    /// than sixteen exabytes does not fit on anything and should be refused
+    /// before a byte of it is written.
     public var unpackedSize: UInt64 {
-        files.reduce(0) { $0 &+ $1.uncompressedSize }
+        files.reduce(UInt64(0)) { total, entry in
+            let (sum, overflowed) = total.addingReportingOverflow(entry.uncompressedSize)
+            return overflowed ? UInt64.max : sum
+        }
     }
 
     /// One encrypted entry is an encrypted archive as far as this is concerned.
@@ -183,9 +194,10 @@ public struct ZipArchive: Sendable {
         // The end record is last, unless there is an archive comment, which may
         // be up to 64K. Scanned backwards for the signature, which is what every
         // reader has to do.
+        //
         let window = Int(min(size, UInt64(22 + 0xFFFF)))
         let tail = try file.read(at: size - UInt64(window), count: window)
-        guard let end = lastIndex(of: 0x0605_4b50, in: tail) else { throw ZipFailure.notAZip }
+        guard let end = endRecord(in: tail) else { throw ZipFailure.notAZip }
 
         var count = UInt64(load16(tail, end + 10))
         var directoryOffset = UInt64(load32(tail, end + 16))
@@ -298,14 +310,41 @@ public struct ZipArchive: Sendable {
 
     // MARK: - Little-endian, at an offset
 
-    private static func lastIndex(of signature: UInt32, in bytes: [UInt8]) -> Int? {
-        guard bytes.count >= 4 else { return nil }
-        var index = bytes.count - 4
+    /// Where the end record starts in `tail`, which runs to the end of the
+    /// file — or nowhere, if there is no room for one.
+    ///
+    /// The scan begins twenty-two bytes from the end rather than four, and
+    /// that is not tidiness: every field below is read at a fixed offset from
+    /// what this returns, and the only thing a bare signature promises is the
+    /// four bytes of itself. A download cut off mid-record, or any file whose
+    /// last bytes happen to read `PK\x05\x06`, would otherwise hand back an
+    /// index with nothing behind it.
+    ///
+    /// **And the last signature is not always the record.** The comment is the
+    /// last thing in the file and there is nothing it is not allowed to
+    /// contain — including those four bytes — so a backwards scan can find a
+    /// decoy that the real record is sitting in front of, and read a garbage
+    /// directory offset out of the middle of somebody's sleeve notes. The
+    /// record says how long its own comment is, and a real one runs exactly to
+    /// the end of the file; a candidate that agrees with that arithmetic is
+    /// taken over one that does not.
+    ///
+    /// The first match found is still kept and still used if none of them
+    /// agrees, because an archive with a comment length its writer got wrong
+    /// used to open here and should go on opening. This is a preference, not a
+    /// new way to refuse a file.
+    private static func endRecord(in tail: [UInt8]) -> Int? {
+        guard tail.count >= 22 else { return nil }
+        var fallback: Int?
+        var index = tail.count - 22
         while index >= 0 {
-            if load32(bytes, index) == signature { return index }
+            if load32(tail, index) == 0x0605_4b50 {
+                if Int(load16(tail, index + 20)) == tail.count - (index + 22) { return index }
+                if fallback == nil { fallback = index }
+            }
             index -= 1
         }
-        return nil
+        return fallback
     }
 }
 

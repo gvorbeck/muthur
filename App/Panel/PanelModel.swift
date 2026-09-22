@@ -210,6 +210,23 @@ final class PanelModel {
     /// swapped can cancel the fetch for the one before it.
     private var pendingSleeve: Task<Sleeve?, Never>?
 
+    /// The open in flight, held for the same reason `pendingSleeve` is: a
+    /// record being swapped has to be able to call off the one before it.
+    private var openWork: Task<Void, Never>?
+
+    /// Which open is the current one. Bumped by every `open`, carried into the
+    /// task, and checked on the way back out.
+    ///
+    /// **A cancel is asked for and not obeyed**, which is the whole reason a
+    /// number is needed as well as a handle. `SourceOpener.open` is a long
+    /// walk through a filesystem and an unpack, and it finishes what it is
+    /// doing; two overlapping opens therefore both come back, and without this
+    /// they landed in the order they *finished* rather than the order they
+    /// were asked for. A big zip opened first and then abandoned for a small
+    /// folder would take the deck back off the folder seconds later, and start
+    /// playing a record the listener had already walked away from.
+    private var openGeneration = 0
+
     /// Where a picture out of a tag gets written. Not §2's `Scratch` — that owns
     /// a pid file and a teardown and belongs with §1's source layer. This is the
     /// shortest thing that satisfies §5's "somewhere to put it", and it goes when
@@ -380,15 +397,32 @@ final class PanelModel {
         sleeve = nil
         pickerEntries = nil
         let useMusicBrainz = self.useMusicBrainz
-        Task {
+
+        openWork?.cancel()
+        openGeneration &+= 1
+        let generation = openGeneration
+        openWork = Task {
             do {
                 let opened = try await SourceOpener.open(
                     url: url, kind: kind,
                     useMusicBrainz: useMusicBrainz,
                     progress: { [weak self] stage in
-                        Task { @MainActor in self?.loading = stage }
+                        Task { @MainActor in
+                            // A stage from an open that has been overtaken has
+                            // no screen to land on — the one it would write to
+                            // belongs to the record now going on.
+                            guard let self, generation == self.openGeneration else { return }
+                            self.loading = stage
+                        }
                     }
                 )
+                // Overtaken while it was working. Nothing here goes on the
+                // panel — but the unpack it did is still on the disk, and this
+                // is the last thing that knows about it.
+                guard generation == openGeneration else {
+                    if let orphan = opened.scratch { tearDown(orphan) }
+                    return
+                }
                 // The record being replaced may have been unpacked too, and
                 // nothing else was ever going to delete its directory: `eject`
                 // tears down what it takes off, and a record opened over another
@@ -406,6 +440,10 @@ final class PanelModel {
                     replacing: replaced
                 )
             } catch {
+                // Same rule as the success: a record nobody is waiting for any
+                // more does not get to put its refusal on somebody else's
+                // screen.
+                guard generation == openGeneration else { return }
                 die("\(error)")
             }
         }
@@ -598,8 +636,18 @@ final class PanelModel {
         // And it plays. `load` is `playlist_build` with `append-play` on it
         // (`player:3259`) — see the note there. Nothing here decides to start it;
         // there is no state in which a record has been read and is not playing.
+        //
+        // Which is exactly why the failure is said out loud. `load` throws when
+        // the audio graph will not start — no output device, or CoreAudio
+        // having a moment — and swallowing that left the sentence above false
+        // in the one case that matters: a full track listing on the panel, the
+        // meters at zero, and nothing coming out of the speakers to say why.
         Task {
-            try? await engine.load(read, source: source)
+            do {
+                try await engine.load(read, source: source)
+            } catch {
+                die("CANNOT START THE DECK — \(error)")
+            }
             if let replaced { tearDown(replaced) }
             await refresh()
         }

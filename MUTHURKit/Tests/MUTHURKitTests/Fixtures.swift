@@ -127,8 +127,55 @@ enum Fixtures {
     ///
     /// Computed once. `audioZips()` shells out to `unzip` per archive, and a
     /// gate is asked more often than a fixture is.
+    ///
+    /// **This is the floor and not the gate.** It answers "could a fixture be
+    /// built here at all", which is the right question for the tools and the
+    /// wrong one for the material — see `hasSeamMaterial` below.
     static let canHuntZipFixtures: Bool =
         locate("ffmpeg") != nil && locate("ffprobe") != nil && !audioZips().isEmpty
+
+    /// **D104 — a gate asks for the material the fixture needs, by name.**
+    ///
+    /// `canHuntZipFixtures` asks whether there is *any* audio zip, and three
+    /// tests were gated on it that do not want any audio zip: two want an album
+    /// of uncompressed tracks to cut a seam out of, and one wants a rip nobody
+    /// ever tagged. On a machine whose zips are all tagged FLAC and MP3 — which
+    /// is what an ordinary collection looks like — the gate opened, the
+    /// fixtures found nothing they could use, and the three failed on every
+    /// run. A suite that is red for a reason nobody can fix by changing the
+    /// program stops being read, and these three failed on `main` for long
+    /// enough to prove it.
+    ///
+    /// **The loud half is kept exactly as it was**, and this is the point of
+    /// naming the material rather than counting it. "There is no uncompressed
+    /// album here" is the same kind of absence as "there is no ffmpeg here",
+    /// and a skip is the honest answer to both. "There is an uncompressed album
+    /// here and the fixture could not cut a seam out of it" is still a failure,
+    /// still loud, and now the only thing these gates let through — which is a
+    /// narrower and more useful alarm than the one they replace.
+    ///
+    /// The predicate is `seamZip()`, the selection itself, so the gate and the
+    /// fixture cannot come to different conclusions about the same directory —
+    /// `firstMemberIsTagged`'s note makes the same argument about the same
+    /// hazard one level down.
+    static let hasSeamMaterial: Bool = canHuntZipFixtures && seamZip() != nil
+
+    /// The other one: an album whose first member went through no tagger.
+    static let hasUntaggedMaterial: Bool =
+        canHuntZipFixtures && audioZips().contains { !firstMemberIsTagged($0) }
+
+    /// Two or more tracks, all of them uncompressed — `-c:a copy` into an AIFF
+    /// container is what `continuousSeam` cuts with, and an AIFF holds PCM and
+    /// nothing else.
+    static func seamZip() -> URL? {
+        audioZips().first { candidate in
+            let members = zipMembers(candidate)
+            return members.count >= 2
+                && members.allSatisfy {
+                    pcmExtensions.contains(URL(fileURLWithPath: $0).pathExtension.lowercased())
+                }
+        }
+    }
 
     /// **A zipped album with no tags in it, hunted rather than taken by
     /// position.**
@@ -253,16 +300,7 @@ enum Fixtures {
 
     static func continuousSeam(seconds: Int = 8) -> (before: URL, after: URL)? {
         guard let ffmpeg = locate("ffmpeg") else { return nil }
-        guard
-            let zip = audioZips().first(where: { candidate in
-                let members = zipMembers(candidate)
-                return members.count >= 2
-                    && members.allSatisfy {
-                        pcmExtensions.contains(
-                            URL(fileURLWithPath: $0).pathExtension.lowercased())
-                    }
-            })
-        else { return nil }
+        guard let zip = seamZip() else { return nil }
 
         let members = zipMembers(zip)
         let name = zip.deletingPathExtension().lastPathComponent
