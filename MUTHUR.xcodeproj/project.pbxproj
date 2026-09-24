@@ -218,7 +218,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gvorbeck.muthur;
 				PRODUCT_NAME = MUTHUR;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -241,7 +241,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gvorbeck.muthur;
 				PRODUCT_NAME = MUTHUR;
 				PROVISIONING_PROFILE_SPECIFIER = "";
