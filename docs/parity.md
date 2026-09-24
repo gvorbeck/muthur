@@ -70,9 +70,14 @@ and 36 of 43 in `hardware.md`. **The denominator moved for the tenth time, the
 ninth of them upward** — 325 → 326, for §14's settings screen: a requirement the
 window turned out to have and the script, started from a command line, never
 did. The box is ticked, so the numerator moved with it. **§19's did not move.**
-§16 is 104 → 105.
+§16 is 105 → 106.
 
-**The pass is the settings screen, and the thing it fixes is that fourteen
+**The latest pass is D106, and it moves no box** — *Check for Updates…*, under
+About, on demand only. Neither script updates itself (a shell has `git pull`),
+so there is no requirement here for it to satisfy. It is recorded as a decision
+rather than a box so the count stays a count of what the two scripts do.
+
+**The pass before was the settings screen, and the thing it fixes is that fourteen
 switches had nowhere to live but the menu bar.** Every one of them arrived
 honestly — the burn's eight, the import's five, the catalogue — and every one of
 them was forgotten at quit, so choosing ALAC or pointing the shelf at a different
@@ -108,7 +113,7 @@ now. The picker's legend also went to two rows, because `, SETTINGS` put it at
 74 of the 69 columns — measured by `KeycapTests.fits`, not guessed, which is the
 second time that test has caught arithmetic done in prose.
 
-**The pass before was a read of the whole port, and it was the first one here
+**The pass before that was a read of the whole port, and it was the first one here
 that was not about a feature.** Nothing was asked for and nothing was added; eleven
 things were found by reading the code that exists, and the two that needed a
 decision are D103 and D104. The rest are repairs, and the reason the boxes stand

@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct MUTHURApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @State private var model = PanelModel()
+    @State private var updater = Updater()
 
     var body: some Scene {
         WindowGroup("MU/TH/UR") {
@@ -75,6 +76,12 @@ struct MUTHURApp: App {
                 .disabled(model.isBurning || model.isPlanning || model.isImporting)
                 Button("Health Check") { model.check() }
                     .keyboardShortcut("k")
+                // D106. Not during a burn or an import — installing quits, and
+                // quitting under either one spoils what it is writing.
+                Button(updater.isBusy ? "Checking for Updates…" : "Check for Updates…") {
+                    updater.check(model: model)
+                }
+                .disabled(updater.isBusy || Updater.mustNotQuit(model))
             }
             CommandGroup(after: .newItem) {
                 Button("Open Record…") { model.browse() }

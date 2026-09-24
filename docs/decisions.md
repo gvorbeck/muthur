@@ -249,6 +249,12 @@ D97's test rather than by a new one — a switch that could make one run behave
 unlike the run you are watching does not persist, and the three that fail it are
 the three that can cost you a blank or an hour.
 
+**D106 has nothing on the other side to depart from.** Neither script
+updates itself — a shell has `git pull` — so *Check for Updates…* is not a
+departure from anything; it is `bootstrap.sh` run from inside the program it
+installs, on demand only, hand-rolled rather than Sparkle, and it asks the
+download `release.sh`'s own questions before it lets it stand where this one did.
+
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
 faithful in showing it — the tag names the pressing, the folder names the album,
@@ -4673,3 +4679,52 @@ one layer up.
 the test that scans the kit for environment reads had never seen them. Moving
 them into `Preferences` put them in front of it, and it failed — correctly, about
 a gap that had been there since D26 and D52.
+
+**D106 — the program can fetch its own next release, when asked.** → none; neither script updates itself
+
+Neither `player` nor `burncd` has anything to be parity with here: a script is
+updated by `git pull`, or by piping `bootstrap.sh` into a shell again, and both
+of those are things somebody at a terminal already knows how to do. A window
+opened from the Dock has no terminal behind it, so *Check for Updates…* sits
+under About beside the health check and does what `bootstrap.sh` does, in the
+same order, from inside the program it replaces: ask GitHub for
+`releases/latest`, download `MUTHUR.zip`, unpack it with `ditto`, check it, and
+put it where the running bundle stands.
+
+**On demand, never on launch.** Nothing asks GitHub anything until the item is
+picked. A program that phones home at start-up has an opinion about your network
+that nobody asked it for, and the only request this one already makes on its own
+initiative — MusicBrainz — is one somebody can turn off.
+
+**Hand-rolled, not Sparkle**, which was the other thing on offer and would have
+been the first dependency outside `CLAUDE.md`'s list. Sparkle's real value is an
+EdDSA signature on every download, and that is a key to keep and a feed to
+publish in `release.sh` for an app with two machines. Without it, the trust here
+is HTTPS and the GitHub account — the same trust `curl … bootstrap.sh | bash`
+already asks for. `codesign --verify` is still asked, because it proves the
+bundle arrived intact, though not whose it is.
+
+**The download is asked `release.sh`'s questions again at the far end**: the
+identifier is `com.gvorbeck.muthur`, the bundle's own version is the tag's, it
+verifies, and it carries a slice for *this* Mac. Only this one: `release.sh` is
+guarding every machine a release will reach, and this is guarding the one it is
+about to land on.
+
+**The swap is `sh`, started just before the program quits, and it waits for it
+to be gone.** A running bundle cannot replace itself. The new one is staged
+beside the old one on the same volume, so the moment with nothing in
+`/Applications` is a `rename` and not a copy; the destination is checked to be
+MU/TH/UR before anything is removed, `install.sh`'s rule; and every failure ends
+with the old version relaunched, because an update that did not happen is a menu
+item you can pick again and an empty space where the app was is not. The quit is
+the ordinary one: `AppDelegate` stops the engine and tears down the scratch
+exactly as ⌘Q would.
+
+**Not during a burn or an import**, and asked twice — when the menu is drawn and
+again after the download, since a burn can start while the alert is up. Quitting
+under either one spoils what it is writing.
+
+**The dialogs are `NSAlert`s, which is D105's argument read the other way.** The
+settings went on the tube because they are part of using the instrument. This is
+a question the menu bar asked about the application rather than the record, and
+it has to be answerable over whatever screen the panel is on.

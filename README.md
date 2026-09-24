@@ -75,6 +75,13 @@ Scripts/install.sh
 
 ## ▓▒░ UPDATE
 
+**From the menu:** MU/TH/UR → *Check for Updates…*. If a newer release is out,
+it downloads it, checks it, quits, swaps the bundle and reopens. It only ever
+asks GitHub when you pick the item. It won't run during a burn or an import. It
+doesn't touch `ffmpeg` or `cdrtools`; the install command above does that.
+
+**By hand:**
+
 1. **Quit MU/TH/UR.**
 2. Run the same install again. From source: `git pull`, then
    `Scripts/install.sh`.
