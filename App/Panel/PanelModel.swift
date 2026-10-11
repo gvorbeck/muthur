@@ -399,15 +399,13 @@ final class PanelModel {
             // record has been playing for several seconds and there is nowhere
             // for a return value to go, so it arrives by callback.
             let resolution = await resolver.resolve(request) { found in
-                Task { @MainActor in self.arrived(found) }
+                Task { @MainActor in self.sleeve = found }
             }
             guard !Task.isCancelled else { return }
             if let found = resolution.sleeve { sleeve = found }
             pendingSleeve = resolution.pending
         }
     }
-
-    private func arrived(_ found: Sleeve) { sleeve = found }
 
     // MARK: - The shelf (§8)
 
