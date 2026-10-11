@@ -87,3 +87,18 @@ struct OfflineSleeveTransport: SleeveTransport {
     init() {}
     func get(_ url: URL, timeout: Duration) async -> SleeveAnswer { .couldNotAsk }
 }
+
+/// A reader with the answers already in it. Every rule in §3 can be exercised
+/// through this, which is the point: the degenerate cases are degenerate
+/// *tags*, and no real file has to be manufactured to hold them.
+struct StubMetadataReader: MetadataReader {
+    let answers: [String: RawMetadata]
+
+    init(_ answers: [String: RawMetadata]) {
+        self.answers = answers
+    }
+
+    func read(_ url: URL) async -> RawMetadata {
+        answers[url.lastPathComponent] ?? RawMetadata()
+    }
+}
