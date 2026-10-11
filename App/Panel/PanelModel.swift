@@ -1356,8 +1356,6 @@ final class PanelModel {
     /// the next one, and by the screen actually opening.
     private(set) var importStatus: String?
 
-    func clearImportStatus() { importStatus = nil }
-
     /// The import screen coming off. Offered while it is still running, because
     /// unlike a burn it can be stopped — `ImportRun.discard` asks.
     func closeImport() {

@@ -41,14 +41,6 @@ final class ImportRun {
     /// thread.
     let plan: ImportPlan
 
-    /// Whether the run can still be called off — **true for its whole length
-    /// but the last frame**, which is the whole of how this differs from a
-    /// burn. `BurnRun.isWaitingForDisc` is true at one prompt and false
-    /// everywhere else, because once the laser is on there is nothing to cancel
-    /// that would not leave a coaster behind. An import leaves files, and files
-    /// can be taken back; `ImportJob.cancelled` takes them.
-    var canCancel: Bool { !finished }
-
     private let stop = ImportJob.Stop()
     private let began = Date()
     private let ejectWhenDone: Bool

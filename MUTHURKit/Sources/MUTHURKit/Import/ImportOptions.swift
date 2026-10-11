@@ -49,10 +49,6 @@ public struct ImportOptions: Sendable, Equatable, Codable {
     /// what shelves actually look like.
     public var trackStyle: ImportNames.TrackStyle
 
-    /// Whether a folder is made at all — the question the rest of the program
-    /// asks, kept as one word now that the answer has three shapes.
-    public var makesFolder: Bool { folder != .none }
-
     /// Open the drive when the last track is written.
     ///
     /// Off by default, and that is not timidity. `E EJECT` on the deck takes

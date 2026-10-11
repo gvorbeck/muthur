@@ -29,13 +29,6 @@ extension View {
     func gridLine() -> some View {
         frame(height: Theme.cell.height, alignment: .leading)
     }
-
-    /// A whole line's worth of nothing. The script printed `\n` between blocks
-    /// and the rhythm it made is doing work: without them the header, the list
-    /// and the meters read as one wall of text.
-    func panelRow() -> some View {
-        frame(maxWidth: .infinity, alignment: .leading).gridLine()
-    }
 }
 
 /// A run of grid text in one colour. Returned as `Text` rather than as a view so

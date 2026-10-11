@@ -80,31 +80,3 @@ public struct ImageIOPictureProbe: PictureProbe {
         return PictureSize(width: width, height: height)
     }
 }
-
-/// A probe with the answers already in it, keyed on the file's name.
-///
-/// Every rule in §5.1 and §5.2 is about *which* picture is picked and what
-/// happens when one will not open, and none of them needs a real JPEG to be
-/// stated — the same argument as `StubMetadataReader`.
-public struct StubPictureProbe: PictureProbe {
-    let sizes: [String: PictureSize]
-    let fallback: PictureSize?
-
-    /// Anything not named here is unreadable, which is the honest default:
-    /// most of what this is pointed at is not a picture.
-    public init(_ sizes: [String: PictureSize]) {
-        self.sizes = sizes
-        self.fallback = nil
-    }
-
-    /// Everything readable, at one size. For the tests that are about order
-    /// rather than about the floor.
-    public init(everythingIs size: PictureSize) {
-        self.sizes = [:]
-        self.fallback = size
-    }
-
-    public func size(of url: URL) -> PictureSize? {
-        sizes[url.lastPathComponent] ?? fallback
-    }
-}

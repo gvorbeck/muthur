@@ -433,8 +433,6 @@ public actor PlaybackEngine {
         "\(Int(canonical.sampleRate)) Hz · \(canonical.channelCount) ch"
     }
 
-    public var shuffledHistory: [Int] { transport.shuffledOrder?.history ?? [] }
-
     // MARK: - Transport (§6.1)
 
     /// `⏎` on a row, and the first play of a record.

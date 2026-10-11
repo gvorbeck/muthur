@@ -116,23 +116,3 @@ public struct ChainedEmbeddedPictureReader: EmbeddedPictureReader {
         return await fallback?.picture(of: url)
     }
 }
-
-/// A reader with the pictures already in it, keyed on the file's name.
-public struct StubEmbeddedPictureReader: EmbeddedPictureReader {
-    let pictures: [String: Data]
-
-    public init(_ pictures: [String: Data]) {
-        self.pictures = pictures
-    }
-
-    public func picture(of url: URL) async -> Data? {
-        pictures[url.lastPathComponent]
-    }
-}
-
-/// A reader that never has one. The ordinary case, and the one every test of
-/// what happens *after* the tags needs.
-public struct NoEmbeddedPictures: EmbeddedPictureReader {
-    public init() {}
-    public func picture(of url: URL) async -> Data? { nil }
-}
