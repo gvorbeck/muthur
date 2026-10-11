@@ -171,15 +171,15 @@ before uploading.
 
 ```
 SELF TEST ──────────────────────────────────────────────
-PARITY     █████████████████████████████▒  322 / 326
+PARITY     █████████████████████████████▒  323 / 326
 HARDWARE   █████████████████████████▒░░░░   36 / 43
 ```
 
-The four open parity items need hardware, not code:
+The three open parity items need hardware, not code. Two are written and
+unseen, one is untried:
 
 - Headphones unplugged → pause (plus AirPlay)
 - Hi-res output sample rate
-- An Opus/Ogg file that needs ffmpeg
 - Resuming a burn at disc 2 (needs two blanks)
 
 Parity counts what the two bash scripts do, so **importing a disc adds nothing

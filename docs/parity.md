@@ -16,7 +16,7 @@ Three kinds of entry:
 - **(terminal)** — exists only because the display is a character grid. Listed so
   the reasoning behind it is on record, not so it gets rebuilt.
 - **Changed from bash (Dn)** — a deliberate departure from the script, carrying
-  the reasoning and the decision it came from. All hundred and five are settled;
+  the reasoning and the decision it came from. All hundred and seven are settled;
   they are §16, and §16 is now `decisions.md`, so that a difference from `player` is
   never later mistaken for a porting mistake without having to be read past to
   get to the next requirement. *(This number has now drifted twice in the same
@@ -63,16 +63,24 @@ part worth porting.
 
 ## Status
 
-**322 of 326 boxes** outside §19 (§19 is a procedure, not boxes, and is not
+**323 of 326 boxes** outside §19 (§19 is a procedure, not boxes, and is not
 counted; it stands separately at 36 of 43). Re-derived by counting the files:
-318 ticked and 4 open here, plus the 4 that live inside D8 in `decisions.md`,
-and 36 of 43 in `hardware.md`. **The denominator moved for the tenth time, the
-ninth of them upward** — 325 → 326, for §14's settings screen: a requirement the
-window turned out to have and the script, started from a command line, never
-did. The box is ticked, so the numerator moved with it. **§19's did not move.**
-§16 is 105 → 106.
+319 ticked and 3 open here, plus the 4 that live inside D8 in `decisions.md`,
+and 36 of 43 in `hardware.md`. **The denominator did not move; the numerator
+did, 322 → 323**, because the ffmpeg fallback box is ticked: a real Opus file
+goes through it in `CrossDecoderSeamTests` and joins a WAV with no frame lost
+and no step at the join. **§19's did not move.** §16 is 106 → 107.
 
-**The latest pass is D106, and it moves no box** — *Check for Updates…*, under
+**The latest pass is D107, and it moves no box** — a mixer (bass, mid, treble)
+on the settings screen. Neither script has a tone control; mpv was handed a file
+and the speakers were somebody else's problem. It is recorded as a decision for
+D106's reason, so the count stays a count of what the two scripts do. **The same
+pass wrote the two §14 boxes that were open for code and not only for hardware**
+— pausing when the output device goes away, and putting the device on the
+record's sample rate — and left both of them open: each is written and builds,
+and neither has been seen with the headphones in somebody's hand.
+
+**The pass before it was D106, and it moves no box** — *Check for Updates…*, under
 About, on demand only. Neither script updates itself (a shell has `git pull`),
 so there is no requirement here for it to satisfy. It is recorded as a decision
 rather than a box so the count stays a count of what the two scripts do.
@@ -275,14 +283,16 @@ does D94**: a five-line mini player, with the sleeve, the track and `◀◀` `�
 `▶▶`, at the foot of the library, the check, the plan and the burn while a
 record is playing. Neither script has a screen that goes over the deck.
 
-Everything waiting on hardware — the four boxes below and §19's seven — is also
+Everything waiting on hardware — the three boxes below and §19's seven — is also
 written out as a plain checklist in `TODO.md` at the top of the repository, for
 whoever is next at the machine with the burner.
 
-**The four open ones are three and one, and not one of them is waiting on code
-being written.** Three are §14's, blocked on hardware and material as they have
-always been: AirPlay's unplug, hi-res output switching, and an Opus or Ogg file
-to make the ffmpeg fallback fail on. The last is what is left of §20's stage 3b:
+**The three open ones are two and one.** Two are §14's, **written now and
+waiting on a person with the hardware**: AirPlay's unplug (a configuration change
+that moves the output comes back paused) and hi-res output switching (the device
+follows the record's rate and gives its own back). The ffmpeg box came off this
+list — the Opus file it was waiting for turned out to be one `ffmpeg` can make.
+The last is what is left of §20's stage 3b:
 `--from-disc n`, which is written and tested everywhere above the drive — a
 resumed disc is byte-identical to the same disc in a whole-job run — and needs
 two blanks to be exercised where it matters. There is one blank in this building
@@ -312,7 +322,7 @@ and said out loud on the plan screen so the program is never quietly disagreeing
 with what is on disk. It is the first thing in the port that outranks the tags,
 and the entry argues why a person should.
 
-All four are open rather than absent for the reason §14's have always been:
+All three are open rather than absent for the reason §14's have always been:
 a green box over a path that yields nothing is worse than an honest empty one.
 **This census belongs to the count above it** — re-deriving one without
 re-reading the other is how the sentence goes stale while the number stays
@@ -3309,8 +3319,16 @@ look for a line in the script to justify any of it; there is none.
       the app is no longer playing. The transport buttons were confirmed by
       hand.
 - [ ] AirPlay and correct route handling — **unplugging headphones pauses, it
-      does not blast**.
-- [ ] Output sample-rate switching for hi-res material.
+      does not blast**. **Written, not yet seen.** A configuration change that
+      moves the default output (`AudioRoute.current()` differs from the name the
+      graph started on) brings the record back `PAUSED`, set before the restart
+      so the node never runs on the new device; a change on the same device —
+      a rate switch — still resumes. Open for the headphones.
+- [ ] Output sample-rate switching for hi-res material. **Written, not yet
+      seen.** Before `engine.start()` the default output is put on the record's
+      canonical rate if the device lists it, and given back when the record
+      comes off; `Match Output Rate` on the settings screen turns it off.
+      Open for a hi-res record and a DAC to hear it on.
 - [x] Dock icon, its own Cmd-Tab identity, album art in the Dock while playing.
       **Two clauses seen on screen, and the third withdrawn on purpose
       (D49).** `App/MUTHUR.icns` is a **placeholder** generated from `Theme` —
@@ -3334,8 +3352,10 @@ look for a line in the script to justify any of it; there is none.
       of a Dock, not easier. The sleeve still goes to the system — `NowPlaying`,
       Control Center, the lock screen — because that is the other job, and it is
       the one the cover is actually for.
-- [ ] ffmpeg as a *fallback* decoder only, for what AVFoundation will not take
-      (notably Opus and Ogg).
+- [x] ffmpeg as a *fallback* decoder only, for what AVFoundation will not take
+      (notably Opus and Ogg). `CrossDecoderSeamTests` writes a real Opus file
+      with `ffmpeg` and plays WAV → Opus through the engine: no frames lost and
+      no step at the join, with Opus's own codec error as the floor.
 - [x] Drag-scrubbing on both meters (the terminal could not do it) — §6.4, and
       the clickable keycaps (**D30**) are the same argument finished.
 - [x] **`BROWSE` on the picker — a record from outside the search path.** A new

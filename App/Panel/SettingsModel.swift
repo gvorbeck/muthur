@@ -84,6 +84,23 @@ enum SettingsScreen {
         sheet.note("A failing tube is a picture, never a sound.")
 
         sheet.blank()
+        sheet.heading("THE MIXER")
+        let tone = settings.preferences.tone
+        sheet.choice("Bass", Tone.Gain.all, tone.bass, \.label) { gain in
+            model.setTone { $0.bass = gain }
+        }
+        sheet.choice("Mid", Tone.Gain.all, tone.mid, \.label) { gain in
+            model.setTone { $0.mid = gain }
+        }
+        sheet.choice("Treble", Tone.Gain.all, tone.treble, \.label) { gain in
+            model.setTone { $0.treble = gain }
+        }
+        sheet.toggle("Match Output Rate", settings.preferences.matchOutputRate) { on in
+            model.setMatchOutputRate(on)
+        }
+        sheet.note("Tone is heard, not analysed. Rate applies from the next record.")
+
+        sheet.blank()
         sheet.heading("THE SHELF")
         sheet.chooser("Catalogue", path(CatalogueFile.locate().url)) { step in
             // `←` off the picked file, anything else onto a new one. The kit's

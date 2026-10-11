@@ -61,8 +61,10 @@ disc:**
       output.
 - [ ] **A hi-res file** (for example 24-bit/96 kHz): the output sample rate
       follows it.
-- [ ] **An Opus or Ogg file** that AVFoundation will not open: it plays through
-      ffmpeg instead.
+- [x] **An Opus or Ogg file** that AVFoundation will not open: it plays through
+      ffmpeg instead. (`CrossDecoderSeamTests` covers it.)
+- [ ] **The mixer:** Settings → THE MIXER. Turn Bass up and listen; set it back
+      to FLAT and the sound should be what it was.
 
 ## Tests that need a file on this machine
 

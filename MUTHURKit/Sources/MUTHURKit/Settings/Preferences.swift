@@ -37,6 +37,18 @@ public struct Preferences: Sendable, Equatable, Codable {
     /// `MUTHUR_COMPOSITION` — what is under the last track (D26).
     public var composition: Composition
 
+    // MARK: - The mixer
+
+    /// Bass, mid and treble. Flat by default, and persisted: a deck left with
+    /// the bass up is up when you come back, like the volume (D1).
+    public var tone: Tone
+
+    /// Switch the output device to the record's sample rate while it plays, so a
+    /// 96k record is not resampled to 48k on the way out. It changes a device
+    /// other apps may share, so it is a switch; the device's own rate is put
+    /// back when the record comes off.
+    public var matchOutputRate: Bool
+
     // MARK: - The network
 
     /// `MUTHUR_NO_MB`, the right way up.
@@ -79,8 +91,12 @@ public struct Preferences: Sendable, Equatable, Codable {
         composition: Composition = .runout,
         useMusicBrainz: Bool = true,
         keepScratch: Bool = false,
-        work: String? = nil
+        work: String? = nil,
+        tone: Tone = Tone(),
+        matchOutputRate: Bool = true
     ) {
+        self.tone = tone
+        self.matchOutputRate = matchOutputRate
         self.faults = faults
         self.lettering = lettering
         self.numerals = numerals
@@ -232,5 +248,7 @@ public struct Preferences: Sendable, Equatable, Codable {
         self.useMusicBrainz = (try? box.decode(Bool.self, forKey: .useMusicBrainz)) ?? true
         self.keepScratch = (try? box.decode(Bool.self, forKey: .keepScratch)) ?? false
         self.work = try? box.decode(String.self, forKey: .work)
+        self.tone = (try? box.decode(Tone.self, forKey: .tone)) ?? Tone()
+        self.matchOutputRate = (try? box.decode(Bool.self, forKey: .matchOutputRate)) ?? true
     }
 }

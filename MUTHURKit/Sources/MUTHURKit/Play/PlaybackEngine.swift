@@ -89,7 +89,20 @@ public actor PlaybackEngine {
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
+    /// The mixer's three bands, between the player and the main mixer — and so
+    /// after the analyser's tap, which hears the record as mastered (§9).
+    private let eq = AVAudioUnitEQ(numberOfBands: 3)
+    private var tone = Tone()
+    /// The default output's name when the graph was last started, so a
+    /// configuration change can tell a device that went away from a device that
+    /// merely changed its mind about a sample rate.
+    private var routeName: String?
     private let offline: Bool
+    /// §11: follow the record's rate on the output device, and give the device
+    /// back its own when the record comes off. `originalRate` is nil unless we
+    /// moved it, which is what keeps us from "restoring" a rate we never changed.
+    private var matchOutputRate = true
+    private var originalRate: Double?
     private var running = false
     /// §18's route-change recovery. Lives for the actor's whole lifetime, not
     /// just while a graph is running: a device switch between records would
@@ -174,6 +187,50 @@ public actor PlaybackEngine {
 
     public init(offline: Bool = false) {
         self.offline = offline
+        let bands: [(AVAudioUnitEQFilterType, Float)] = [
+            (.lowShelf, 100), (.parametric, 1000), (.highShelf, 8000),
+        ]
+        for (band, (type, frequency)) in zip(eq.bands, bands) {
+            band.filterType = type
+            band.frequency = frequency
+            band.bandwidth = 1
+            band.bypass = false
+        }
+        eq.bypass = true
+    }
+
+    public func setMatchOutputRate(_ on: Bool) { matchOutputRate = on }
+
+    /// Before `engine.start()`, so the device is already at the new rate when
+    /// the output node reads it — doing it after would post a configuration
+    /// change and `recover` would restart the record over our own doing.
+    private func matchDevice() {
+        guard matchOutputRate, !offline, originalRate == nil, let was = AudioRoute.nominalRate(),
+            AudioRoute.setNominalRate(canonical.sampleRate)
+        else { return }
+        originalRate = was
+    }
+
+    private func restoreDevice() {
+        guard let was = originalRate else { return }
+        originalRate = nil
+        AudioRoute.setNominalRate(was)
+    }
+
+    /// The mixer. Live: the filters are parameters on a node already in the
+    /// graph, so nothing restarts and the seam is untouched.
+    public func setTone(_ next: Tone) {
+        tone = next
+        eq.bands[0].gain = Float(next.bass.decibels)
+        eq.bands[1].gain = Float(next.mid.decibels)
+        eq.bands[2].gain = Float(next.treble.decibels)
+        eq.bypass = next.isFlat
+    }
+
+    /// player → eq → main mixer, the one place the chain is spelled.
+    private func connectChain() {
+        engine.connect(player, to: eq, format: canonical)
+        engine.connect(eq, to: engine.mainMixerNode, format: canonical)
     }
 
     deinit {
@@ -270,6 +327,7 @@ public actor PlaybackEngine {
     /// makes the *next* error unreadable is the worst kind to leave untested.
     private func startGraph() throws {
         engine.attach(player)
+        engine.attach(eq)
         do {
             if offline {
                 try engine.enableManualRenderingMode(
@@ -280,16 +338,21 @@ public actor PlaybackEngine {
             // Through the main mixer, not straight to the output: §6.1a's gain is
             // *ours*, not the system's, and §9's analyser tap wants a node between
             // the player and the speakers to hang off.
-            engine.connect(player, to: engine.mainMixerNode, format: canonical)
+            connectChain()
             applyGain()
+            matchDevice()
             try engine.start()
         } catch {
+            restoreDevice()
             engine.disconnectNodeOutput(player)
+            engine.disconnectNodeOutput(eq)
             engine.detach(player)
+            engine.detach(eq)
             if engine.manualRenderingMode != .realtime { engine.disableManualRenderingMode() }
             throw error
         }
         running = true
+        routeName = offline ? nil : AudioRoute.current()
         listener?.tap(player)
         startConfigWatcherIfNeeded()
     }
@@ -314,8 +377,9 @@ public actor PlaybackEngine {
         listener?.untap(player)
         player.stop()
         engine.disconnectNodeOutput(player)
+        engine.disconnectNodeOutput(eq)
 
-        engine.connect(player, to: engine.mainMixerNode, format: canonical)
+        connectChain()
         applyGain()
 
         do {
@@ -327,6 +391,13 @@ public actor PlaybackEngine {
         }
 
         listener?.tap(player)
+
+        // §11: headphones pulled, or AirPlay dropped, means the same record is
+        // about to come out of a different and probably louder device. It comes
+        // back paused, set *before* the restart so the node is never started.
+        let route = AudioRoute.current()
+        if route != routeName, mode == .playing { mode = .paused }
+        routeName = route
 
         switch mode {
         case .playing, .paused:
@@ -376,8 +447,11 @@ public actor PlaybackEngine {
             player.stop()
             engine.stop()
             engine.disconnectNodeOutput(player)
+            engine.disconnectNodeOutput(eq)
             engine.detach(player)
+            engine.detach(eq)
             if engine.manualRenderingMode != .realtime { engine.disableManualRenderingMode() }
+            restoreDevice()
             running = false
         }
         feeder?.close()

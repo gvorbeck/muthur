@@ -475,7 +475,10 @@ final class PanelModel {
         let defaults = UserDefaults.standard
         let volume = defaults.object(forKey: Self.volumeKey) as? Double
         let muted = defaults.bool(forKey: Self.mutedKey)
+        let tone = SettingsStore.shared.preferences.tone
         Task {
+            await engine.setTone(tone)
+            await engine.setMatchOutputRate(SettingsStore.shared.preferences.matchOutputRate)
             await engine.setVolume(Float(volume ?? 1))
             if muted { await engine.toggleMute() }
             await engine.listen(analyser)
@@ -1166,6 +1169,19 @@ final class PanelModel {
 
     /// Every switch but `Split Long Tracks` and `Start at Disc`, which change
     /// the plan and are below.
+    func setMatchOutputRate(_ on: Bool) {
+        SettingsStore.shared.edit { $0.matchOutputRate = on }
+        Task { await engine.setMatchOutputRate(on) }
+    }
+
+    /// The mixer: saved with the other preferences, heard at once.
+    func setTone(_ change: (inout Tone) -> Void) {
+        var next = SettingsStore.shared.preferences.tone
+        change(&next)
+        SettingsStore.shared.edit { $0.tone = next }
+        Task { await engine.setTone(next) }
+    }
+
     func setBurnOptions(_ change: (inout BurnOptions) -> Void) {
         guard canSetBurnOptions else { return }
         var next = burnOptions

@@ -31,7 +31,7 @@ are one instrument at two moments of the same disc. All three are read-only.
 
 Raised before the code they touch was written, per `CLAUDE.md` — where a
 decision in the script looks wrong, flag it rather than silently improve it. All
-hundred and five are settled. Recorded here with the answer so that a departure from
+hundred and seven are settled. Recorded here with the answer so that a departure from
 the script is never mistaken later for a porting mistake.
 
 D1–D8 were settled before any code existed. D9–D12 answer §18.2, §18.12, §18.14
@@ -254,6 +254,11 @@ updates itself — a shell has `git pull` — so *Check for Updates…* is not a
 departure from anything; it is `bootstrap.sh` run from inside the program it
 installs, on demand only, hand-rolled rather than Sparkle, and it asks the
 download `release.sh`'s own questions before it lets it stand where this one did.
+
+**D107 has nothing on the other side to depart from either.** `player` hands
+mpv a file and has no tone control, so the mixer — bass, mid, treble, in 2 dB
+steps to ±12 — is an addition. It sits after the analyser's tap and is bypassed
+when flat, so the seam and §9 are untouched at their default.
 
 **D85 is the year on the panel being the year you meant.** `2001 - Drukqs.zip`
 shows `Aphex Twin (2017)` because 33 of its 35 files say so, and the port is
@@ -4728,3 +4733,31 @@ under either one spoils what it is writing.
 settings went on the tube because they are part of using the instrument. This is
 a question the menu bar asked about the application rather than the record, and
 it has to be answerable over whatever screen the panel is on.
+
+**D107 — a mixer: bass, mid and treble, after the analyser and before the volume.** → none; neither script has a tone control
+
+`player` gives mpv a file and mpv gives the system a stream, and nothing between
+them is the listener's. A window with its own gain stage (§6.1a) can offer the
+rest of a console, and the first three knobs on one are tone.
+
+**Three bands on one `AVAudioUnitEQ`**: a low shelf at 100 Hz, a parametric band
+at 1 kHz, a high shelf at 8 kHz. AVFoundation, so no dependency beyond
+`CLAUDE.md`'s list. **Whole decibels in steps of two, ±12**, because the settings
+screen's rocker walks an enumerated list and twenty-five stops is a long walk
+back to flat; past 12 dB a shelf is clipping and not tone.
+
+**After the analyser's tap and before the main mixer.** §9 reads the record as
+mastered whatever the knobs do, for §6.1a's reason: turning the bass up should
+not make the columns say something about the music. **Flat bypasses the node**
+rather than setting it to 0 dB, because a filter at unity is still a filter and
+the gapless suites compare samples.
+
+**It persists** in `Preferences`, with the volume's reasoning (D1): a deck left
+with the bass up is up when you come back. A save from before the mixer decodes
+flat. It is on the settings screen under THE MIXER and nowhere else — there is no
+key for it, and none is proposed.
+
+**The same pass added `Match Output Rate`**, which is not a departure from
+anything: it is §14's hi-res box, written. It changes a device other apps may
+share, so it is a switch; the device's own rate is put back when the record comes
+off, and a crash leaves it where the record put it.
