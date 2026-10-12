@@ -104,6 +104,12 @@ public actor PlaybackEngine {
     private var matchOutputRate = true
     private var originalRate: Double?
     private var running = false
+    /// When the deck last stopped playing with the engine still hot. A running
+    /// engine holds the output device open and renders silence, which keeps
+    /// coreaudiod busy and the Mac from sleeping; so a deck that has sat
+    /// paused, stopped or finished for `idleSleep` lets the hardware go.
+    private var idleSince: Date?
+    private static let idleSleep: TimeInterval = 10
     /// §18's route-change recovery. Lives for the actor's whole lifetime, not
     /// just while a graph is running: a device switch between records would
     /// otherwise leave the engine stopped when the next `load` tries to start
@@ -527,7 +533,7 @@ public actor PlaybackEngine {
         case .playing: break
         case .paused:
             mode = .playing
-            player.play()
+            startPlayer()
         case .stopped, .finished:
             pick(row: currentRow)
         }
@@ -560,7 +566,7 @@ public actor PlaybackEngine {
             player.pause()
         case .paused:
             mode = .playing
-            player.play()
+            startPlayer()
         case .stopped, .finished:
             break
         }
@@ -800,9 +806,25 @@ public actor PlaybackEngine {
         // to pump — and asking a detached node what time it is raises rather
         // than answering.
         guard running else { return }
+        sleepIfIdle()
         serviceSeek()
         fill()
         observe()
+    }
+
+    private func sleepIfIdle() {
+        guard !offline else { return }
+        guard mode != .playing, engine.isRunning else { idleSince = nil; return }
+        let since = idleSince ?? Date()
+        idleSince = since
+        if Date().timeIntervalSince(since) >= PlaybackEngine.idleSleep { engine.stop(); idleSince = nil }
+    }
+
+    /// Every path to sound goes through here, so a sleeping engine wakes first.
+    private func startPlayer() {
+        idleSince = nil
+        if !offline, !engine.isRunning { try? engine.start() }
+        player.play()
     }
 
     private func fill() {
@@ -967,7 +989,7 @@ public actor PlaybackEngine {
         }
 
         fill()
-        if mode == .playing { player.play() }
+        if mode == .playing { startPlayer() }
         observe()
     }
 
