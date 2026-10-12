@@ -154,7 +154,9 @@ struct PreferencesTests {
         // Compared by resolved path: `$TMPDIR` is under `/var`, which is a
         // symlink to `/private/var`, and `workBase` hands back whichever form
         // it was given.
-        #expect(base.url.resolvingSymlinksInPath() == chosen.resolvingSymlinksInPath())
+        // `.path` and not the URL: one carries a trailing slash as a directory
+        // and the other does not, and URL equality sees that.
+        #expect(base.url.resolvingSymlinksInPath().path == chosen.resolvingSymlinksInPath().path)
     }
 
     @Test("a real variable still beats the setting on the way out")
