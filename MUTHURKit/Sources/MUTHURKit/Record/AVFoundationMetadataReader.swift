@@ -78,7 +78,11 @@ public struct AVFoundationMetadataReader: MetadataReader {
             case "ARTIST", "ART", "TPE1", "INFOARTIST": self = .artist
             case "ALBUMARTIST", "ALBUMARTIST0", "AART", "TPE2": self = .albumArtist
             case "DATE", "YEAR", "ORIGINALYEAR", "DAY", "TDRC", "TYER", "TDOR", "TORY",
-                "INFOYEAR", "INFORECORDINGDATE":
+                "INFOYEAR", "INFORECORDINGDATE",
+                // `©day` as the identifier spells it — `%A9day`, a lone 0xA9 byte
+                // that is not valid UTF-8 and so never percent-decodes. The title,
+                // artist and album atoms only match because they have common keys.
+                "A9DAY":
                 self = .date
             default:
                 // Fall back on what AVFoundation itself thinks the item is,
